@@ -4,7 +4,7 @@
 <p align="center"><b>Fast, MCU-safe LED effects for Klipper with a web controller and live 3D printer preview.</b></p>
 <p align="center">Design your printer's LEDs on a page instead of in config files. Drives NeoPixel, WLED and ESP32 strips without "Timer too close" errors.</p>
 
-<h3 align="center"><a href="https://oznlab.com/lightspeed/">▶ Open the live demo</a></h3>
+<h3 align="center"><a href="https://oznlab.com/lightspeed-demo/">▶ Open the live demo</a></h3>
 <p align="center">No install. Pick a printer, place your strips and watch every printer state light up in 3D.<br><a href="#install">Install Lightspeed</a> · <a href="https://github.com/ozancs/lightspeed/issues">Share feedback</a></p>
 
 <p align="center">
@@ -47,19 +47,19 @@ These are screenshots of the page. Click one to open the live demo.
 
 ### Your printer, your strips
 
-[![The Lightspeed page with a Voron 2.4 printing](docs/screenshots/designer.png)](https://oznlab.com/lightspeed/)
+[![The Lightspeed page with a Voron 2.4 printing](docs/screenshots/designer.png)](https://oznlab.com/lightspeed-demo/)
 
 ### Every state, every strip
 
-[![Scenes: the effect of each strip in the heating state](docs/screenshots/scenes.png)](https://oznlab.com/lightspeed/)
+[![Scenes: the effect of each strip in the heating state](docs/screenshots/scenes.png)](https://oznlab.com/lightspeed-demo/)
 
 ### Many printers
 
-[![Rat Rig V-Core 3.1 with the printer settings](docs/screenshots/printers.png)](https://oznlab.com/lightspeed/)
+[![Rat Rig V-Core 3.1 with the printer settings](docs/screenshots/printers.png)](https://oznlab.com/lightspeed-demo/)
 
 ### Load on the MCU
 
-[![Load: what each output costs the MCU](docs/screenshots/load.png)](https://oznlab.com/lightspeed/)
+[![Load: what each output costs the MCU](docs/screenshots/load.png)](https://oznlab.com/lightspeed-demo/)
 
 ## Install
 
