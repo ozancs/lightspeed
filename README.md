@@ -139,7 +139,7 @@ The printer and toolhead models are built from the makers' published CAD with th
 | Ender-3 | Creality | GPL-3.0 |
 | Rat Rig V-Core 3.1 | Rat Rig | CC BY-NC-SA 4.0 (non-commercial) |
 | VzBot Vz-330 | VzBoT3D | CC BY-NC 4.0 (non-commercial) |
-| RX toolhead | oznlab | © oznlab |
+| RX toolhead (v5) | [Raidy on Printables](https://www.printables.com/model/1779906-rx-toolhead-v5-using-bambu-h2sa1-gear-h2d-hotend) | see the Printables page |
 
 The Rat Rig and VzBot models are for non-commercial use only. The page uses [three.js](https://threejs.org) (MIT).
 
