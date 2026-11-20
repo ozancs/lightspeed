@@ -379,7 +379,7 @@ p.lead { margin:6px 0 0; color:var(--dim); font-size:13px; max-width:62ch; }
 .strip { border:1px solid var(--rule); border-radius:10px; background:var(--sheet); }
 .strip.sel { border-color:var(--sig); box-shadow:0 0 0 1px var(--sig) inset; }
 .strip > header { display:flex; align-items:center; gap:10px; padding:9px 12px; cursor:pointer; }
-.strip > header .dotrow { display:flex; gap:2px; width:72px; flex:none; }
+.strip > header .dotrow { display:flex; gap:2px; min-width:7px; flex:none; }
 .strip > header .dotrow i { width:7px; height:7px; border-radius:50%; box-shadow:0 0 0 1px var(--rule); }
 .strip > header b { font-weight:700; }
 .strip > header .meta { color:var(--dim); font-size:12px; margin-left:auto; text-align:right; }
@@ -405,6 +405,8 @@ p.lead { margin:6px 0 0; color:var(--dim); font-size:13px; max-width:62ch; }
 .fx .params > label { color:var(--dim); font-size:12px; }
 .fx .params > .swatch, .fx .params > .seg, .fx .params > .switch { justify-self:start; }
 .fx .spec { font:12px var(--mono); color:var(--dim); overflow-wrap:anywhere; }
+.fx .spec.raw { display:none; }  /* the config text of a scene line lives in the Config tab */
+.fx.allrow.unset { background:none; } .fx.allrow.unset .preview, .fx.allrow.unset .spec { display:none; }  /* "All strips" unset: one quiet line */
 .preview { height:10px; border-radius:5px; display:flex; overflow:hidden; border:1px solid var(--rule); }
 .preview i { flex:1; }
 
@@ -615,10 +617,10 @@ const I18N = {
     addStrip: 'Add strip', removeStrip: 'Remove', name: 'Name', place: 'Place', count: 'LED count', output: 'Output', chain: 'Klipper chain', chainHint: 'Name of the [neopixel] / [dotstar] section', leds: 'LEDs of the chain', ip: 'WLED address', start: 'First LED on WLED', prefix: 'Bridge prefix',
     noStrips: 'No strips yet. Add one to start.',
     e_name: 'Lowercase letters, digits and _ only.', e_dup: 'Another strip has this name.', e_count: 'Between 1 and 500.', e_chain: 'Chain name is needed (letters, digits, _).', e_leds: 'Use a range like 1-3 (first LED is 1).', e_ip: 'Enter an IP address like 192.168.1.60 (optional :port).', e_prefix: 'Prefix is needed (letters, digits, _).', e_start: '0 or more.',
-    sc_title: 'Scenes', sc_lead: 'A scene says what every strip shows in one printer state. Pick the state to edit; the 3D view follows the simulated state chosen at the top.',
+    sc_title: 'Scenes', sc_lead: 'What every strip shows in one printer state. Pick the state with the chips at the top; the 3D view shows it.',
     editing: 'Editing', testState: 'Test',
     allStrips: 'All strips', allHint: 'Every strip this scene does not name',
-    notSet: 'Not set: uses "All strips"', notSetAll: 'Not set: unnamed strips stay off',
+    notSet: 'Not set: uses "All strips"', notSetAll: 'Not set: others stay off',
     useDefaults: 'Use defaults', removeScene: 'Remove scene', createScene: 'Create scene',
     fallsBack: (s, r) => r ? `No scene for ${s}: it shows the <b>${r}</b> scene.` : `No scene for ${s}: all strips stay off.`,
     noScenesAtAll: 'This project has no scene sections, so the built-in default scenes are used for every state.',
@@ -637,7 +639,7 @@ const I18N = {
     importT: 'Import', importLead: 'Paste a lightspeed.cfg to load it into the page.', importBtn: 'Import', imported: 'Config imported.',
     importErr: n => `Not imported: ${n} error(s).`, line: n => `line ${n}`, warnings: 'Warnings',
     fixFirst: n => `${n} problem(s) in the strips: the config may not load on the printer until they are fixed.`,
-    lv_title: 'Live', lv_lead: 'Talk to the printer through Moonraker. Leave the address empty when this page is opened from the printer (Mainsail / Fluidd).',
+    lv_title: 'Live', lv_lead: 'The connection to this printer. To work on another printer, pick it in the printer menu at the top.',
     addr: 'Printer address', addrPh: 'empty = this page\'s server, or e.g. 192.168.1.100', connect: 'Connect', connecting: 'Connecting…',
     fromDisk: 'This page is opened from disk: enter the printer address.',
     preview: 'Preview on printer', previewHint: 'Effect edits and state chips are shown on the printer too; when the state preview ends (or you press its ✕) the printer goes back to normal.',
@@ -715,10 +717,10 @@ const I18N = {
     addStrip: 'Şerit ekle', removeStrip: 'Kaldır', name: 'Ad', place: 'Yer', count: 'LED sayısı', output: 'Çıkış', chain: 'Klipper zinciri', chainHint: '[neopixel] / [dotstar] bölümünün adı', leds: 'Zincirdeki LED\'ler', ip: 'WLED adresi', start: 'WLED\'deki ilk LED', prefix: 'Köprü öneki',
     noStrips: 'Henüz şerit yok. Başlamak için bir tane ekleyin.',
     e_name: 'Yalnızca küçük harf, rakam ve _ kullanın.', e_dup: 'Bu ad başka bir şeritte kullanılıyor.', e_count: '1 ile 500 arasında olmalı.', e_chain: 'Zincir adı gerekli (harf, rakam, _).', e_leds: '1-3 gibi bir aralık yazın (ilk LED 1\'dir).', e_ip: '192.168.1.60 gibi bir IP adresi yazın (isteğe bağlı :port).', e_prefix: 'Önek gerekli (harf, rakam, _).', e_start: '0 veya daha büyük olmalı.',
-    sc_title: 'Sahneler', sc_lead: 'Sahne, yazıcı bir durumdayken her şeridin ne göstereceğini belirler. Düzenlenecek durumu seçin; 3B görünüm üstte seçilen simülasyon durumunu izler.',
+    sc_title: 'Sahneler', sc_lead: 'Yazıcı bir durumdayken her şeridin ne gösterdiği. Durumu üstteki çiplerden seçin; 3B görünüm onu gösterir.',
     editing: 'Düzenlenen', testState: 'Test et',
     allStrips: 'Tüm şeritler', allHint: 'Bu sahnede adı geçmeyen her şerit',
-    notSet: 'Ayarlanmadı: "Tüm şeritler" kullanılır', notSetAll: 'Ayarlanmadı: adı geçmeyen şeritler kapalı kalır',
+    notSet: 'Ayarlanmadı: "Tüm şeritler" kullanılır', notSetAll: 'Ayarlanmadı: diğerleri kapalı',
     useDefaults: 'Varsayılanları kullan', removeScene: 'Sahneyi kaldır', createScene: 'Sahne oluştur',
     fallsBack: (s, r) => r ? `${s} için sahne yok: <b>${r}</b> sahnesi gösterilir.` : `${s} için sahne yok: tüm şeritler kapalı kalır.`,
     noScenesAtAll: 'Bu projede sahne bölümü yok, bu yüzden her durumda yerleşik varsayılan sahneler kullanılır.',
@@ -737,7 +739,7 @@ const I18N = {
     importT: 'İçe aktar', importLead: 'Sayfaya yüklemek için bir lightspeed.cfg yapıştırın.', importBtn: 'İçe aktar', imported: 'Ayar dosyası içe aktarıldı.',
     importErr: n => `İçe aktarılmadı: ${n} hata.`, line: n => `satır ${n}`, warnings: 'Uyarılar',
     fixFirst: n => `Şeritlerde ${n} sorun var: düzeltilene kadar ayar dosyası yazıcıda yüklenmeyebilir.`,
-    lv_title: 'Canlı', lv_lead: 'Yazıcıyla Moonraker üzerinden konuşur. Sayfa yazıcıdan (Mainsail / Fluidd) açıldıysa adresi boş bırakın.',
+    lv_title: 'Canlı', lv_lead: 'Bu yazıcıyla bağlantı. Başka bir yazıcıda çalışmak için üstteki yazıcı menüsünden seçin.',
     addr: 'Yazıcı adresi', addrPh: 'boş = bu sayfanın sunucusu, ya da örn. 192.168.1.100', connect: 'Bağlan', connecting: 'Bağlanıyor…',
     fromDisk: 'Bu sayfa diskten açıldı: yazıcının adresini girin.',
     preview: 'Yazıcıda önizle', previewHint: 'Efekt değişiklikleri ve durum düğmeleri yazıcıda da görünür; durum önizlemesi bitince (ya da ✕ düğmesine basınca) yazıcı normale döner.',
@@ -5227,11 +5229,11 @@ function fxRow(key, sc, label, sub) {
   const pin = isPinKey(key), pinA = pin ? ` data-pin="${esc(key)}"` : '';
   const fxName = n => pin && n === 'solid' ? t.pinOn : t.effects[n];
   const pc = spec ? paramControls(spec, pin, isEspKey(key)) : '';
-  return `<div class="fx${isAll ? ' allrow' : ''}" data-key="${esc(key)}">
+  return `<div class="fx${isAll ? ' allrow' : ''}${isAll && !spec ? ' unset' : ''}" data-key="${esc(key)}">
     <div class="head"><div class="who"><b>${esc(label)}</b><small>${esc(sub)}</small></div>
       <button type="button" class="fxbtn" data-fxbtn aria-haspopup="listbox" aria-expanded="false"><span class="nm${fx ? '' : ' unset'}">${esc(fx ? fxName(fx) : (isAll ? t.notSetAll : t.notSet))}</span><span class="mini" data-mini="${esc(inherit)}"${pinA}></span><svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4 4-4"/></svg></button></div>
     <div class="preview" data-prev="${esc(inherit)}"${pinA} data-n="${isAll ? 30 : groupByName(key) ? groupByName(key).strips.reduce((a, n) => a + ((stripByName(n) || {}).count || 0), 0) : (P.strips.find(s => s.name === key) || { count: 30 }).count}"></div>
-    ${spec ? `${pc ? `<div class="params">${pc}</div>` : ''}<div class="spec">${esc(spec)}</div>` : `<div class="spec">${esc(isAll ? t.stripsOff : t.usesAll + ': ' + inherit)}</div>`}
+    ${spec ? `${pc ? `<div class="params">${pc}</div>` : ''}<div class="spec raw">${esc(spec)}</div>` : `<div class="spec">${esc(isAll ? t.stripsOff : t.usesAll + ': ' + inherit)}</div>`}
   </div>`;
 }
 function trigText(c) {
@@ -5267,7 +5269,6 @@ function renderScenes() {
   else body = rows() +
     `<div class="row" style="justify-content:flex-end"><button type="button" data-act="defaults">${esc(t.useDefaults)}</button><button type="button" class="danger" data-act="remove">${esc(t.removeScene)}</button></div>`;
   $('#v-scenes').innerHTML = `<div class="sec"><div><h2>${esc(t.sc_title)}</h2><p class="lead">${esc(t.sc_lead)}</p></div>
-    <div class="stateRow">${UI_STATES.map(s => `<button type="button" class="chip${s === st ? ' sel' : ''}" style="--c:${STATE_COL[s]}" data-edit="${s}">${esc(t.states[s])}${P.scenes[s] ? '' : ' ·'}</button>`).join('')}${P.customs.map(c => `<button type="button" class="chip cust${c.name === st ? ' sel' : ''}" style="--c:${customCol(c.name)}" data-edit="${esc(c.name)}">${esc(c.name)}</button>`).join('')}<button type="button" class="chip add" data-addscene title="${esc(cm('scNew', 'New scene', 'Yeni sahne'))}" aria-label="${esc(cm('scNew', 'New scene', 'Yeni sahne'))}">${ICON.plus}</button></div>
     <div class="row"><span class="muted">${esc(t.editing)}:</span><b>${esc(sceneLabel(st))}</b><button type="button" class="small" data-act="sim">${ICON.play}${esc(t.testState)}</button></div>
     ${body}</div>`;
   $$('#v-scenes input[type=range]').forEach(setRangeFill);
@@ -5703,8 +5704,7 @@ function renderLive() {
       ${Object.keys(strips).map(n => { const s = strips[n] || {}; return `<tr><td><b>${esc(n)}</b></td><td class="mono">${esc(s.output ?? '')}</td><td class="mono">${esc(s.effect ?? '')}</td><td>${esc(s.fps ?? '')}</td><td class="${s.errors ? 'bad' : ''}">${esc(s.errors ? (Array.isArray(s.errors) ? s.errors.join('; ') : s.errors) : '')}${s.disabled ? ' (' + T().disabled + (s.last_error ? ': ' + esc(s.last_error) : '') + ')' : ''}</td></tr>`; }).join('')}</tbody></table>`;
   }
   $('#v-live').innerHTML = `<div class="sec"><div><h2>${esc(t.lv_title)}</h2><p class="lead">${esc(t.lv_lead)}</p></div>
-    ${location.protocol === 'file:' && !UI.addr ? `<div class="note warn">${esc(t.fromDisk)}</div>` : ''}
-    ${Live.here && st ? `<div class="row"><b class="ok">${esc(t.connected)}</b><span class="muted">${esc(cm('thisPrinter', 'this printer', 'bu yazıcı'))} · ${esc(location.host)}</span><button type="button" data-act="connect"${Live.busy ? ' disabled' : ''}>${esc(cm('refresh', 'Refresh', 'Yenile'))}</button></div>` : `<div class="form"><label for="lvAddr">${esc(t.addr)}</label><div class="row"><input type="text" id="lvAddr" class="grow" value="${esc(UI.addr)}" placeholder="${esc(t.addrPh)}" spellcheck="false"><button type="button" class="primary" data-act="connect"${Live.busy ? ' disabled' : ''}>${esc(Live.busy ? t.connecting : t.connect)}</button></div></div>`}
+    ${Live.here && st ? `<div class="row"><b class="ok">${esc(t.connected)}</b><span class="muted">${esc(cm('thisPrinter', 'this printer', 'bu yazıcı'))} · ${esc(location.host)}</span><button type="button" data-act="connect"${Live.busy ? ' disabled' : ''}>${esc(cm('refresh', 'Refresh', 'Yenile'))}</button></div>` : `<div class="row"><span class="muted">${esc(location.protocol === 'file:' ? t.fromDisk : t.notConnected)}</span><button type="button" class="primary" data-act="connect"${Live.busy || location.protocol === 'file:' ? ' disabled' : ''}>${esc(Live.busy ? t.connecting : t.connect)}</button></div>`}
     <div class="note bad kbox" id="liveKlip" hidden></div>
     <div class="note ${Live.kind}" id="liveMsg"${Live.msg ? '' : ' hidden'}>${esc(Live.msg)}</div>
     ${st && !Live.here ? `<div class="row"><b class="ok">${esc(t.connected)}</b></div>` : ''}${stat}</div>
@@ -5712,7 +5712,7 @@ function renderLive() {
     <div class="sec"><div>${sw('id="lvPrev"', Preview.on, t.preview)}<p class="lead">${esc(t.previewHint)}</p></div></div>`;
   renderKlip();
 }
-$('#v-live').addEventListener('input', e => { if (e.target.id === 'lvAddr') { UI.addr = e.target.value.trim(); saveUI(); } });
+UI.addr = '';  // older pages stored a typed printer address; settings now only go to this page's own printer
 $('#v-live').addEventListener('change', e => { if (e.target.id === 'lvPrev') { Preview.on = UI.prevOn = e.target.checked; saveUI(); } });
 // fetch a text file from Moonraker: null when it does not exist (404)
 async function fetchText(path) {
@@ -6134,8 +6134,8 @@ $('#subtabs').addEventListener('click', e => { const b = e.target.closest('[data
 $('#chips').addEventListener('click', e => {
   if (e.target.closest('[data-addscene]')) { openSceneDlg(null); return; }
   if (document.body.classList.contains('kdown')) return;
-  const c = e.target.closest('[data-custom]'); if (c) { previewCustom(c.dataset.custom); return; }
-  const b = e.target.closest('[data-state]'); if (b) previewState(b.dataset.state);
+  const c = e.target.closest('[data-custom]'); if (c) { editState = c.dataset.custom; previewCustom(c.dataset.custom); if (curTab === 'scenes') renderScenes(); return; }
+  const b = e.target.closest('[data-state]'); if (b) { editState = b.dataset.state; previewState(b.dataset.state); if (curTab === 'scenes') renderScenes(); }
 });
 // ---- language menu (globe button)
 function renderLangMenu() {
