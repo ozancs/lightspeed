@@ -16,8 +16,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python -I drops the script dir
 import numpy as np
 import trimesh
+import lod  # noqa: E402
 from build_model import (RAW, OUT, BLACK, DARK_GREY, RAIL_STEEL, PEI_GOLD, RED,
-                         part_color, quant, decimate)
+                         part_color, quant)
 
 BED_PLATE = (96, 96, 96)   # aluminium plate edge, as voron24 (606060)
 
@@ -167,20 +168,15 @@ def build(key, cfg, list_group=None):
         a, b, _ = bbox(parts, pat)
         meta[k] = {'min': r1(a), 'max': r1(b)}
 
-    # ---- merge per group+colour, palette, decimate, export (as build_model.main)
-    buckets = {}
-    for g, n, m, c in parts:
-        col = recolor(g, c, n, cfg)
-        buckets.setdefault((g, col), []).append(m)
-    merged = {k: trimesh.util.concatenate(v) for k, v in buckets.items()}
-    gtot = {}
-    for (g, c), mesh in merged.items():
-        gtot[g] = gtot.get(g, 0) + len(mesh.faces)
+    # ---- palette, per-part decimation (lod.py), merge per group+colour, export (as build_model.main)
+    noz = re.compile(cfg['nozzle'])
+    items = [((g, recolor(g, c, n, cfg)), m, any(noz.search(x) for x in n)) for g, n, m, c in parts]
+    dec, _ = lod.decimate_parts(items, cfg['budget'], cache=key)
+    merged = {k: trimesh.util.concatenate(v) for k, v in dec.items()}
     scene = trimesh.Scene()
     meta['groups'] = {}
     for (g, c), mesh in sorted(merged.items(), key=lambda kv: kv[0]):
-        mesh.merge_vertices()
-        mesh = decimate(mesh, int(cfg['targets'][g] * len(mesh.faces) / float(gtot[g])))
+        # no welding across parts: every part stays its own island (the page moves short islands as one piece)
         hexc = '%02x%02x%02x' % c
         mesh.visual = trimesh.visual.TextureVisuals(
             material=trimesh.visual.material.PBRMaterial(
@@ -227,8 +223,7 @@ CFG = {
     'mount_normal': [0, -1, 0],     # the toolhead bolts on the front face of the MGN12 block
     'nozzle': r"^e3d Revo Voron",
     'build': [250, 250, 250],
-    'targets': {'frame': 200000, 'glass': 12000, 'panels': 25000, 'bed': 15000,
-                'gantry_y': 30000, 'toolhead': 45000},
+    'budget': 295000,    # triangles, whole model (lod.py)
     'min_size': 14.0,
 }
 

@@ -3,7 +3,7 @@
 Parts are grouped by the names of their ancestors in the CAD tree, then
 split by colour inside each group (one mesh per group+colour, named
 '<group>__<rrggbb>'). Fasteners, electronics and tiny parts are dropped,
-each group is decimated to its triangle budget, units become mm, Z up.
+every part is decimated on its own against a measured error (lod.py), units become mm, Z up.
 
     python -I build_model.py voron24|rx
 """
@@ -15,7 +15,9 @@ import sys
 
 import numpy as np
 import trimesh
-import fast_simplification
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import lod  # noqa: E402
 
 RAW = str(pathlib.Path(__file__).resolve().parents[2] / "models" / "raw")
 OUT = str(pathlib.Path(__file__).resolve().parents[2] / "web" / "models")
@@ -42,9 +44,7 @@ CONFIG = {
             ('bed', r"^Bed Components"),
             ('frame', r"^(Frame|Skirt|Z Assembly|Panels)"),
         ],
-        'targets': {'frame': 230000, 'glass': 60000, 'panels': 20000,
-                    'bed': 5000, 'gantry_z': 45000, 'gantry_y': 25000,
-                    'toolhead': 40000},
+        'budget': 345000,     # triangles for the whole model (lod.py, per part)
         'min_size': 14.0,     # mm, bbox diagonal of a part kept
         'recolor': 'voron',
     },
@@ -54,7 +54,7 @@ CONFIG = {
         'drop': r"(SHCS|BHCS|FHCS|Screw|Nut|Insert|Washer|Magnet)",
         'recolor': 'rx',
         'groups': [('toolhead', r".")],
-        'targets': {'toolhead': 70000},
+        'budget': 70000,
         'min_size': 6.0,
         'clip': 150.0,        # drop pieces farther than this (mm) from the centre
         'add_fan': True,      # the STEP has no part fan behind the front ring
@@ -142,16 +142,6 @@ def fan_4010(centre, depth_axis_z=True):
     return frame, rotor
 
 
-def decimate(mesh, target):
-    n0 = len(mesh.faces)
-    if n0 <= target or target < 40:
-        return mesh
-    v, f = fast_simplification.simplify(
-        mesh.vertices.astype(np.float32), mesh.faces.astype(np.int32),
-        target_reduction=1.0 - target / float(n0))
-    return trimesh.Trimesh(v, f, process=True)
-
-
 def main(key):
     cfg = CONFIG[key]
     sc = trimesh.load(cfg['src'], force='scene')
@@ -160,7 +150,7 @@ def main(key):
     for e in G.to_edgelist():
         parent[e[1]] = e[0]
     drop = re.compile(cfg['drop'], re.I)
-    buckets = {}          # (group, colour) -> [mesh]
+    parts = []            # (group, colour), mesh, fixed
     dropped = kept = 0
     for node in G.nodes_geometry:
         T, gname = G[node]
@@ -175,7 +165,7 @@ def main(key):
             dropped += 1
             continue
         src = sc.geometry[gname]
-        m = src.copy()
+        m = trimesh.Trimesh(src.vertices.copy(), src.faces.copy(), process=False)
         m.apply_transform(T)
         m.apply_scale(cfg['scale'])
         if np.linalg.norm(m.extents) < cfg['min_size']:
@@ -193,36 +183,35 @@ def main(key):
         col = quant(part_color(src))
         if cfg.get('recolor'):
             col = recolor(cfg['recolor'], grp, col, names)
-        buckets.setdefault((grp, col), []).append(m)
+        # the page measures the extrusion cube / X beam and the nozzle tip from these: keep them exact
+        fixed = ((col == DARK_GREY and any(EXTRUSION.search(n) for n in names))
+                 or any(re.search(r"V7_wo_fan", n) for n in names[:2]))
+        parts.append(((grp, col), m, fixed))
         kept += 1
     print('kept', kept, 'dropped', dropped)
     if cfg.get('add_fan'):
         # behind the orange front ring: centre x 2.5, y 57.5; front cover inner face ~z 38
         frame, rotor = fan_4010((2.5, 57.5, 31.0))
-        buckets.setdefault(('toolhead', FAN_GREY), []).append(frame)
-        buckets.setdefault(('toolhead', BLACK), []).append(rotor)
-
-    merged = {k: trimesh.util.concatenate(v) for k, v in buckets.items()}
+        parts.append((('toolhead', FAN_GREY), frame, True))
+        parts.append((('toolhead', BLACK), rotor, True))
     if cfg.get('clip'):
-        allv = np.vstack([m.vertices for m in merged.values()])
-        centre = np.median(allv, axis=0)
-        for k, mesh in list(merged.items()):
-            comps = [p for p in mesh.split(only_watertight=False)
-                     if np.linalg.norm(p.centroid - centre) < cfg['clip']]
-            merged[k] = trimesh.util.concatenate(comps) if comps else None
-    gtot = {}
-    for (g, c), mesh in merged.items():
-        if mesh is not None:
-            gtot[g] = gtot.get(g, 0) + len(mesh.faces)
+        # drop pieces (connected components) farther than clip mm from the centre
+        centre = np.median(np.vstack([m.vertices for _, m, _ in parts]), axis=0)
+        kept_parts = []
+        for k, m, f in parts:
+            comps = [p for p in m.split(only_watertight=False) if np.linalg.norm(p.centroid - centre) < cfg['clip']]
+            if comps:
+                kept_parts.append((k, trimesh.util.concatenate(comps), f))
+        parts = kept_parts
+    dec, _ = lod.decimate_parts(parts, cfg['budget'], cache=key)
+    merged = {k: trimesh.util.concatenate(v) for k, v in dec.items()}
 
     scene = trimesh.Scene()
     meta = {'groups': {}}
     for (g, c), mesh in sorted(merged.items(), key=lambda kv: kv[0]):
         if mesh is None or not len(mesh.faces):
             continue
-        mesh.merge_vertices()
-        share = cfg['targets'][g] * len(mesh.faces) / float(gtot[g])
-        mesh = decimate(mesh, int(share))
+        # no welding across parts: every part stays its own island (the page moves short islands as one piece)
         hexc = '%02x%02x%02x' % c
         mesh.visual = trimesh.visual.TextureVisuals(
             material=trimesh.visual.material.PBRMaterial(
@@ -241,6 +230,7 @@ def main(key):
     for g, gm in meta['groups'].items():
         print('%-9s %6d tri  %2d colours  min %s max %s' % (
             g, gm['tri'], len(gm['colours']), gm['min'], gm['max']))
+    print('total', sum(gm['tri'] for gm in meta['groups'].values()), 'tri')
     os.makedirs(OUT, exist_ok=True)
     glb = scene.export(file_type='glb')
     open(os.path.join(OUT, key + '.glb'), 'wb').write(glb)

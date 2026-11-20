@@ -1,11 +1,11 @@
 {
  "groups": {
   "toolhead": {
-   "tri": 40673,
+   "tri": 50169,
    "min": [
     -27.5,
     0.0,
-    -16.1
+    -16.2
    ],
    "max": [
     27.5,
@@ -14,6 +14,7 @@
    ],
    "colours": [
     "141518",
+    "2c2f34",
     "383b40",
     "8c9096",
     "967030",
@@ -21,13 +22,9 @@
    ]
   }
  },
- "source": "chirpy2605/voron V0/Dragon_Burner/CAD/Dragon_Burner_v0.2_v8.step (GPL-3.0); Revo Voron hotend from VoronDesign/Voron-Stealthburner Stealthburner_CW2.5_Assembly.step (GPL-3.0)",
- "config": "V0.2 Dragon Burner: MainBody cowl, Standard ducts, RevoVoron mount, bowden mount, NeoPixel nozzle LED mount, Neopixel logo carrier + Voron diffuser",
- "missing_in_cad": [
-  "part-cooling fans (2x 4010 blower)",
-  "hotend fan",
-  "X carriage (V0 MGN9)"
- ],
+ "source": "chirpy2605/voron V0/Dragon_Burner/CAD/Dragon_Burner_v0.2_v8.step (GPL-3.0); Revo Voron hotend from VoronDesign/Voron-Stealthburner Stealthburner_CW2.5_Assembly.step (GPL-3.0); fans (3010 axial, 2x 4010 blower) from the Voron 0.2 and DownDraft STEP files (GPL-3.0)",
+ "fans_note": "fan types and places from the Dragon Burner README/BOM (3010 hotend fan in the front of the cowl, 4010 blowers in the rear side slots); boxes fitted to the measured cowl pockets",
+ "config": "V0.2 Dragon Burner: MainBody cowl, Standard ducts, RevoVoron mount, bowden mount, NeoPixel nozzle LED mount, Neopixel logo carrier + Voron diffuser, 3010 hotend fan, 2x 4010 blowers",
  "borrowed_parts": [
   "Heatsink",
   "PTFE Tube Revo Voron 29.8",
@@ -63,5 +60,52 @@
    39.4,
    -16.1
   ]
- }
+ },
+ "added_parts": {
+  "hotend_3010": {
+   "source": "VoronDesign/Voron-0 V0.2 Mini Stealthburner STEP, \"3010 DC Axial Fan\"",
+   "size_mm": [
+    30.0,
+    10.0,
+    30.0
+   ],
+   "pocket_mm": [
+    30.0,
+    10.0,
+    30.0
+   ],
+   "fit_residual_mm": 0.0
+  },
+  "blower_left": {
+   "source": "VoronDesign/voron-downdraft Downdraft_Toolheads STEP, \"4010 Blower Fan\"",
+   "size_mm": [
+    10.0,
+    40.0,
+    40.0
+   ],
+   "pocket_mm": [
+    10.0,
+    40.0,
+    40.0
+   ],
+   "fit_residual_mm": 0.0
+  },
+  "blower_right": {
+   "source": "VoronDesign/voron-downdraft Downdraft_Toolheads STEP, \"4010 Blower Fan\"",
+   "size_mm": [
+    10.0,
+    40.0,
+    40.0
+   ],
+   "pocket_mm": [
+    10.0,
+    40.0,
+    40.0
+   ],
+   "fit_residual_mm": 0.0
+  }
+ },
+ "missing_in_cad": [
+  "X carriage (V0 MGN9)"
+ ]
 }

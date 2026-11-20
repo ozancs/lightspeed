@@ -36,8 +36,7 @@ CFG = {
     'mount_normal': [0, 0, 1],      # the Mini Stealthburner sits on top of the MGN7 block
     'nozzle': r"^Revo Voron:",
     'build': [120, 120, 120],
-    'targets': {'frame': 100000, 'glass': 2000, 'panels': 15000, 'bed': 10000,
-                'gantry_y': 20000, 'toolhead': 40000},
+    'budget': 250000,    # triangles, whole model (lod.py)
     'min_size': 8.0,
     # cube = corner posts + bottom/top-side (Y rail) extrusions; the side rails on the drives/idlers sit higher
     'extra_boxes': {'tophat': r"^Extrusion Tophat:", 'top_side_rails': r"^1515_200mm - B:(2|3)$"},

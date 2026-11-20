@@ -19,7 +19,8 @@ import trimesh
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build_model import (RAW, OUT, BLACK, DARK_GREY, RAIL_STEEL, PEI_GOLD, RED,  # noqa: E402
-                         part_color, quant, decimate)
+                         part_color, quant)
+import lod  # noqa: E402
 
 KEY = 'corexy'
 SRC = RAW + r"\corexy_raw.glb"
@@ -46,7 +47,7 @@ EXTRUSION = re.compile(r"(8020-20|^2020-|2020-Low|^Copy of 8020)", re.I)
 RAIL = re.compile(r"(rail|6725K432|smooth rod|lead ?screw|leadscrew)", re.I)
 CLEAR = (235, 235, 229)
 
-TARGETS = {'frame': 80000, 'glass': 3000, 'panels': 25000, 'bed': 10000, 'gantry_y': 16000, 'toolhead': 40000}
+BUDGET = 250000   # triangles, whole model (lod.py: per part, measured error)
 
 
 def group_of(path):
@@ -103,7 +104,7 @@ def walk():
 
 
 def main(listing=False):
-    buckets, meta_parts = {}, {}
+    buckets, meta_parts = [], {}
     kept = dropped = 0
     stats = {}
     for node, path, src, T in walk():
@@ -130,7 +131,7 @@ def main(listing=False):
         if grp == 'panels' and max(abs(a - b) for a, b in zip(raw, CLEAR)) < 4:
             grp = 'glass'
         col = colour_of(grp, quant(raw), path)
-        buckets.setdefault((grp, col), []).append(m)
+        buckets.append(((grp, col), m, False))
         kept += 1
         # parts the JSON is measured from
         for tag, pat in (('nozzle', r"Hotends:1/Goliath"), ('block', r"MGN9-H-block"), ('beam', r"CF tube 440"),
@@ -148,16 +149,12 @@ def main(listing=False):
             print('%-9s %7d  %s' % (g, n, k))
         return
 
-    merged = {k: trimesh.util.concatenate(v) for k, v in buckets.items()}
-    gtot = {}
-    for (g, c), mesh in merged.items():
-        gtot[g] = gtot.get(g, 0) + len(mesh.faces)
+    dec, _ = lod.decimate_parts(buckets, BUDGET, cache=KEY)
+    merged = {k: trimesh.util.concatenate(v) for k, v in dec.items()}
     scene = trimesh.Scene()
     meta = {'groups': {}}
     for (g, c), mesh in sorted(merged.items(), key=lambda kv: kv[0]):
-        mesh.merge_vertices()
-        share = TARGETS[g] * len(mesh.faces) / float(gtot[g])
-        mesh = decimate(mesh, int(share))
+        # no welding across parts: every part stays its own island (the page moves short islands as one piece)
         hexc = '%02x%02x%02x' % c
         mesh.visual = trimesh.visual.TextureVisuals(
             material=trimesh.visual.material.PBRMaterial(

@@ -51,9 +51,10 @@ def main():
             continue
         if np.linalg.norm(m.extents) < 3.0:
             continue
-        parts.append(['toolhead', colour(part, names, c), m])
+        # the page finds the nozzle tip as the lowest vertices: keep the Revo nozzle/heater exact
+        parts.append(['toolhead', colour(part, names, c), m, part.startswith('V7_wo_fan')])
     # nozzle tip = lowest point of the hotend (file Y)
-    allv = np.vstack([m.vertices for _, _, m in parts])
+    allv = np.vstack([m.vertices for _, _, m, *_ in parts])
     lo = allv[:, 1].min()
     tipv = allv[allv[:, 1] < lo + 0.3]
     tip = np.array([tipv[:, 0].mean(), lo, tipv[:, 2].mean()])
@@ -77,7 +78,7 @@ def main():
                   'rail_block_centre': r1((blk.min(0) + blk.max(0)) / 2),
                   'rail_block_bbox': [r1(blk.min(0)), r1(blk.max(0))]},
     }
-    build('stealthburner', parts, {'toolhead': 65000}, extra_meta=meta)
+    build('stealthburner', parts, 70000, extra_meta=meta)
 
 
 def trimesh_centre(ms):

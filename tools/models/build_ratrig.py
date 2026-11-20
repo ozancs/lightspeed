@@ -18,7 +18,8 @@ import trimesh
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build_model import (RAW, OUT, BLACK, DARK_GREY, RAIL_STEEL, PEI_GOLD, RED,  # noqa: E402
-                         part_color, quant, decimate)
+                         part_color, quant)
+import lod  # noqa: E402
 
 KEY = 'ratrig'
 SRC = RAW + r"\ratrig_raw.glb"
@@ -39,7 +40,7 @@ EXTRUSION = re.compile(r"^(T-Slot 3030|V-Slot 2020)", re.I)
 RAIL = re.compile(r"(Linear Rail|^Lead Screw - )", re.I)
 GLASS_NAME = re.compile(r"^panel_enc2_(door|side|top|back)_", re.I)
 
-TARGETS = {'frame': 85000, 'glass': 3000, 'panels': 15000, 'bed': 8000, 'gantry_y': 20000, 'toolhead': 40000}
+BUDGET = 230000   # triangles, whole model (lod.py: per part, measured error)
 
 
 def group_of(path):
@@ -114,7 +115,7 @@ def main(listing=False):
     ztop = max(m.bounds[1][2] for m in pei)
     shift = np.array([-pmin[0], -pmin[1], -ztop])
 
-    buckets, meta_parts = {}, {}
+    buckets, meta_parts = [], {}
     kept = dropped = 0
     stats = {}
     for path, src, m in items:
@@ -139,11 +140,7 @@ def main(listing=False):
                          ('yrail', r"MGN12R 350mm 3030"), ('front', r"panel_enc2_door")):
             if re.search(pat, s):
                 meta_parts.setdefault(tag, []).append(m)
-        # very dense single parts (lead screw threads, hotend) would eat the group budget
-        if len(m.faces) > 12000:
-            m.merge_vertices()        # cascadio faces come unshared; merge first or nothing collapses
-            m = decimate(m, 3000)
-        buckets.setdefault((grp, col), []).append(m)
+        buckets.append(((grp, col), m, False))
         if listing:
             k = (grp, '/'.join(path[:2])[:110])
             stats[k] = stats.get(k, 0) + len(m.faces)
@@ -153,16 +150,12 @@ def main(listing=False):
             print('%-9s %7d  %s' % (g, n, k))
         return
 
-    merged = {k: trimesh.util.concatenate(v) for k, v in buckets.items()}
-    gtot = {}
-    for (g, c), mesh in merged.items():
-        gtot[g] = gtot.get(g, 0) + len(mesh.faces)
+    dec, _ = lod.decimate_parts(buckets, BUDGET, cache=KEY)
+    merged = {k: trimesh.util.concatenate(v) for k, v in dec.items()}
     scene = trimesh.Scene()
     meta = {'groups': {}}
     for (g, c), mesh in sorted(merged.items(), key=lambda kv: kv[0]):
-        mesh.merge_vertices()
-        share = TARGETS[g] * len(mesh.faces) / float(gtot[g])
-        mesh = decimate(mesh, int(share))
+        # no welding across parts: every part stays its own island (the page moves short islands as one piece)
         hexc = '%02x%02x%02x' % c
         mesh.visual = trimesh.visual.TextureVisuals(
             material=trimesh.visual.material.PBRMaterial(

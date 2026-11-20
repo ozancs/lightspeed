@@ -70,7 +70,8 @@ def main():
             grp = 'frame'
         if part == 'Hotbed_Surface':
             m.apply_translation((0, 0, 0.25))       # coplanar with the plate top: lift it
-        fixed = 'profile' in part or part in FIXED or part == 'Z threaded rod'
+        # profiles (the page measures the X beam from them) and the nozzle stay exact
+        fixed = 'profile' in part or part in FIXED or part == 'nozzle'
         parts.append([grp, colour(part, c), m, fixed])
     # origin: bed plate front-left corner, bed top z = 0
     bed = np.vstack([m.bounds for g, _, m, *_ in parts if g == 'bed' and m.extents[0] > 200])
@@ -107,8 +108,7 @@ def main():
                      'mount': r1([(ep[:, 0].min() + ep[:, 0].max()) / 2, ep[:, 1].min(), (ep[:, 2].min() + ep[:, 2].max()) / 2]),
                      'mount_note': 'front face centre of the X carriage plate (E plate); a swapped toolhead hangs here'},
     }
-    build('bedslinger', parts, {'frame': 95000, 'bed': 12000, 'gantry_z': 26000, 'carriage': 5000,
-                                'toolhead': 12000}, extra_meta=meta)
+    build('bedslinger', parts, 170000, extra_meta=meta)
 
 
 if __name__ == '__main__':

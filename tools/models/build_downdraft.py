@@ -74,8 +74,8 @@ def main():
             if part == 'PRODUCT_NAME':
                 blk.append(m.bounds)
             borrowed.add(part)
-            parts.append(['toolhead', colour(part, c), m])
-    allv = np.vstack([m.vertices for _, _, m in parts])
+            parts.append(['toolhead', colour(part, c), m, part.startswith('V7_wo_fan')])
+    allv = np.vstack([m.vertices for _, _, m, *_ in parts])
     lo = allv[:, 1].min()
     tipv = allv[allv[:, 1] < lo + 0.3]
     tip = np.array([tipv[:, 0].mean(), lo, tipv[:, 2].mean()])
@@ -106,7 +106,7 @@ def main():
                   'rail_block_centre': r1((bk.min(0) + bk.max(0)) / 2),
                   'rail_block_bbox': [r1(bk.min(0)), r1(bk.max(0))]},
     }
-    build('downdraft', parts, {'toolhead': 65000}, extra_meta=meta)
+    build('downdraft', parts, 70000, extra_meta=meta)
 
 
 if __name__ == '__main__':

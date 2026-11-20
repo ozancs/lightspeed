@@ -1,10 +1,10 @@
 """Shared pipeline for the extra CAD models (toolheads, bed slinger).
 
-Uses the palette and decimation of build_model.py. Parts are picked by the
-part (geometry) name and their ancestor names, recoloured per part, decimated
-per part with one shared ratio (small parts are protected, so nothing small
-like a gearbox or an LED carrier disappears), merged per group+colour and
-written as '<group>__<rrggbb>' meshes with linear glTF colour factors.
+Uses the palette of build_model.py. Parts are picked by the part (geometry) name
+and their ancestor names, recoloured per part, decimated per part against a
+measured error (lod.py: small parts keep their shape, big flat/dense parts pay
+for the budget), merged per group+colour and written as '<group>__<rrggbb>'
+meshes with linear glTF colour factors.
 """
 import json
 import os
@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import numpy as np
 import trimesh
-import fast_simplification
 
+import lod  # noqa: E402
 from build_model import (RAW, OUT, BLACK, DARK_GREY, RAIL_STEEL, PEI_GOLD,  # noqa: F401
                          FAN_GREY, RED, ORANGE, part_color)
 
@@ -54,48 +54,20 @@ def iter_parts(path, xform=None, scale=1000.0):
         yield names, clean(gname), part_color(src), m
 
 
-def decimate_to(mesh, target):
-    n0 = len(mesh.faces)
-    if n0 <= target or target < 12:
-        return mesh
-    v, f = fast_simplification.simplify(
-        mesh.vertices.astype(np.float32), mesh.faces.astype(np.int32),
-        target_reduction=1.0 - target / float(n0))
-    return trimesh.Trimesh(v, f, process=False)
-
-
-def build(key, parts, targets, protect=150, extra_meta=None):
-    """parts: list of (group, colour, mesh[, fixed]). fixed parts are not decimated (low-poly
-    profiles and plates that would tear). Writes web/models/<key>.glb + .json."""
-    by_group = {}
-    buckets = {}
-    fixed_n = {}
-    for p in parts:
-        g, c, m = p[:3]
-        m.merge_vertices()
-        if len(p) > 3 and p[3]:
-            buckets.setdefault((g, c), []).append(m)
-            fixed_n[g] = fixed_n.get(g, 0) + len(m.faces)
-        else:
-            by_group.setdefault(g, []).append((c, m))
-    for g, lst in by_group.items():
-        tot = sum(len(m.faces) for _, m in lst)
-        tgt = max(1000, targets[g] - fixed_n.get(g, 0))
-        # one ratio for the group; parts under `protect` triangles keep theirs
-        lo, hi = 0.0, 1.0
-        for _ in range(40):
-            r = (lo + hi) / 2
-            n = sum(min(len(m.faces), max(protect, int(len(m.faces) * r))) for _, m in lst)
-            lo, hi = (r, hi) if n < tgt else (lo, r)
-        r = lo if tot > tgt else 1.0
-        for c, m in lst:
-            t = min(len(m.faces), max(protect, int(len(m.faces) * r)))
-            buckets.setdefault((g, c), []).append(decimate_to(m, t))
+def build(key, parts, budget, extra_meta=None):
+    """parts: list of (group, colour, mesh[, fixed]); budget: triangles for the whole file (or a
+    {group: triangles} dict, summed). fixed parts are not decimated (profiles the page measures,
+    the nozzle). Writes web/models/<key>.glb + .json."""
+    if isinstance(budget, dict):
+        budget = sum(budget.values())
+    dec, _ = lod.decimate_parts([((p[0], p[1]), p[2], len(p) > 3 and bool(p[3])) for p in parts],
+                                budget, cache=key)
+    buckets = dec
     scene = trimesh.Scene()
     meta = {'groups': {}}
     for (g, c), ms in sorted(buckets.items()):
         mesh = trimesh.util.concatenate(ms)
-        mesh.merge_vertices()
+        # no welding across parts: every part stays its own island (the page moves short islands as one piece)
         if not len(mesh.faces):
             continue
         hexc = '%02x%02x%02x' % c
