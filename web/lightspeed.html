@@ -4364,7 +4364,7 @@ function partySpec(s) {  // one lively effect for this strip, fast and on the be
   const f = (n, p) => LS.formatSpec(n, Object.assign({}, LS.EFFECTS[n], LS.COMMON_PARAMS, p));
   const rev = Math.random() < 0.5 ? 1 : 0;
   if (s.type === 'pin') return pinPwm(s) ? r([f('blink', { period: Math.max(0.25, beat / 2) }), f('blink', { period: Math.max(0.25, beat) }), f('breathe', { period: beat })]) : f('blink', { period: Math.max(1, beat * 2) });
-  if (s.type === 'esp_bridge') return r([f('rainbow', { period: beat * 2 }), f('blink', { color: a, color2: b, period: beat }), f('blink', { color: a, color2: '000000', period: beat / 2 }), f('chase', { color: a }), f('breathe', { color: a, period: beat }), f('fire', {})]);
+  if (s.type === 'esp_bridge') return r([f('rainbow', {}), f('blink', { color: a, color2: b, period: beat }), f('blink', { color: a, color2: '000000', period: beat / 2 }), f('chase', { color: a }), f('comet', { color: a }), f('scan', { color: a }), f('twinkle', { color: a }), f('breathe', { color: a }), f('fire', {})]);
   return r([
     f('rainbow', { period: beat * 2, reverse: rev }), f('rainbow', { period: beat / 2, reverse: rev }),
     f('chase', { color: a, color2: b, period: beat, size: 1 + Math.floor(Math.random() * 3), reverse: rev }),
@@ -5047,8 +5047,8 @@ let editState = null;
 const PARAM_RANGE = { period: [0.1, 20, 0.1], size: [0, 30, 0.5], density: [0, 1, 0.05] };
 // An ESP bridge node renders a few effects itself (solid, pulse, chase, bar, blink) at its own fixed speed and
 // size; blink and rainbow are driven by the printer. Only what reaches the node is offered.
-const ESP_EFFECTS = ['off', 'solid', 'breathe', 'blink', 'chase', 'rainbow', 'fire', 'progress', 'heat'];
-const ESP_KEYS = { solid: ['color'], breathe: ['color'], blink: ['color', 'color2', 'period'], chase: ['color'], rainbow: ['period'], fire: [], heat: ['color', 'color2'], off: [] };
+const ESP_EFFECTS = ['off', 'solid', 'breathe', 'blink', 'chase', 'comet', 'scan', 'twinkle', 'rainbow', 'fire', 'progress', 'heat'];
+const ESP_KEYS = { solid: ['color'], breathe: ['color'], blink: ['color', 'color2', 'period'], chase: ['color'], comet: ['color'], scan: ['color'], twinkle: ['color'], rainbow: [], fire: [], heat: ['color', 'color2'], off: [] };
 const isEspKey = k => { const x = stripByName(k); return !!x && x.type === 'esp_bridge'; };
 // value sources offered for progress / heat (any other <object>.<field> can be typed)
 function sourceOptions() {
@@ -5100,7 +5100,7 @@ function paramControls(spec, pin, esp) {
     else if (ty === 'bool') c = sw(`data-p="${k}"`, !!v);
     else c = `<div class="seg">${ty.map(o => `<button type="button" data-p="${k}" data-v="${o}" class="${o === v ? 'sel' : ''}">${esc(k === 'source' ? t.sources[o] : o.toUpperCase())}</button>`).join('')}</div>`;
     return `<label>${esc(t.params[k])}</label>${c}`;
-  }).join('') + (esp && ['breathe', 'chase', 'fire'].includes(name) ? `<span class="hint espNote">${esc(t.espFixed)}</span>` : '')
+  }).join('') + (esp && ['breathe', 'chase', 'comet', 'scan', 'twinkle', 'rainbow', 'fire'].includes(name) ? `<span class="hint espNote">${esc(t.espFixed)}</span>` : '')
     + (esp && name === 'progress' && params.gradient ? `<span class="hint espNote">${esc(t.espBar)}</span>` : '');
 }
 function fxRow(key, sc, label, sub) {

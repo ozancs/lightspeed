@@ -59,13 +59,14 @@ MOTION_OFF_DELAY = 0.3    # s extruding / retracting stays on after the last
                           # sample (motion_report refreshes ~4x a second)
 
 # esp_bridge LED nodes animate these effects themselves
-# The esp_bridge LED node renders only these: solid, pulse, bar, chase,
-# blink, off (see esp_led.py); its speed and size are fixed on the node.
-# blink and rainbow are driven from here (solid, colour switched by us).
+# The esp_bridge LED node (statusled firmware) draws these itself, at its own
+# fixed speed: solid, pulse, breathe, blink, bar, chase, comet, scan, theater,
+# wipe, rainbow, twinkle, fire, off. Blink is driven from here (solid, colour
+# switched at each edge) so it blinks in step with the other strips.
 ESP_FX = {
-    'off': 'off', 'solid': 'solid', 'breathe': 'pulse', 'blink': 'solid',
-    'rainbow': 'solid', 'chase': 'chase', 'comet': 'chase', 'scan': 'chase',
-    'twinkle': 'pulse', 'fire': 'pulse', 'progress': 'bar', 'heat': 'bar',
+    'off': 'off', 'solid': 'solid', 'breathe': 'breathe', 'blink': 'solid',
+    'rainbow': 'rainbow', 'chase': 'chase', 'comet': 'comet', 'scan': 'scan',
+    'twinkle': 'twinkle', 'fire': 'fire', 'progress': 'bar', 'heat': 'bar',
     'follow': 'solid',
 }
 
@@ -351,10 +352,10 @@ class EspBridgeOutput(Output):
         name, params = spec
         fx = ESP_FX.get(name, 'solid')
         blink = name == 'blink'
-        if blink or name == 'rainbow':
+        if blink:
             # the node's own blink runs on its own clock: drive it from ours
             # (solid, colour switched at each edge) so it blinks with the
-            # other strips. Rainbow: the whole node walks the colour wheel.
+            # other strips
             c = engine.render(name, params, 1, self.light.ctx)[0]
             rgb = '%d,%d,%d' % tuple(engine.to_byte(x) for x in c)
         elif name == 'fire':

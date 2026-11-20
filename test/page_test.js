@@ -176,7 +176,7 @@ check(NOTES.n > 50, 'party: the loop schedules notes (' + NOTES.n + ')');
 let okPin = true;
 for (let k = 0; k < 50; k++) { const sp = T.partySpec({ type: 'pin', name: 'x', chain: 'nopwm' }); const [nm, pr] = LS.parseSpec(sp); if (nm !== 'blink' || pr.period < 1) okPin = false; }
 let okEsp = true;
-for (let k = 0; k < 50; k++) { const nm = LS.parseSpec(T.partySpec({ type: 'esp_bridge', name: 'n' }))[0]; if (!['rainbow', 'blink', 'chase', 'solid', 'breathe', 'fire'].includes(nm)) okEsp = false; }
+for (let k = 0; k < 50; k++) { const nm = LS.parseSpec(T.partySpec({ type: 'esp_bridge', name: 'n' }))[0]; if (!['rainbow', 'blink', 'chase', 'comet', 'scan', 'twinkle', 'solid', 'breathe', 'fire'].includes(nm)) okEsp = false; }
 check(okPin && okEsp, 'party: on/off pins blink at >= 1 s, ESP nodes get node effects');
 const ac = FakeAC.last; T.partyStop();
 check(!T.Party.on && !Object.keys(T.Party.specs).length && T.Party.ac === null, 'party: off clears everything');

@@ -435,10 +435,9 @@ def main():
     check(any(pk[2] * 256 + pk[3] == 489 for pk in pkts),
           '600 LEDs split over two packets')
     keys = p.objects['esp_bridge'].producers[0](REACTOR.t)
-    check(dict(keys).get('led.fx') == 'solid' and dict(keys).get('led.rgb')
-          not in (None, '255,255,255'), 'esp rainbow driven as walking '
-          'solid colour (%s %s)' % (dict(keys).get('led.fx'),
-                                    dict(keys).get('led.rgb')))
+    check(dict(keys).get('led.fx') == 'rainbow',
+          "esp rainbow sent as the node's own rainbow (%s)"
+          % dict(keys).get('led.fx'))
 
     pin = p.objects['output_pin case_light_power'].gcrq
     check(len(pin.values) == 1 and pin.values[0][1] == 1.0,
