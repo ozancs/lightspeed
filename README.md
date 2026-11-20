@@ -2,7 +2,7 @@
 
 <h1 align="center">Lightspeed</h1>
 <p align="center"><b>Fast, MCU-safe LED effects for Klipper with a web controller and live 3D printer preview.</b></p>
-<p align="center">Drives NeoPixel, WLED and ESP32 strips without "Timer too close" errors.</p>
+<p align="center">Design your printer's LEDs on a page instead of in config files. Drives NeoPixel, WLED and ESP32 strips without "Timer too close" errors.</p>
 
 <h3 align="center"><a href="https://oznlab.com/lightspeed/">▶ Open the live demo</a></h3>
 <p align="center">No install. Pick a printer, place your strips and watch every printer state light up in 3D.<br><a href="#install">Install Lightspeed</a> · <a href="https://github.com/ozancs/lightspeed/issues">Share feedback</a></p>
@@ -17,7 +17,14 @@
 
 ## Why another LED plugin
 
-Printer LEDs should never be able to stop a print. With the popular `led_effect` plugin, long strips on the printer's MCU, and effects running while the printer homes or probes, can end a print with **"Timer too close"** or **"Missed scheduling"**. Lightspeed is written so the LEDs always give way to motion:
+**LED setups should not be written by hand.** With most LED plugins you type chains, LED ranges and effect layers into config files, restart Klipper and look at the printer to see what you got. Lightspeed gives you a page instead:
+
+- **See it before it lights up.** Your printer is drawn in 3D with your strips on it. Pick a state (heating, printing, error…) and watch every strip react, on the page and on the real LEDs at the same time.
+- **Click instead of typing.** Add a strip, choose its chain and LED range, place it on the printer and pick an effect from a list with live previews. Colours, speed and brightness are sliders and swatches.
+- **Everything in one place.** All strips, all states and what each one shows are on one screen, so changing a setup later is a minute's work, not a search through config files.
+- **Saved safely.** The page writes `lightspeed.cfg` for you, keeps a backup and restarts Klipper only when nothing is printing.
+
+**And the LEDs never stop a print.** With the popular `led_effect` plugin, long strips on the printer's MCU, or effects running while the printer homes or probes, can end a print with **"Timer too close"** or **"Missed scheduling"**. Lightspeed always lets motion go first:
 
 - **A budget for the MCU.** LED data on a Klipper MCU chain (NeoPixel / DotStar) may use at most 3 % of MCU time and 25 fps. Long chains get a lower frame rate by themselves.
 - **Quiet while homing and probing.** MCU chains are frozen while the MCU times a probe; network strips keep going.
