@@ -18,6 +18,8 @@
   --sig-tint:color-mix(in srgb,var(--sig) 10%,transparent);
   --sig-hi:color-mix(in srgb,var(--sig) 85%,white);
   --on-ink:#0d0e11; --stage:#101215; --stage2:#1a1d22;
+  /* panel: wells (fields inside cards), quiet labels, tag / track surface */
+  --well:#16181c; --mute:#7a808a; --s3:#31363d;
   --font:'Onest',system-ui,sans-serif; --head:var(--font);
   --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
   color-scheme:dark;
@@ -26,6 +28,7 @@
   --page:#eef0f3; --sheet:#fff; --raised:#f0f2f5; --rule:#dde1e7;
   --text:#1b1e23; --dim:#4f5664; --ok:#1f9a60; --bad:#d23f3f; --warn:#b27a12;
   --stage:#22262c; --stage2:#353a42;
+  --well:#fff; --mute:#6b7280; --s3:#e3e7ec;
   color-scheme:light;
 }
 * { box-sizing:border-box; }
@@ -270,13 +273,12 @@ input[type=range]::-moz-range-thumb { width:12px; height:12px; border-radius:50%
 #pane { position:relative; flex:1; overflow:auto; padding:18px 20px 24px; scrollbar-width:thin; scrollbar-color:color-mix(in srgb,var(--dim) 45%,transparent) transparent; }
 /* room for the floating Save button only while it is shown */
 body.fab-on #pane { padding-bottom:84px; }
-#subtabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; border:1px solid var(--rule); border-radius:9px; overflow:hidden; background:var(--raised); margin-bottom:18px; }
+#subtabs { display:flex; gap:18px; margin:-4px 0 16px; flex-wrap:wrap; }
 #subtabs[hidden] { display:none; }
-#subtabs button { border:0; border-radius:0; min-height:32px; padding:4px 8px 3px; background:transparent; box-shadow:none; color:var(--dim); font-size:13px; }
-#subtabs button + button { border-left:1px solid var(--rule); }
-#subtabs button:hover:not(.sel) { color:var(--text); background:var(--sig-tint); }
-#subtabs button.sel { background:var(--sig-fill); color:var(--on-sig); }
-#subtabs .dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+#subtabs button { border:0; border-radius:0; min-height:30px; padding:2px 1px 6px; background:transparent; box-shadow:inset 0 -2px 0 transparent; color:var(--dim); font-size:13.5px; font-weight:600; }
+#subtabs button:hover:not(:disabled) { color:var(--text); background:transparent; }
+#subtabs button.sel { color:var(--text); box-shadow:inset 0 -2px 0 var(--sig); }
+#subtabs .dot { width:6px; height:6px; border-radius:50%; background:var(--sig); }
 #subtabs .dot[hidden] { display:none; }
 #syncBar { border:1px solid color-mix(in srgb,var(--warn) 55%,var(--rule)); border-left:4px solid var(--warn); border-radius:9px; background:color-mix(in srgb,var(--warn) 8%,var(--sheet)); padding:10px 12px; margin-bottom:16px; display:flex; flex-direction:column; gap:9px; }
 #syncBar[hidden] { display:none; }
@@ -286,15 +288,18 @@ body.fab-on #pane { padding-bottom:84px; }
 .unsaved::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--sig); }
 .unsaved[hidden] { display:none; }
 /* places, count, mini previews, floating save */
-.placeSel { display:flex; flex-wrap:wrap; gap:4px; }
-.placeSel button { min-height:28px; padding:2px 10px 1px; font-size:12.5px; font-weight:600; border-radius:999px; color:var(--dim); box-shadow:none; gap:6px; }
-.placeSel button.on { color:var(--text); border-color:var(--sig); background:var(--sig-tint); }
-.placeSel button small { min-width:16px; height:16px; border-radius:8px; background:var(--sig-fill); color:var(--on-sig); font:700 10px/16px var(--font); text-align:center; padding:0 4px; }
+.places { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; }
+.pgrp { background:var(--well); border:1px solid var(--rule); border-radius:9px; padding:8px 5px 5px; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.pgrp > b { font:700 11px/1.3 var(--font); letter-spacing:.06em; text-transform:uppercase; color:var(--mute); padding:0 5px 4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pgrp button { justify-content:flex-start; min-height:28px; padding:3px 6px; border:0; border-radius:6px; background:transparent; box-shadow:none; font-size:12.5px; font-weight:500; color:var(--dim); gap:5px; text-align:left; white-space:normal; line-height:1.2; }
+.pgrp button:hover:not(:disabled) { background:var(--sig-tint); color:var(--text); }
+.pgrp button.on { background:color-mix(in srgb,var(--sig) 16%,transparent); color:var(--text); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sig) 60%,transparent); font-weight:600; }
+.pgrp button small { min-width:15px; height:15px; border-radius:8px; background:var(--sig-fill); color:var(--on-sig); font:700 10px/15px var(--font); text-align:center; padding:0 3px; flex:none; }
 .cslider { min-height:34px; display:grid; grid-template-columns:minmax(0,1fr) 72px; gap:10px; align-items:center; }
 .cslider input[type=number] { text-align:right; }
 .mini { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:2px; width:84px; flex:none; align-items:center; }
 .mini i { aspect-ratio:1; border-radius:50%; background:#000; box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 14%,transparent); }
-.fxbtn { width:100%; justify-content:flex-start; gap:8px; padding:5px 8px 4px 10px; min-height:34px; background:var(--sheet); border-radius:7px; font-weight:500; }
+.fxbtn { width:100%; justify-content:flex-start; gap:8px; padding:5px 8px 4px 10px; min-height:34px; background:var(--well); border-radius:9px; font-weight:500; }
 .fxbtn .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; text-align:left; }
 .fxbtn .nm.unset { color:var(--dim); }
 .fxbtn svg.chev { width:14px; height:14px; color:var(--dim); }
@@ -338,8 +343,6 @@ p.lead { margin:6px 0 0; color:var(--dim); font-size:13px; max-width:62ch; }
 .form { display:grid; grid-template-columns:minmax(96px,auto) minmax(0,1fr); gap:10px 14px; align-items:center; }
 .form > label, .lbl { color:var(--dim); font-size:13px; line-height:1.3; align-self:start; padding-top:8.5px; }
 .strip .form { grid-template-columns:112px minmax(0,1fr); }
-.grp { border:1px solid var(--rule); border-radius:9px; padding:10px 12px 12px; display:flex; flex-direction:column; gap:10px; background:color-mix(in srgb,var(--raised) 35%,transparent); }
-.grp > h4 { margin:0; font:700 11px/1.3 var(--font); letter-spacing:.07em; text-transform:uppercase; color:var(--dim); }
 .fld { display:flex; flex-direction:column; gap:4px; min-width:0; }
 .hint { color:var(--dim); font-size:12px; line-height:1.4; }
 .typeSeg { display:flex; flex-wrap:wrap; gap:4px; }
@@ -350,7 +353,6 @@ p.lead { margin:6px 0 0; color:var(--dim); font-size:13px; max-width:62ch; }
 .presets button:hover:not(:disabled) { border-color:var(--sig); background:var(--c); }
 .presets button.on { border-color:var(--text); }
 /* narrow cards: labels above their fields */
-.strip .body { container-type:inline-size; }
 @container (max-width:440px) {
   .strip .form { grid-template-columns:minmax(0,1fr); gap:4px 0; }
   .strip .form > label { padding-top:8px; }
@@ -376,39 +378,125 @@ p.lead { margin:6px 0 0; color:var(--dim); font-size:13px; max-width:62ch; }
 .note.ok { border-left-color:var(--ok); color:var(--text); }
 
 /* strips */
-.strip { border:1px solid var(--rule); border-radius:10px; background:var(--sheet); }
-.strip.sel { border-color:var(--sig); box-shadow:0 0 0 1px var(--sig) inset; }
-.strip > header { display:flex; align-items:center; gap:10px; padding:9px 12px; cursor:pointer; }
-.strip > header .dotrow { display:flex; gap:2px; min-width:7px; flex:none; }
-.strip > header .dotrow i { width:7px; height:7px; border-radius:50%; box-shadow:0 0 0 1px var(--rule); }
-.strip > header b { font-weight:700; }
-.strip > header .meta { color:var(--dim); font-size:12px; margin-left:auto; text-align:right; }
-.strip > header .chev { width:9px; height:9px; border-right:2px solid var(--dim); border-bottom:2px solid var(--dim); transform:rotate(-45deg); transition:transform .15s; flex:none; margin-right:3px; }
-.strip.open > header .chev { transform:rotate(45deg); }
-.strip .body { display:none; padding:4px 12px 14px; border-top:1px solid var(--rule); }
-.strip.open .body { display:flex; flex-direction:column; gap:12px; padding-top:14px; }
-.strip .errs { color:var(--bad); font-size:12px; }
+.phd { display:flex; align-items:center; gap:10px; min-width:0; }
+.phd > button { margin-left:auto; }
+.phd .sub2 { font-size:12.5px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.info { display:inline-grid; place-items:center; width:15px; height:15px; border-radius:50%; border:1px solid var(--mute); color:var(--mute); font:700 10px/1 var(--font); cursor:help; flex:none; user-select:none; }
+.info:hover, .info:focus-visible { color:var(--text); border-color:var(--text); }
+.linkbtn { background:none; border:0; box-shadow:none; min-height:0; padding:2px 0; font-weight:500; font-size:13px; color:var(--dim); gap:5px; }
+.linkbtn:hover:not(:disabled) { background:none; color:var(--text); text-decoration:underline; text-underline-offset:3px; }
+.linkbtn.bad { color:var(--bad); }
+.linkbtn.bad:hover:not(:disabled) { color:var(--bad); }
+.linkbtn svg { width:12px; height:12px; }
+.strip { border:1px solid var(--rule); border-radius:12px; background:var(--raised); }
+.strip.open, .strip.sel { border-color:color-mix(in srgb,var(--sig) 55%,var(--rule)); }
+.strip > header { display:grid; grid-template-columns:56px minmax(0,1fr) auto; align-items:center; gap:12px; padding:11px 14px; cursor:pointer; }
+.strip > header .dotrow { display:flex; flex-wrap:wrap; gap:3px; width:56px; min-height:8px; }
+.strip > header .dotrow i { width:8px; height:8px; border-radius:50%; box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 14%,transparent), 0 0 5px currentColor; }
+.strip > header .nm { display:flex; flex-direction:column; min-width:0; line-height:1.3; }
+.strip > header .nm b { font-size:14.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.strip > header .meta { color:var(--dim); font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.strip header input.nameIn { background:transparent; border:1px solid transparent; border-radius:6px; padding:0 5px; margin:0 0 1px -6px; min-height:0; height:24px; font:700 14.5px var(--font); width:min(100%,260px); cursor:text; }
+.strip header input.nameIn:hover { border-color:var(--rule); }
+.strip header input.nameIn:focus { background:var(--well); border-color:var(--sig); outline:none; }
+.strip header input.nameIn.invalid { border-color:var(--bad); }
+.tagout { font:600 11px var(--mono); color:var(--dim); background:var(--s3); border-radius:6px; padding:3px 7px; white-space:nowrap; }
+.strip .body { display:none; border-top:1px solid var(--rule); padding:14px; }
+.strip.open .body { display:flex; flex-direction:column; gap:16px; }
+.strip .body .err { margin-top:0; }
+.strip select, .strip input[type=text], .strip input[type=number] { background-color:var(--well); border-radius:9px; }
+.q { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.qlab { font-size:12.5px; font-weight:600; color:var(--dim); display:flex; align-items:center; gap:6px; }
+.connRow { width:100%; justify-content:flex-start; gap:10px; background:var(--well); border-radius:9px; padding:7px 12px; min-height:38px; font-weight:500; font-size:13.5px; box-shadow:none; }
+.connRow b { font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.connRow .mono { color:var(--dim); font-size:12px; }
+.connRow .src { margin-left:auto; color:var(--dim); font-size:12.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.connRow svg { width:14px; height:14px; color:var(--dim); transition:transform .15s; }
+.connRow[aria-expanded=true] svg { transform:rotate(180deg); }
+.connDet { display:flex; flex-direction:column; gap:10px; padding:2px 0 0; }
+.nums { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.num { display:flex; flex-direction:column; gap:1px; background:var(--well); border:1px solid var(--rule); border-radius:9px; padding:7px 10px 4px; min-width:0; }
+.num small { order:0; font-size:11.5px; color:var(--mute); }
+.num output { order:1; font:600 15px/22px var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.strip .num input[type=number] { order:1; font:600 15px var(--mono); background:transparent; border:0; border-radius:4px; padding:0; min-height:0; height:22px; width:100%; }
+.num input[type=range] { order:2; height:14px; }
+.num input[type=range]::-webkit-slider-thumb { width:12px; height:12px; border-width:2px; margin-top:-4.5px; }
+.num input[type=range]::-webkit-slider-runnable-track { height:4px; }
+.num.invalid { border-color:var(--bad); }
+.pcolRow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.pcolRow > span { font-size:12.5px; color:var(--dim); }
+.sfoot { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.pnote { font-size:12.5px; color:var(--dim); }
+.strip .body { container-type:inline-size; }
+@container (max-width:470px) { .places { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@container (max-width:330px) { .places, .nums { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
 /* scenes */
 .stateRow { display:flex; gap:4px; flex-wrap:wrap; }
-.fx { border:1px solid var(--rule); border-radius:10px; padding:10px 12px 12px; display:flex; flex-direction:column; gap:10px; }
-.fx.allrow { background:var(--sig-tint); border-color:color-mix(in srgb,var(--sig) 35%,var(--rule)); }
-.fx > .head { display:grid; grid-template-columns:minmax(80px,1fr) minmax(0,1.3fr); gap:10px; align-items:center; }
-.fx > .head .who { display:flex; flex-direction:column; line-height:1.25; }
-.fx > .head .who small { color:var(--dim); font-size:12px; }
-.fx .params .espNote { grid-column:1/-1; }
+.schd { display:flex; align-items:center; gap:10px; min-width:0; }
+.schd .sdot { width:8px; height:8px; border-radius:50%; background:var(--c); box-shadow:0 0 8px var(--c); flex:none; }
+.schd small { color:var(--dim); font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.schd > button { margin-left:auto; }
+.fx { border:1px solid var(--rule); border-radius:12px; background:var(--raised); display:flex; flex-direction:column; }
+.fx.on { border-color:color-mix(in srgb,var(--sig) 55%,var(--rule)); }
+.fx > .head { display:grid; grid-template-columns:minmax(0,1fr) minmax(140px,190px); gap:12px; align-items:center; padding:10px 14px; }
+.fx > .head .who { display:flex; flex-direction:column; line-height:1.3; min-width:0; }
+.fx > .head .who b { font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fx > .head .who small { color:var(--dim); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fx .preview { margin:0 14px 12px; height:5px; border-radius:3px; border:0; outline:1px solid color-mix(in srgb,var(--text) 10%,transparent); }
+.fx .params { border-top:1px solid var(--rule); padding:10px 14px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.pc { display:inline-flex; align-items:center; gap:8px; background:var(--well); border:1px solid var(--rule); border-radius:8px; padding:3px 9px; min-height:32px; font-size:12.5px; color:var(--dim); max-width:100%; min-width:0; }
+.pc > label { white-space:nowrap; }
+.pc.wide { flex-basis:100%; flex-wrap:wrap; padding:6px 9px; }
+.pc input[type=range] { width:92px; height:20px; }
+.pc output { font:600 12px var(--mono); color:var(--text); min-width:26px; }
+.pc .switch { min-height:24px; gap:8px; }
+.pc .switch .knob { width:30px; height:17px; }
+.pc .switch .knob::after { width:11px; height:11px; }
+.pc .switch input:checked + .knob::after { transform:translateX(13px); }
+.pc .seg button { min-height:24px; font-size:12px; }
+.pc .pick > button { min-height:26px; font-size:12px; padding:2px 9px; }
+.pc input[type=text], .pc input[type=number] { min-height:26px; padding:2px 7px; }
+.pc .mm input { width:70px; }
+.pc .stops .stop button { min-height:24px; }
+.fx .params .swatch { min-height:32px; padding:3px 9px 3px 4px; border-radius:8px; background:var(--well); }
+.fx .params .swatch i { width:20px; height:20px; }
+.fx .arr { color:var(--dim); font-size:12.5px; }
+.fx .spec { display:none; }  /* the config text of a scene line lives in the Config tab */
+.fx.allq { border:0; background:none; }
+.fx.allq > .head { display:flex; justify-content:space-between; padding:4px 2px; font-size:13px; color:var(--dim); }
+.fx.allq > .head .who { display:block; }
+.fx.allq > .head .who b { color:var(--text); font-weight:700; }
+.fx.allq .preview { display:none; }
+.fx.allq .params { border:0; padding:2px 2px 6px; }
+.sctip { margin:0; font-size:12.5px; color:var(--dim); }
+.sclinks { display:flex; gap:16px; flex-wrap:wrap; }
 .loadWhy { border:1px solid var(--rule); border-radius:10px; background:var(--raised); padding:10px 14px; font-size:13px; }
 .loadWhy b { display:block; margin-bottom:4px; }
 .loadWhy ul { margin:0; padding-left:18px; color:var(--dim); }
 .loadWhy li + li { margin-top:3px; }
-.fx .params { display:grid; grid-template-columns:minmax(64px,auto) minmax(0,1fr); gap:8px 12px; align-items:center; }
-.fx .params > label { color:var(--dim); font-size:12px; }
-.fx .params > .swatch, .fx .params > .seg, .fx .params > .switch { justify-self:start; }
-.fx .spec { font:12px var(--mono); color:var(--dim); overflow-wrap:anywhere; }
-.fx .spec.raw { display:none; }  /* the config text of a scene line lives in the Config tab */
-.fx.allrow.unset { background:none; } .fx.allrow.unset .preview, .fx.allrow.unset .spec { display:none; }  /* "All strips" unset: one quiet line */
 .preview { height:10px; border-radius:5px; display:flex; overflow:hidden; border:1px solid var(--rule); }
 .preview i { flex:1; }
+/* settings > printer */
+.pform { grid-template-columns:120px minmax(0,1fr); gap:12px 14px; }
+.pform > label { padding-top:0; align-self:center; display:flex; align-items:center; gap:6px; }
+#v-printer select, #v-printer input[type=number] { background-color:var(--well); border-radius:9px; }
+.in3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.axin { position:relative; display:block; min-width:0; }
+.axin small { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:11.5px; color:var(--mute); pointer-events:none; }
+.axin input { width:100%; text-align:right; font:600 13px var(--mono); padding-left:24px; }
+.pform .pnote { margin-top:-6px; }
+.ccard { border:1px solid var(--rule); border-radius:12px; background:var(--raised); }
+.ccard > div { display:flex; align-items:center; gap:10px; padding:10px 14px; flex-wrap:wrap; min-height:52px; }
+.ccard > div + div { border-top:1px solid var(--rule); }
+.ccard .cdot { width:8px; height:8px; border-radius:50%; background:var(--ok); flex:none; }
+.ccard .cdot.off { background:var(--mute); }
+.ccard > div > button { margin-left:auto; }
+.ccard .small2 { font-size:12.5px; color:var(--dim); min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.ccard .cmsg { font-size:12.5px; }
+.trigBox { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; border:1px solid var(--rule); border-radius:12px; padding:10px 14px; background:var(--raised); }
+.trigBox .meta { color:var(--dim); font-size:12.5px; min-width:0; overflow-wrap:anywhere; }
+.trigBox .grow { flex:1; }
 
 /* load */
 .load { border:1px solid var(--rule); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
@@ -459,9 +547,9 @@ dialog p { color:var(--dim); margin:0 0 16px; }
 .stops .stop button { min-height:28px; padding:2px 7px; box-shadow:none; background:transparent; color:var(--dim); }
 .mm { display:flex; gap:6px; align-items:center; }
 .mm input { width:88px; }
-.trigBox { display:flex; flex-direction:column; gap:8px; border:1px solid var(--rule); border-radius:10px; padding:10px 12px; }
-.trigBox .meta { color:var(--dim); font-size:13px; }
-.grp { border:1px solid var(--rule); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+.grp { border:1px solid var(--rule); border-radius:12px; padding:10px 14px; display:flex; flex-direction:column; gap:8px; background:var(--raised); }
+.grp input[type=text] { background-color:var(--well); border-radius:9px; }
+.grp .pick > button:not(.sel) { background:var(--well); }
 .grp .row input[type=text] { flex:1; min-width:0; }
 .fld .err { color:var(--bad); }
 #toast { position:fixed; right:16px; bottom:76px; z-index:20; max-width:min(380px,calc(100vw - 32px)); background:var(--sheet); border:1px solid var(--rule); border-left:4px solid var(--ok); border-radius:8px; padding:9px 14px; box-shadow:0 6px 18px rgba(0,0,0,.25); display:none; }
@@ -625,7 +713,7 @@ const I18N = {
     fallsBack: (s, r) => r ? `No scene for ${s}: it shows the <b>${r}</b> scene.` : `No scene for ${s}: all strips stay off.`,
     noScenesAtAll: 'This project has no scene sections, so the built-in default scenes are used for every state.',
     usesAll: 'from All strips', stripsOff: 'off',
-    l_title: 'Load', l_lead: 'How much each output costs. MCU outputs share time with motion on the printer board; network outputs cost nothing there.',
+    l_title: 'Load', l_lead: 'What each output costs the printer board. Network outputs cost nothing there.',
     bytesFrame: 'Bytes / frame', fps: 'Frame rate', mcuMs: 'MCU busy', ledsN: 'LEDs', msps: 'ms/s',
     fpsLbl: 'Frame rate', mcuLbl: 'MCU time',
     freeze: 'Freezes during homing and probing (more than 16 LEDs on this chain), so motion timing stays exact.',
@@ -634,12 +722,12 @@ const I18N = {
     espNote: 'The ESP node animates itself: only a few packets per state change.',
     bigChain: n => `${n} LEDs on one MCU chain is a lot: consider WLED or an ESP32 node for this strip.`,
     budget: 'MCU budget: LED updates may use at most 3 % of MCU time, max 25 fps.',
-    c_title: 'lightspeed.cfg', c_lead: 'Put this file next to printer.cfg and add [include lightspeed.cfg]. Colours have no # because # starts a comment in G-code.',
+    c_title: 'lightspeed.cfg', c_lead: 'Put it next to printer.cfg and add [include lightspeed.cfg].',
     copy: 'Copy', download: 'Download', copied: 'Copied to clipboard.', copyFail: 'Copy failed: select the text and copy it by hand.',
     importT: 'Import', importLead: 'Paste a lightspeed.cfg to load it into the page.', importBtn: 'Import', imported: 'Config imported.',
     importErr: n => `Not imported: ${n} error(s).`, line: n => `line ${n}`, warnings: 'Warnings',
     fixFirst: n => `${n} problem(s) in the strips: the config may not load on the printer until they are fixed.`,
-    lv_title: 'Live', lv_lead: 'The connection to this printer. To work on another printer, pick it in the printer menu at the top.',
+    lv_title: 'Live', lv_lead: 'What the printer reports right now.',
     addr: 'Printer address', addrPh: 'empty = this page\'s server, or e.g. 192.168.1.100', connect: 'Connect', connecting: 'Connecting…',
     fromDisk: 'This page is opened from disk: enter the printer address.',
     preview: 'Preview on printer', previewHint: 'Effect edits and state chips are shown on the printer too; when the state preview ends (or you press its ✕) the printer goes back to normal.',
@@ -725,7 +813,7 @@ const I18N = {
     fallsBack: (s, r) => r ? `${s} için sahne yok: <b>${r}</b> sahnesi gösterilir.` : `${s} için sahne yok: tüm şeritler kapalı kalır.`,
     noScenesAtAll: 'Bu projede sahne bölümü yok, bu yüzden her durumda yerleşik varsayılan sahneler kullanılır.',
     usesAll: 'Tüm şeritler\'den', stripsOff: 'kapalı',
-    l_title: 'Yük', l_lead: 'Her çıkışın maliyeti. MCU çıkışları yazıcı kartında hareketle aynı zamanı paylaşır; ağ çıkışlarının orada hiçbir yükü yoktur.',
+    l_title: 'Yük', l_lead: 'Her çıkışın yazıcı kartına maliyeti. Ağ çıkışlarının orada yükü yoktur.',
     bytesFrame: 'Bayt / kare', fps: 'Kare hızı', mcuMs: 'MCU meşguliyeti', ledsN: 'LED', msps: 'ms/sn',
     fpsLbl: 'Kare hızı', mcuLbl: 'MCU süresi',
     freeze: 'Sıfırlama ve prob ölçümü sırasında donar (bu zincirde 16\'dan fazla LED var), böylece hareket zamanlaması kusursuz kalır.',
@@ -734,12 +822,12 @@ const I18N = {
     espNote: 'ESP kartı animasyonu kendisi oynatır: durum değişikliği başına yalnızca birkaç paket gider.',
     bigChain: n => `Tek bir MCU zincirinde ${n} LED fazla: bu şerit için WLED ya da bir ESP32 kartı düşünün.`,
     budget: 'MCU bütçesi: LED güncellemeleri MCU zamanının en fazla %3\'ünü kullanabilir, en fazla 25 kare/sn.',
-    c_title: 'lightspeed.cfg', c_lead: 'Bu dosyayı printer.cfg\'nin yanına koyun ve [include lightspeed.cfg] ekleyin. G-code\'da # yorum başlattığı için renklerde # yoktur.',
+    c_title: 'lightspeed.cfg', c_lead: 'printer.cfg\'nin yanına koyun ve [include lightspeed.cfg] ekleyin.',
     copy: 'Kopyala', download: 'İndir', copied: 'Panoya kopyalandı.', copyFail: 'Kopyalanamadı: metni seçip elle kopyalayın.',
     importT: 'İçe aktar', importLead: 'Sayfaya yüklemek için bir lightspeed.cfg yapıştırın.', importBtn: 'İçe aktar', imported: 'Ayar dosyası içe aktarıldı.',
     importErr: n => `İçe aktarılmadı: ${n} hata.`, line: n => `satır ${n}`, warnings: 'Uyarılar',
     fixFirst: n => `Şeritlerde ${n} sorun var: düzeltilene kadar ayar dosyası yazıcıda yüklenmeyebilir.`,
-    lv_title: 'Canlı', lv_lead: 'Bu yazıcıyla bağlantı. Başka bir yazıcıda çalışmak için üstteki yazıcı menüsünden seçin.',
+    lv_title: 'Canlı', lv_lead: 'Yazıcının şu an bildirdikleri.',
     addr: 'Yazıcı adresi', addrPh: 'boş = bu sayfanın sunucusu, ya da örn. 192.168.1.100', connect: 'Bağlan', connecting: 'Bağlanıyor…',
     fromDisk: 'Bu sayfa diskten açıldı: yazıcının adresini girin.',
     preview: 'Yazıcıda önizle', previewHint: 'Efekt değişiklikleri ve durum düğmeleri yazıcıda da görünür; durum önizlemesi bitince (ya da ✕ düğmesine basınca) yazıcı normale döner.',
@@ -4685,7 +4773,7 @@ $('#scDlg').addEventListener('input', e => {
 });
 $('#scDlg').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); sdSave(); } });
 const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
-const swatch = (k, hex) => `<label class="swatch"><i style="background:#${hex}"></i><span>${hex}</span><input type="color" data-p="${k}" value="#${hex}"></label>`;
+const swatch = (k, hex, title) => `<label class="swatch"${title ? ` title="${esc(title)}"` : ''}><i style="background:#${hex}"></i><span>${hex}</span><input type="color" data-p="${k}" value="#${hex}"${title ? ` aria-label="${esc(title)}"` : ''}></label>`;
 const sw = (attr, on, label = '') => `<label class="switch"><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="knob"></span>${label ? `<span>${esc(label)}</span>` : ''}</label>`;
 function setRangeFill(r) { const a = +r.min, b = +r.max; r.style.setProperty('--p', ((r.value - a) / (b - a) * 100) + '%'); }
 const hexRgb = h => [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
@@ -4811,24 +4899,37 @@ function rerender() { showTab(curTab); }
 const onSub = s => curTab === 'settings' && curSub === s;
 
 // ---- Printer
+function connCard() {  // connection to this printer + preview switch (Settings > Printer)
+  const t = T(), st = Live.status, disk = location.protocol === 'file:';
+  const row = st
+    ? `<span class="cdot"></span><b>${esc(t.connected)}</b><span class="small2">${esc([st.host || Klip.hostname || location.host, st.version ? 'Lightspeed ' + st.version : ''].filter(Boolean).join(' · '))}</span><button type="button" data-act="connect"${Live.busy ? ' disabled' : ''}>${esc(cm('refresh', 'Refresh', 'Yenile'))}</button>`
+    : `<span class="cdot off"></span><span class="small2">${esc(Live.busy ? t.connecting : disk ? t.fromDisk : t.notConnected)}</span><button type="button" class="primary" data-act="connect"${Live.busy || disk ? ' disabled' : ''}>${esc(Live.busy ? t.connecting : t.connect)}</button>`;
+  const msg = Live.msg && Live.kind !== 'ok';
+  return `<div class="ccard"><div>${row}</div><div class="cmsg ${esc(Live.kind)}" id="pLiveMsg"${msg ? '' : ' hidden'}>${esc(msg ? Live.msg : '')}</div>
+    <div>${sw('id="lvPrev"', Preview.on, cmOr('prevOnPrinter', 'Show previews on the printer', 'Önizlemeleri yazıcıda göster', t.preview))}${info(t.previewHint)}</div></div>`;
+}
 function renderPrinter() {
-  const t = T();
+  const t = T(), sec = clamp(+UI.prevSec || 10, 3, 60);
+  const note = cm('pViewNote', 'Only the 3D drawing', 'Yalnızca 3B çizim') + (CAD_CREDIT[P.model] ? ' · ' + t.cadModel + ': ' + CAD_CREDIT[P.model] : '');
   $('#v-printer').innerHTML = `
-  <div class="sec"><div><h2>${esc(t.p_view)}</h2><p class="lead">${esc(t.p_viewLead)}</p></div>
-    <div class="form">
-      <label for="pModel">${esc(t.model)}</label><div class="fld"><select id="pModel">${MODELS.map(m => opt(m, t.models[m], m === P.model)).join('')}</select>${CAD_CREDIT[P.model] ? `<span class="hint">${esc(t.cadModel + ': ' + CAD_CREDIT[P.model])}</span>` : ''}</div>
-      ${CAD_FILES[P.model] ? `<label for="pTh">${esc(t.toolhead)}</label><div class="fld"><select id="pTh">${TOOLHEADS.map(k => opt(k, t.toolheads[k], k === thKey())).join('')}</select><span class="hint">${esc(t.toolheadHint)}</span></div>` : ''}
-      <label>${esc(t.size)}</label><div class="trio">${['X', 'Y', 'Z'].map((a, i) => `<label>${a}<input type="number" min="60" max="1000" step="1" data-size="${i}" value="${P.size[i]}"></label>`).join('')}</div>
-      <label for="pPrev">${esc(t.prevTime)}</label><div class="fld"><div class="slider"><input type="range" id="pPrev" min="3" max="60" step="1" value="${clamp(+UI.prevSec || 10, 3, 60)}"${UI.prevHold ? ' disabled' : ''}><output id="pPrevV">${UI.prevHold ? '∞' : clamp(+UI.prevSec || 10, 3, 60) + ' s'}</output></div>
-        ${sw('id="pHold"', !!UI.prevHold, t.untilStop)}<span class="hint">${esc(t.prevHint)}</span></div>
+  <div class="sec"><div class="form pform">
+      <label for="pModel">${esc(cmOr('pModelL', 'Printer model', 'Yazıcı modeli', t.model))}</label><select id="pModel">${MODELS.map(m => opt(m, t.models[m], m === P.model)).join('')}</select>
+      ${CAD_FILES[P.model] ? `<label for="pTh">${esc(t.toolhead)}</label><select id="pTh" title="${esc(t.toolheadHint)}">${TOOLHEADS.map(k => opt(k, t.toolheads[k], k === thKey())).join('')}</select>` : ''}
+      <label>${esc(cmOr('pSizeL', 'Build volume', 'Baskı hacmi', t.size))}</label><div class="in3">${['X', 'Y', 'Z'].map((a, i) => `<label class="axin"><small>${a}</small><input type="number" min="60" max="1000" step="1" data-size="${i}" value="${P.size[i]}" aria-label="${a} (mm)"></label>`).join('')}</div>
+      <span></span><span class="pnote">${esc(note)} ${info(t.p_viewLead + ' ' + t.toolheadHint)}</span>
     </div></div>
-  <div class="sec"><div><h2>${esc(t.p_lights)}</h2></div>
-    <div class="form">
-      <label for="pBright">${esc(t.brightness)}</label><div class="fld"><div class="slider"><input type="range" id="pBright" min="0" max="1" step="0.01" value="${P.brightness}"><output id="pBrightV">${Math.round(P.brightness * 100)}%</output></div>
-      <span class="hint">${esc(t.brightnessHint)}</span></div>
-    </div></div>`;
+  <div class="sec"><div class="form pform">
+      <label for="pBright">${esc(t.brightness)}${info(t.brightnessHint)}</label><div class="slider"><input type="range" id="pBright" min="0" max="1" step="0.01" value="${P.brightness}"><output id="pBrightV">${Math.round(P.brightness * 100)}%</output></div>
+      <label for="pPrev">${esc(cmOr('pTestL', 'State test', 'Durum testi', t.prevTime))}${info(t.prevHint)}</label><div class="slider"><input type="range" id="pPrev" min="3" max="60" step="1" value="${sec}"${UI.prevHold ? ' disabled' : ''}><output id="pPrevV">${UI.prevHold ? '∞' : sec + ' s'}</output></div>
+      <span></span><div>${sw('id="pHold"', !!UI.prevHold, cmOr('untilStop2', 'until I stop it', 'ben durdurana dek', t.untilStop))}</div>
+    </div></div>
+  <div class="sec">${connCard()}</div>`;
   setRangeFill($('#pBright')); setRangeFill($('#pPrev'));
 }
+$('#v-printer').addEventListener('click', async e => {
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  if (a.dataset.act === 'connect') await liveConnect(false);
+});
 $('#v-printer').addEventListener('input', e => {
   const el = e.target;
   if (el.id === 'pPrev') { UI.prevSec = +el.value; saveUI(); setRangeFill(el); $('#pPrevV').textContent = el.value + ' s'; return; }
@@ -4837,6 +4938,7 @@ $('#v-printer').addEventListener('input', e => {
 $('#v-printer').addEventListener('change', e => {
   const el = e.target;
   if (el.id === 'pHold') { UI.prevHold = el.checked; saveUI(); renderPrinter(); return; }
+  if (el.id === 'lvPrev') { Preview.on = UI.prevOn = el.checked; saveUI(); return; }
   if (el.id === 'pTh') { UI.toolhead = TOOLHEADS.includes(el.value) ? el.value : 'rx'; saveUI(); cadToolhead(); cadNote(); renderCadLoad(); return; }
   if (el.id === 'pModel') {  // the build volume is one setting for every model: switching the model keeps it
     P.model = el.value; changed({ printer: true, view: true }); renderPrinter();
@@ -4853,7 +4955,42 @@ const sceneKeyOf = new WeakMap();
 const PIN_COLORS = ['ffd9a0', 'ffffff', 'e0f0ff', 'ff0000', '00ff40', '0030ff', 'ffb000'];
 const isMcuType = ty => ty === 'neopixel' || ty === 'dotstar';
 const placeNames = s => s.place.map(x => T().places[x]).join(' + ');
-function stripMeta(s) { return `${placeNames(s)} · ${s.count} · ${T().outShort[s.type] || s.type}`; }
+// new / changed panel words: English and Turkish here, other languages take their own word where one exists
+const cmOr = (key, en, tr, alt) => lang === 'en' || lang === 'tr' ? cm(key, en, tr) : ((I18N[lang] && I18N[lang].cm || {})[key] ?? alt ?? en);
+const nLeds = n => cm('nLeds', `${n} LED${n === 1 ? '' : 's'}`, `${n} LED`, n);
+function stripMeta(s) { return `${placeNames(s)} · ${nLeds(s.count)}`; }
+const OUT_TAG = { neopixel: 'NeoPixel', dotstar: 'DotStar', wled: 'WLED', esp_bridge: 'ESP', pin: 'Pin' };
+const PLACE_GROUPS = [['top', ['top_front', 'top_rear', 'top_left', 'top_right', 'top_ring']], ['door', ['door_top', 'door_left', 'door_right']],
+  ['toolhead', ['toolhead_logo', 'nozzle']], ['bed', ['bed_skirt', 'under_bed']], ['frame', ['x_gantry', 'frame_bottom']]];
+function placeGroupName(g) {
+  return { top: cm('pgTop', 'Top', 'Üst'), door: cm('pgDoor', 'Door', 'Kapı'), toolhead: cm('pgHead', 'Toolhead', 'Kafa'), bed: cm('pgBed', 'Bed', 'Tabla'), frame: cm('pgFrame', 'Frame', 'Gövde') }[g];
+}
+function placeShort(p) {  // the word inside its group; other languages show their full place name
+  if (lang !== 'en' && lang !== 'tr') return T().places[p];
+  const tr = lang === 'tr';
+  return ({ top_front: ['Front', 'Ön'], top_rear: ['Rear', 'Arka'], top_left: ['Left', 'Sol'], top_right: ['Right', 'Sağ'], top_ring: ['Ring', 'Halka'],
+    door_top: ['Top', 'Üst'], door_left: ['Left', 'Sol'], door_right: ['Right', 'Sağ'], toolhead_logo: ['Logo', 'Logo'], nozzle: ['Nozzle', 'Nozül'],
+    bed_skirt: ['Skirt', 'Çevre'], under_bed: ['Under', 'Alt'], x_gantry: ['X gantry', 'X kirişi'], frame_bottom: ['Bottom', 'Alt'] }[p] || [p, p])[tr ? 1 : 0];
+}
+const info = txt => `<span class="info" tabindex="0" role="img" title="${esc(txt)}" aria-label="${esc(txt)}">i</span>`;
+const CHEV = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>';
+// "Connected to": one line (output, chain / address, LEDs, where the section comes from); the controls open under it
+const connOpen = new WeakSet();
+const HW_ERRS = ['chain', 'mcu', 'pin', 'clock', 'hwcount', 'range', 'ip', 'start', 'prefix'];
+function connSummary(s) {
+  const key = hwKey(s), h = key ? P.hw[key] : null;
+  let target = '', range = '', src = '';
+  if (key) {
+    target = s.chain; if (isMcuType(s.type)) range = 'LED ' + ledsRange(s);
+    src = h ? cm('srcNew', 'new in lightspeed.cfg', `lightspeed.cfg'de yeni`) : cm('srcCfg', 'from printer.cfg', `printer.cfg'den`);
+  } else if (s.type === 'wled') { target = s.ip; src = cm('srcNet', 'network', 'ağ'); }
+  else { target = s.prefix; src = cm('srcNet', 'network', 'ağ'); }
+  return `<span>${esc(OUT_TAG[s.type] || s.type)}</span><b>${esc(target || '-')}</b>${range ? `<span class="mono">${esc(range)}</span>` : ''}<span class="src">${esc(src)}</span>${CHEV}`;
+}
+function refreshHead(card, s) {
+  const m = $('header .meta', card); if (m) m.textContent = stripMeta(s);
+  const c = $('[data-conn]', card); if (c) c.innerHTML = connSummary(s);
+}
 const ERR_OF = { 'hw.mcu': 'mcu', 'hw.pin': 'pin', 'hw.clock': 'clock', 'hw.count': 'hwcount' };
 const errKey = k => ERR_OF[k] || k;
 // printer objects of one kind, from Moonraker objects/list (null when not connected)
@@ -4895,13 +5032,13 @@ function stripCard(s, i) {
   let hw = '';
   if (key) {
     const pinT = s.type === 'pin', sect = hwSection(key), kind = sect.split(' ')[0];
-    const modes = `<div class="modeSeg"><button type="button" data-mode="existing" class="${h ? '' : 'sel'}">${esc(pinT ? t.useExistingPin : t.useExisting)}</button><button type="button" data-mode="new" class="${h ? 'sel' : ''}">${esc(pinT ? t.createNewPin : t.createNew)}</button></div>`;
+    const modes = `<div class="modeSeg"><button type="button" data-mode="existing" class="${h ? '' : 'sel'}" title="${esc(t.existingHint(kind))}">${esc(pinT ? t.useExistingPin : t.useExisting)}</button><button type="button" data-mode="new" class="${h ? 'sel' : ''}" title="${esc(t.newHint(sect))}">${esc(pinT ? t.createNewPin : t.createNew)}</button></div>`;
     let rows = '';
     if (!h) {
       const names = printerNames(kind);
       const made = Object.keys(P.hw).filter(k2 => k2.startsWith(s.type + ' ')).map(k2 => k2.slice(s.type.length + 1));
       const ctl = names ? pickSelect('chain', s.chain, names, made) : inp('chain', s.chain, pinT ? 'case_light' : 'hotend_rgb');
-      rows += `<label>${esc(pinT ? t.pinName : t.chain)}</label>${fld('chain', ctl, esc(t.existingHint(kind)))}`;
+      rows += `<label title="${esc(t.existingHint(kind))}">${esc(pinT ? t.pinName : t.chain)}</label>${fld('chain', ctl)}`;
     } else {
       const sharers = P.strips.filter((o, j) => j !== i && hwKey(o) === key).map(o => o.name);
       const mcus = Live.objects ? Live.objects.filter(o => /^mcu \S+$/.test(o)).map(o => o.slice(4)) : null;
@@ -4910,8 +5047,8 @@ function stripCard(s, i) {
         const all = mcus.slice(); if (h.mcu && !all.includes(h.mcu)) all.unshift(h.mcu);
         mctl = `<select data-k="hw.mcu">${opt('', t.mcuMain, !h.mcu)}${all.map(m => opt(m, m + (mcus.includes(m) ? '' : ` (${t.notOnPrinter})`), m === h.mcu)).join('')}</select>`;
       } else mctl = inp('hw.mcu', h.mcu, 'EBBCan');
-      rows += `<label>${esc(pinT ? t.pinOutName : t.chainName)}</label>${fld('chain', inp('chain', s.chain, pinT ? 'case_light' : 'case_rgb'), esc(t.newHint(sect)) + (sharers.length ? '<br>' + esc(t.sharedHw(sharers.join(', '))) : ''))}
-        <label>${esc(t.mcu)}</label>${fld('mcu', mctl, esc(t.mcuHint(h.mcu)))}`;
+      rows += `<label title="${esc(t.newHint(sect))}">${esc(pinT ? t.pinOutName : t.chainName)}</label>${fld('chain', inp('chain', s.chain, pinT ? 'case_light' : 'case_rgb'), sharers.length ? esc(t.sharedHw(sharers.join(', '))) : '')}
+        <label title="${esc(t.mcuHint(h.mcu))}">${esc(t.mcu)}</label>${fld('mcu', mctl)}`;
       if (s.type === 'dotstar') rows += `<label>${esc(t.dataPin)}</label>${fld('pin', inp('hw.pin', h.pin, 'PA7'))}<label>${esc(t.clockPin)}</label>${fld('clock', inp('hw.clock', h.clock, 'PA5'))}`;
       else rows += `<label>${esc(t.pinF)}</label>${fld('pin', inp('hw.pin', h.pin, pinT ? 'PE5' : 'PD3'))}`;
       if (pinT) rows += `<label>${esc(t.pwm)}</label><div>${sw('data-k="hw.pwm"', h.pwm)}</div>`;
@@ -4920,7 +5057,7 @@ function stripCard(s, i) {
         if (s.type === 'neopixel') { const ords = COLOR_ORDERS.includes(h.order) ? COLOR_ORDERS : [h.order].concat(COLOR_ORDERS); rows += `<label>${esc(t.colorOrder)}</label><select data-k="hw.order">${ords.map(o => opt(o, o, o === h.order)).join('')}</select>`; }
       }
     }
-    if (mcuT) rows += `<label>${esc(t.leds)}</label>${fld('range', `<input type="text" data-k="range" value="${esc(ledsRange(s))}" class="${er.range ? 'invalid' : ''}" spellcheck="false">`, esc(t.ledsHint))}`;
+    if (mcuT) rows += `<label title="${esc(t.ledsHint)}">${esc(t.leds)}</label>${fld('range', `<input type="text" data-k="range" value="${esc(ledsRange(s))}" class="${er.range ? 'invalid' : ''}" spellcheck="false" placeholder="1-${s.count}">`)}`;
     hw = `${modes}<div class="form">${rows}</div>`;
   } else if (s.type === 'wled') {
     hw = `<div class="form"><label>${esc(t.ip)}</label>${fld('ip', inp('ip', s.ip, '192.168.1.60'))}
@@ -4928,25 +5065,29 @@ function stripCard(s, i) {
   } else {
     hw = `<div class="form"><label>${esc(t.prefix)}</label>${fld('prefix', inp('prefix', s.prefix, 'led'))}</div>`;
   }
+  const connShow = connOpen.has(s) || HW_ERRS.some(k => er[k]);
+  const conn = `<div class="q"><span class="qlab">${esc(cm('connTo', 'Connected to', 'Bağlı olduğu yer'))}${info(t.outputs[s.type] + ' · ' + (key ? (h ? t.newHint(hwSection(key)) : t.existingHint(hwSection(key).split(' ')[0])) : s.type === 'wled' ? t.wledNote : t.espNote))}</span>
+      <button type="button" class="connRow" data-act="conn" data-conn aria-expanded="${connShow}">${connSummary(s)}</button>
+      <div class="connDet"${connShow ? '' : ' hidden'}>
+        <div class="typeSeg">${OUTPUTS.map(o => `<button type="button" data-type="${o}" class="${o === s.type ? 'sel' : ''}" title="${esc(t.outputs[o])}">${esc(t.outShort[o])}</button>`).join('')}</div>
+        ${hw}</div></div>`;
+  const places = `<div class="q"><span class="qlab">${esc(cmOr('whereOn', 'Where on the printer', 'Yazıcıda nerede', t.placesLbl))}${info(t.placeHint)}</span>
+      <div class="places">${PLACE_GROUPS.map(([g, ps]) => `<div class="pgrp"><b>${esc(placeGroupName(g))}</b>${ps.map(p => { const k = s.place.indexOf(p); return `<button type="button" data-place="${p}" class="${k >= 0 ? 'on' : ''}" aria-pressed="${k >= 0}" title="${esc(t.places[p])}">${k >= 0 && s.place.length > 1 ? `<small>${k + 1}</small>` : ''}${esc(placeShort(p))}</button>`; }).join('')}</div>`).join('')}</div></div>`;
   const bri = s.brightness ?? 1;
-  const look = `<div class="form">
-      <label>${esc(t.placesLbl)}</label><div class="fld"><div class="placeSel">${PLACES.map(p => { const k = s.place.indexOf(p); return `<button type="button" data-place="${p}" class="${k >= 0 ? 'on' : ''}" aria-pressed="${k >= 0}">${k >= 0 && s.place.length > 1 ? `<small>${k + 1}</small>` : ''}${esc(t.places[p])}</button>`; }).join('')}</div><span class="hint">${esc(t.placeHint)}</span></div>
-      <label>${esc(t.spacing)}</label><div class="fld"><div class="slider"><input type="range" data-k="spacing" min="0" max="60" step="0.5" value="${Math.min(60, s.spacing || 0)}"><output>${s.spacing > 0 ? fmtNum(s.spacing) + ' mm' : esc(t.spread)}</output></div><span class="hint">${esc(t.spacingHint)}</span></div>
-      ${s.type === 'pin' ? `<label>${esc(t.lightColor)}</label><div class="pcol"><label class="swatch"><i style="background:#${s.color}"></i><span>${s.color}</span><input type="color" data-k="color" value="#${s.color}"></label><div class="presets">${PIN_COLORS.map(c => `<button type="button" data-pcol="${c}" style="--c:#${c}" class="${c === s.color ? 'on' : ''}" title="#${c}" aria-label="#${c}"></button>`).join('')}</div></div>` : ''}
-      <label>${esc(t.count)}</label>${fld('count', `<div class="cslider"><input type="range" data-k="count" min="1" max="200" step="1" value="${Math.min(200, s.count)}">${num('count', s.count, 1, 500)}</div>`, mcuT ? esc(t.countHintMcu) : '')}
-      <label>${esc(t.stripBri)}</label><div class="slider"><input type="range" data-k="brightness" min="0" max="1" step="0.01" value="${bri}"><output>${Math.round(bri * 100)}%</output></div>
-    </div>`;
+  const leds = `<div class="q"><span class="qlab">${esc(cmOr('ledsBlk', 'LEDs', `LED'ler`, t.ledsN))}${info((mcuT ? t.countHintMcu + ' ' : '') + t.spacingHint)}</span>
+      <div class="nums">
+        <label class="num${er.count ? ' invalid' : ''}"><small>${esc(cmOr('nCount', 'Count', 'Adet', t.count))}</small>${num('count', s.count, 1, 500)}<input type="range" data-k="count" min="1" max="200" step="1" value="${Math.min(200, s.count)}" aria-label="${esc(t.count)}"></label>
+        <label class="num"><small>${esc(cmOr('nSpacing', 'Spacing', 'Aralık', t.spacing))}</small><input type="range" data-k="spacing" min="0" max="60" step="0.5" value="${Math.min(60, s.spacing || 0)}" aria-label="${esc(t.spacing)}"><output>${s.spacing > 0 ? fmtNum(s.spacing) + ' mm' : esc(t.spread)}</output></label>
+        <label class="num"><small>${esc(cmOr('nBright', 'Brightness', 'Parlaklık', t.stripBri))}</small><input type="range" data-k="brightness" min="0" max="1" step="0.01" value="${bri}" aria-label="${esc(t.stripBri)}"><output>${Math.round(bri * 100)}%</output></label>
+      </div><div class="err" data-e="count"${er.count ? '' : ' hidden'}>${esc(er.count || '')}</div>
+      ${s.type === 'pin' ? `<div class="pcolRow"><span>${esc(t.lightColor)}</span><label class="swatch"><i style="background:#${s.color}"></i><span>${s.color}</span><input type="color" data-k="color" value="#${s.color}"></label><div class="presets">${PIN_COLORS.map(c => `<button type="button" data-pcol="${c}" style="--c:#${c}" class="${c === s.color ? 'on' : ''}" title="#${c}" aria-label="#${c}"></button>`).join('')}</div></div>` : ''}</div>`;
   const ledNote = i === selStrip && selLed >= 0 ? `<div class="note ok">${t.ledOf(selLed + 1, s.count, s.name)}</div>` : '';
+  const nameCtl = open ? `<input type="text" class="nameIn${er.name ? ' invalid' : ''}" data-k="name" value="${esc(s.name)}" spellcheck="false" autocomplete="off" aria-label="${esc(t.name)}" title="${esc(cm('renameHint', 'Click to rename', 'Yeniden adlandırmak için tıklayın'))}">` : `<b>${esc(s.name || '?')}</b>`;
   return `<div class="strip${open ? ' open' : ''}${i === selStrip ? ' sel' : ''}" data-i="${i}">
-    <header data-act="toggle"><span class="chev"></span><span class="dotrow" data-dots="${i}"></span><b>${esc(s.name || '?')}</b><span class="meta">${esc(stripMeta(s))}</span></header>
-    <div class="body">${ledNote}
-      <div class="form">
-        <label>${esc(t.name)}</label>${fld('name', inp('name', s.name))}
-        <label>${esc(t.outType)}</label><div class="typeSeg">${OUTPUTS.map(o => `<button type="button" data-type="${o}" class="${o === s.type ? 'sel' : ''}" title="${esc(t.outputs[o])}">${esc(t.outShort[o])}</button>`).join('')}</div>
-      </div>
-      <div class="grp"><h4>${esc(t.g_hw)}</h4>${hw}</div>
-      <div class="grp"><h4>${esc(t.g_look)}</h4>${look}</div>
-      <div class="row" style="justify-content:flex-end"><button type="button" class="small danger" data-act="remove">${esc(t.removeStrip)}</button></div>
+    <header data-act="toggle" aria-expanded="${open}"><span class="dotrow" data-dots="${i}"></span><div class="nm">${nameCtl}<span class="meta">${esc(stripMeta(s))}</span></div><span class="tagout" title="${esc(t.outputs[s.type] || s.type)}">${esc(OUT_TAG[s.type] || s.type)}</span></header>
+    <div class="body"><div class="err" data-e="name"${er.name ? '' : ' hidden'}>${esc(er.name || '')}</div>${ledNote}
+      ${conn}${places}${leds}
+      <div class="sfoot"><span class="pnote">${esc(cm('liveModel', 'Shown on the model as you edit', 'Düzenledikçe modelde görünür'))}</span><button type="button" class="linkbtn bad" data-act="remove">${esc(cmOr('rmStrip', 'Remove strip', 'Şeridi kaldır', t.removeStrip))}</button></div>
     </div></div>`;
 }
 let stripsRendering = false;
@@ -4958,7 +5099,8 @@ function renderStrips() {
 }
 function renderStripsNow() {
   const t = T();
-  $('#v-strips').innerHTML = `<div class="sec"><div class="row" style="align-items:flex-start"><div class="grow"><h2>${esc(t.s_title)}</h2><p class="lead">${esc(t.s_lead)}</p></div>
+  const tot = P.strips.reduce((a, s) => a + s.count, 0);
+  $('#v-strips').innerHTML = `<div class="sec"><div class="phd"><h2>${esc(t.s_title)}</h2><span class="sub2">${esc(cm('nStrips', `${P.strips.length} strip${P.strips.length === 1 ? '' : 's'}`, `${P.strips.length} şerit`, P.strips.length))} · ${esc(nLeds(tot))}</span>${info(t.s_lead)}
     <button type="button" data-act="add">${ICON.plus}${esc(t.addStrip)}</button></div>
     ${P.strips.length ? P.strips.map(stripCard).join('') : `<p class="muted">${esc(t.noStrips)}</p>`}</div>${groupsSec()}`;
   $$('#v-strips input[type=range]').forEach(setRangeFill);
@@ -4967,7 +5109,7 @@ function renderStripsNow() {
 // ---- groups: strips drawn as one (an effect runs across them, in this order)
 function groupsSec() {
   const t = T();
-  return `<div class="sec" id="groupsSec"><div class="row" style="align-items:flex-start"><div class="grow"><h2>${esc(cm('grpTitle', 'Groups', 'Gruplar'))}</h2><p class="lead">${esc(cm('grpLead', 'Strips drawn as one: a scene line for the group runs its effect across all of them, in this order (also across chains).', 'Tek şerit gibi çizilen şeritler: gruba verilen sahne satırı efekti hepsinin üzerinde bu sırayla yürütür (zincirler arasında da).'))}</p></div>
+  return `<div class="sec" id="groupsSec"><div class="phd"><h2>${esc(cm('grpTitle', 'Groups', 'Gruplar'))}</h2><span class="sub2">${esc(cm('grpSub', 'strips drawn as one', 'tek şerit gibi çizilir'))}</span>${info(cm('grpLead', 'Strips drawn as one: a scene line for the group runs its effect across all of them, in this order (also across chains).', 'Tek şerit gibi çizilen şeritler: gruba verilen sahne satırı efekti hepsinin üzerinde bu sırayla yürütür (zincirler arasında da).'))}
     <button type="button" data-gact="add"${P.strips.length ? '' : ' disabled'}>${ICON.plus}${esc(cm('grpAdd', 'Add group', 'Grup ekle'))}</button></div>
     ${P.groups.map((g, i) => { const er = groupError(g, i); return `<div class="grp" data-g="${i}"><div class="row"><input type="text" data-gname value="${esc(g.name)}" spellcheck="false" aria-label="${esc(t.name)}" class="${er && !NAME_RE.test(g.name) ? 'invalid' : ''}"><button type="button" class="small danger" data-gact="del">${esc(cm('grpDel', 'Remove group', 'Grubu kaldır'))}</button></div>
       <div class="pick">${g.strips.map((n, k) => `<button type="button" class="sel" data-gm="${esc(n)}" title="${esc(cm('grpOut', 'Take out of the group', 'Gruptan çıkar'))}">${k + 1}. ${esc(n)}<span class="x">×</span></button>`).join('')}${P.strips.filter(s => !g.strips.includes(s.name)).map(s => `<button type="button" data-gm="${esc(s.name)}" title="${esc(cm('grpIn', 'Add at the end', 'Sona ekle'))}">+ ${esc(s.name)}</button>`).join('')}</div>
@@ -4998,8 +5140,9 @@ function refreshCardErrors(card, i) {
     el.hidden = !er[k]; el.textContent = er[k] || '';
   });
   $$('input[data-k]', card).forEach(el => { if (el.dataset.k === 'range' && el.dataset.badfmt) return; el.classList.toggle('invalid', !!er[errKey(el.dataset.k)]); });
-  $('header b', card).textContent = P.strips[i].name || '?';
-  $('header .meta', card).textContent = stripMeta(P.strips[i]);
+  if (HW_ERRS.some(k => er[k])) { const d = $('.connDet', card); if (d) d.hidden = false; }  // an output error is never folded away
+  const nb = $('header b', card); if (nb) nb.textContent = P.strips[i].name || '?';
+  refreshHead(card, P.strips[i]);
   renderBadge();
 }
 function uniqueName(base) { let i = 1; while (P.strips.some(s => s.name === base + i)) i++; return base + i; }
@@ -5060,6 +5203,11 @@ $('#v-strips').addEventListener('click', async e => {
     changed({ leds: true }); renderStrips(); return;
   }
   const act = e.target.closest('[data-act]'); if (!act) return;
+  if (act.dataset.act === 'toggle' && e.target.closest('input.nameIn')) return;
+  if (act.dataset.act === 'conn' && s) {
+    if (connOpen.has(s)) connOpen.delete(s); else connOpen.add(s);
+    renderStrips(); return;
+  }
   if (act.dataset.act === 'add') {
     const name = uniqueName('strip');
     P.strips.push({ name, place: ['top_front'], spacing: 0, count: 30, type: 'neopixel', chain: name, first: 1, ip: '', start: 0, prefix: '', brightness: 1 });
@@ -5111,13 +5259,14 @@ $('#v-strips').addEventListener('input', e => {
       refreshCardErrors(card, i);
     }
     const er = $('[data-e=count]', card); if (er) { er.hidden = v >= 1 && v <= 500; er.textContent = T().e_count; } el.classList.toggle('invalid', !(v >= 1 && v <= 500));
-    $('header .meta', card).textContent = stripMeta(s);
+    const cell = el.closest('.num'); if (cell) cell.classList.toggle('invalid', !(v >= 1 && v <= 500));
+    refreshHead(card, s);
   } else if (k === 'range') {
     const m = el.value.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
     const ok = m && +m[1] >= 1 && (!m[2] || (+m[2] >= +m[1] && +m[2] - +m[1] < 500));
     if (ok) { delete el.dataset.badfmt; s.first = +m[1]; s.count = (m[2] ? +m[2] : +m[1]) - s.first + 1; $$('[data-k=count]', card).forEach(o => { o.value = o.type === 'range' ? Math.min(200, s.count) : s.count; if (o.type === 'range') setRangeFill(o); }); changed({ leds: true }); refreshCardErrors(card, i); }
     else { el.dataset.badfmt = '1'; const er = $('[data-e=range]', card); er.hidden = false; er.textContent = T().e_leds; el.classList.add('invalid'); }
-    $('header .meta', card).textContent = stripMeta(s);
+    refreshHead(card, s);
   } else if (k === 'start') { s.start = Math.max(0, Math.round(+el.value || 0)); changed(); refreshCardErrors(card, i); }
   else if (k === 'spacing') { s.spacing = clamp(+el.value, 0, 60); setRangeFill(el); el.nextElementSibling.textContent = s.spacing > 0 ? fmtNum(s.spacing) + ' mm' : T().spread; changed(); }
   else if (k === 'brightness') { const v = clamp(+el.value, 0, 1); s.brightness = Math.round(v * 100) / 100; setRangeFill(el); el.nextElementSibling.textContent = Math.round(v * 100) + '%'; changed(); }
@@ -5183,45 +5332,45 @@ function valueControls(name, params, esp) {
   const t = T(), src = params.source, opts = sourceOptions(), known = opts.some(o => o[0] === src), objSrc = src !== 'progress' && src !== 'heat';
   const stops = params.colors ? params.colors.split(',') : [];
   const lbl = (k, en, tr) => `<label>${esc(cm(k, en, tr))}</label>`;
-  let h = lbl('pSource', 'Source', 'Kaynak') + `<div class="fld"><div class="pick">${opts.map(([v, l]) => `<button type="button" data-p="source" data-v="${esc(v)}" class="${v === src ? 'sel' : ''}">${esc(l)}</button>`).join('')}</div>
+  let h = `<div class="pc wide">${lbl('pSource', 'Source', 'Kaynak')}<div class="pick">${opts.map(([v, l]) => `<button type="button" data-p="source" data-v="${esc(v)}" class="${v === src ? 'sel' : ''}">${esc(l)}</button>`).join('')}</div>
     <input type="text" data-p="source" data-free spellcheck="false" placeholder="object.field" value="${known ? '' : esc(src)}" aria-label="${esc(cm('srcOther', 'Other source (object.field)', 'Diğer kaynak (nesne.alan)'))}"></div>`;
   if (objSrc) {
     const [lo, hi] = LS.sourceRange(params, ctxNow(SIM.t));
-    h += lbl('pRange', 'Range', 'Aralık') + `<div class="mm"><input type="number" data-p="min" step="any" placeholder="${fmtNum(lo)}" value="${params.min === 'auto' ? '' : fmtNum(params.min)}" aria-label="min"><span class="muted">–</span><input type="number" data-p="max" step="any" placeholder="${fmtNum(hi)}" value="${params.max === 'auto' ? '' : fmtNum(params.max)}" aria-label="max"></div>`;
+    h += `<span class="pc">${lbl('pRange', 'Range', 'Aralık')}<span class="mm"><input type="number" data-p="min" step="any" placeholder="${fmtNum(lo)}" value="${params.min === 'auto' ? '' : fmtNum(params.min)}" aria-label="min"><span class="muted">–</span><input type="number" data-p="max" step="any" placeholder="${fmtNum(hi)}" value="${params.max === 'auto' ? '' : fmtNum(params.max)}" aria-label="max"></span></span>`;
   }
-  h += lbl('pColors', 'Colour scale', 'Renk skalası') + `<div class="stops">${stops.map((c, i) => `<span class="stop"><label class="swatch"><i style="background:#${c}"></i><span>${c}</span><input type="color" data-stop="${i}" value="#${c}"></label>${stops.length > 1 ? `<button type="button" class="small" data-stopdel="${i}" title="${esc(cm('stopDel', 'Remove colour', 'Rengi kaldır'))}" aria-label="${esc(cm('stopDel', 'Remove colour', 'Rengi kaldır'))}">${ICON.x}</button>` : ''}</span>`).join('')}
-    <button type="button" class="small" data-stopadd>${ICON.plus}${esc(stops.length ? cm('stopAdd', 'Colour', 'Renk') : cm('stopScale', 'Use a colour scale', 'Renk skalası kullan'))}</button>${stops.length ? `<button type="button" class="small" data-stopclear>${esc(cm('stopClear', 'A / B colours', 'A / B renkleri'))}</button>` : ''}</div>`;
+  h += `<div class="pc wide">${lbl('pColors', 'Colour scale', 'Renk skalası')}<div class="stops">${stops.map((c, i) => `<span class="stop"><label class="swatch"><i style="background:#${c}"></i><span>${c}</span><input type="color" data-stop="${i}" value="#${c}"></label>${stops.length > 1 ? `<button type="button" class="small" data-stopdel="${i}" title="${esc(cm('stopDel', 'Remove colour', 'Rengi kaldır'))}" aria-label="${esc(cm('stopDel', 'Remove colour', 'Rengi kaldır'))}">${ICON.x}</button>` : ''}</span>`).join('')}
+    <button type="button" class="small" data-stopadd>${ICON.plus}${esc(stops.length ? cm('stopAdd', 'Colour', 'Renk') : cm('stopScale', 'Use a colour scale', 'Renk skalası kullan'))}</button>${stops.length ? `<button type="button" class="small" data-stopclear>${esc(cm('stopClear', 'A / B colours', 'A / B renkleri'))}</button>` : ''}</div></div>`;
   if (!stops.length) {
-    h += `<label>${esc(t.params.color)}</label>${swatch('color', params.color)}`;
-    if (name === 'heat') h += `<label>${esc(t.params.color2)}</label>${swatch('color2', params.color2)}`;
+    h += swatch('color', params.color, t.params.color);
+    if (name === 'heat') h += `<span class="arr">→</span>` + swatch('color2', params.color2, t.params.color2);
   }
   if (name === 'progress') {
-    h += `<label>${esc(stops.length ? cm('pByValue', 'Colour by value', 'Değere göre renk') : t.params.gradient)}</label>${sw('data-p="gradient"', !!params.gradient)}`;
-    if (params.gradient && !stops.length) h += `<label>${esc(t.params.color2)}</label>${swatch('color2', params.color2)}`;
-    if (!esp) h += `<label>${esc(t.params.reverse)}</label>${sw('data-p="reverse"', !!params.reverse)}`;
+    h += `<span class="pc">${sw('data-p="gradient"', !!params.gradient, stops.length ? cm('pByValue', 'Colour by value', 'Değere göre renk') : t.params.gradient)}</span>`;
+    if (params.gradient && !stops.length) h += swatch('color2', params.color2, t.params.color2);
+    if (!esp) h += `<span class="pc">${sw('data-p="reverse"', !!params.reverse, t.params.reverse)}</span>`;
   }
   return h;
 }
+// an effect's settings as one wrapping row of compact chips under its preview bar
 function paramControls(spec, pin, esp) {
   const t = T(), [name, params] = compiled(spec);
   if (!pin && (name === 'progress' || name === 'heat')) return valueControls(name, params, esp)
-    + (esp && (params.gradient || params.colors || name === 'heat') ? `<span class="hint espNote">${esc(t.espBar)}</span>` : '');
+    + (esp && (params.gradient || params.colors || name === 'heat') ? info(t.espBar) : '');
   // progress: colour B only matters with the A -> B gradient on; a pin has one fixed colour: period only
   const keys = pin ? (name === 'blink' || name === 'breathe' ? ['period'] : [])
     : name === 'progress' ? ['color', 'gradient'].concat(params.gradient ? ['color2'] : [], ['source'], esp ? [] : ['reverse'])
     : esp ? (ESP_KEYS[name] || [])
     : Object.keys(LS.EFFECTS[name]).concat(['reverse']);
   return keys.map(k => {
-    const ty = LS.PARAM_TYPES[k], v = params[k];
-    let c;
-    if (ty === 'color') c = swatch(k, v);
-    else if (ty === 'float') { const [a, b, st] = PARAM_RANGE[k]; c = `<div class="slider"><input type="range" data-p="${k}" min="${a}" max="${b}" step="${st}" value="${v}"><output>${fmtNum(v)}</output></div>`; }
-    else if (ty === 'bool') c = sw(`data-p="${k}"`, !!v);
-    else c = `<div class="seg">${ty.map(o => `<button type="button" data-p="${k}" data-v="${o}" class="${o === v ? 'sel' : ''}">${esc(k === 'source' ? t.sources[o] : o.toUpperCase())}</button>`).join('')}</div>`;
-    return `<label>${esc(t.params[k])}</label>${c}`;
-  }).join('') + (esp && ['breathe', 'chase', 'comet', 'scan', 'twinkle', 'rainbow', 'fire'].includes(name) ? `<span class="hint espNote">${esc(t.espFixed)}</span>` : '')
-    + (esp && name === 'progress' && params.gradient ? `<span class="hint espNote">${esc(t.espBar)}</span>` : '');
+    const ty = LS.PARAM_TYPES[k], v = params[k], lb = t.params[k];
+    if (ty === 'color') return (k === 'color2' && keys.includes('color') ? '<span class="arr">→</span>' : '') + swatch(k, v, lb);
+    if (ty === 'float') { const [a, b, st] = PARAM_RANGE[k]; return `<span class="pc"><label>${esc(lb)}</label><input type="range" data-p="${k}" min="${a}" max="${b}" step="${st}" value="${v}" aria-label="${esc(lb)}"><output>${fmtNum(v)}</output></span>`; }
+    if (ty === 'bool') return `<span class="pc">${sw(`data-p="${k}"`, !!v, lb)}</span>`;
+    return `<span class="pc"><label>${esc(lb)}</label><div class="seg">${ty.map(o => `<button type="button" data-p="${k}" data-v="${o}" class="${o === v ? 'sel' : ''}">${esc(k === 'source' ? t.sources[o] : o.toUpperCase())}</button>`).join('')}</div></span>`;
+  }).join('') + (esp && ['breathe', 'chase', 'comet', 'scan', 'twinkle', 'rainbow', 'fire'].includes(name) ? info(t.espFixed) : '')
+    + (esp && name === 'progress' && params.gradient ? info(t.espBar) : '');
 }
+// one card per strip / group: name + places, effect dropdown, preview bar, settings chips; "all" is a quiet line
 function fxRow(key, sc, label, sub) {
   const t = T(), spec = sc ? sc[key] : undefined, isAll = key === 'all';
   const fx = spec ? compiled(spec)[0] : '';
@@ -5229,11 +5378,20 @@ function fxRow(key, sc, label, sub) {
   const pin = isPinKey(key), pinA = pin ? ` data-pin="${esc(key)}"` : '';
   const fxName = n => pin && n === 'solid' ? t.pinOn : t.effects[n];
   const pc = spec ? paramControls(spec, pin, isEspKey(key)) : '';
-  return `<div class="fx${isAll ? ' allrow' : ''}${isAll && !spec ? ' unset' : ''}" data-key="${esc(key)}">
+  const tail = `${pc ? `<div class="params">${pc}</div>` : ''}<div class="spec raw">${esc(spec || '')}</div>`;
+  const dd = `aria-haspopup="listbox" aria-expanded="false"`;
+  if (isAll) {
+    return `<div class="fx allq" data-key="all"><div class="head"><span class="who">${esc(cm('allOther', 'All other strips', 'Diğer tüm şeritler'))}: <b>${esc(fx ? fxName(fx) : t.stripsOff)}</b></span>
+      <button type="button" class="linkbtn" data-fxbtn ${dd} title="${esc(t.allHint)}">${esc(cm('fxChange', 'change', 'değiştir'))}${CHEV}</button></div>
+      <div class="preview" data-prev="${esc(inherit)}" data-n="30"></div>${tail}</div>`;
+  }
+  const n = groupByName(key) ? groupByName(key).strips.reduce((a, x) => a + ((stripByName(x) || {}).count || 0), 0) : (P.strips.find(s => s.name === key) || { count: 30 }).count;
+  const on = selStrip >= 0 && P.strips[selStrip] && P.strips[selStrip].name === key;
+  return `<div class="fx${on ? ' on' : ''}" data-key="${esc(key)}">
     <div class="head"><div class="who"><b>${esc(label)}</b><small>${esc(sub)}</small></div>
-      <button type="button" class="fxbtn" data-fxbtn aria-haspopup="listbox" aria-expanded="false"><span class="nm${fx ? '' : ' unset'}">${esc(fx ? fxName(fx) : (isAll ? t.notSetAll : t.notSet))}</span><span class="mini" data-mini="${esc(inherit)}"${pinA}></span><svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4 4-4"/></svg></button></div>
-    <div class="preview" data-prev="${esc(inherit)}"${pinA} data-n="${isAll ? 30 : groupByName(key) ? groupByName(key).strips.reduce((a, n) => a + ((stripByName(n) || {}).count || 0), 0) : (P.strips.find(s => s.name === key) || { count: 30 }).count}"></div>
-    ${spec ? `${pc ? `<div class="params">${pc}</div>` : ''}<div class="spec raw">${esc(spec)}</div>` : `<div class="spec">${esc(isAll ? t.stripsOff : t.usesAll + ': ' + inherit)}</div>`}
+      <button type="button" class="fxbtn" data-fxbtn ${dd}${fx ? '' : ` title="${esc(t.notSet)}"`}><span class="nm${fx ? '' : ' unset'}">${esc(fx ? fxName(fx) : t.notSetShort)}</span><svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4 4-4"/></svg></button></div>
+    <div class="preview" data-prev="${esc(inherit)}"${pinA} data-n="${n}"></div>
+    ${tail}
   </div>`;
 }
 function trigText(c) {
@@ -5255,21 +5413,22 @@ function renderScenes() {
   if (custom && !P.scenes[st]) P.scenes[st] = {};
   const sc = P.scenes[st];
   const resolved = custom ? null : LS.resolveScene(st, effScenes());
-  const rows = () => fxRow('all', sc, t.allStrips, t.allHint)
-    + P.groups.filter((g, i) => !groupError(g, i)).map(g => fxRow(g.name, sc, g.name, `${cm('grpWord', 'group', 'grup')} · ${g.strips.join(' + ')}`)).join('')
-    + P.strips.map(s => fxRow(s.name, sc, s.name, `${placeNames(s)} · ${s.count}`)).join('');
+  const rows = () => P.groups.filter((g, i) => !groupError(g, i)).map(g => fxRow(g.name, sc, g.name, `${cm('grpWord', 'group', 'grup')} · ${g.strips.join(' + ')}`)).join('')
+    + P.strips.map(s => fxRow(s.name, sc, s.name, `${placeNames(s)} · ${nLeds(s.count)}`)).join('')
+    + fxRow('all', sc, t.allStrips, t.allHint)
+    + `<p class="sctip">${esc(cm('scTip', 'Pick an effect for each strip; the model shows it as you edit', 'Her şerit için bir efekt seçin; model düzenledikçe gösterir'))}</p>`;
   let body;
   if (custom) {
     const c = P.customs.find(x => x.name === st);
-    body = `<div class="trigBox"><div class="row"><b>${esc(trigName(trigKind(c.trigger)))}</b><span class="meta mono">${esc(trigText(c))}</span></div>
-      <div class="meta">${esc(cm('scMeta', `Priority ${c.priority}${c.hold !== null ? ` · hold ${fmtNum(c.hold)} s` : ''} · shown on the strips it names while no higher-priority scene names them`, `Öncelik ${c.priority}${c.hold !== null ? ` · bekletme ${fmtNum(c.hold)} sn` : ''} · daha yüksek öncelikli bir sahne adlandırmadıkça adlandırdığı şeritlerde görünür`, c.priority, c.hold))}</div>
-      <div class="row"><button type="button" class="small" data-act="editcustom">${esc(cm('scEdit', 'Edit trigger', 'Tetikleyiciyi düzenle'))}</button><button type="button" class="small danger" data-act="delcustom">${esc(cm('scDelete', 'Delete scene', 'Sahneyi sil'))}</button></div></div>` + rows();
+    body = `<div class="trigBox"><b>${esc(trigName(trigKind(c.trigger)))}</b><span class="meta mono grow">${esc(trigText(c))}</span>
+      <span class="meta">${esc(cm('scPri', `Priority ${c.priority}${c.hold !== null ? ` · hold ${fmtNum(c.hold)} s` : ''}`, `Öncelik ${c.priority}${c.hold !== null ? ` · bekletme ${fmtNum(c.hold)} sn` : ''}`, c.priority, c.hold))}</span>${info(cm('scMeta', `Priority ${c.priority}${c.hold !== null ? ` · hold ${fmtNum(c.hold)} s` : ''} · shown on the strips it names while no higher-priority scene names them`, `Öncelik ${c.priority}${c.hold !== null ? ` · bekletme ${fmtNum(c.hold)} sn` : ''} · daha yüksek öncelikli bir sahne adlandırmadıkça adlandırdığı şeritlerde görünür`, c.priority, c.hold))}
+      <button type="button" class="linkbtn" data-act="editcustom">${esc(cm('scEdit', 'Edit trigger', 'Tetikleyiciyi düzenle'))}</button><button type="button" class="linkbtn bad" data-act="delcustom">${esc(cm('scDelete', 'Delete scene', 'Sahneyi sil'))}</button></div>` + rows();
   } else if (none) body = `<div class="note warn">${esc(t.noScenesAtAll)}</div><div class="row"><button type="button" class="primary" data-act="create">${esc(t.createScene)}</button></div>`;
   else if (!sc) body = `<div class="note">${t.fallsBack(esc(t.states[st]), resolved ? esc(t.states[resolved]) : '')}</div><div class="row"><button type="button" class="primary" data-act="create">${esc(t.createScene)}</button><button type="button" data-act="defaults">${esc(t.useDefaults)}</button></div>`;
   else body = rows() +
-    `<div class="row" style="justify-content:flex-end"><button type="button" data-act="defaults">${esc(t.useDefaults)}</button><button type="button" class="danger" data-act="remove">${esc(t.removeScene)}</button></div>`;
-  $('#v-scenes').innerHTML = `<div class="sec"><div><h2>${esc(t.sc_title)}</h2><p class="lead">${esc(t.sc_lead)}</p></div>
-    <div class="row"><span class="muted">${esc(t.editing)}:</span><b>${esc(sceneLabel(st))}</b><button type="button" class="small" data-act="sim">${ICON.play}${esc(t.testState)}</button></div>
+    `<div class="sclinks"><button type="button" class="linkbtn" data-act="defaults">${esc(cmOr('useDefScene', 'Use default scene', 'Varsayılan sahneyi kullan', t.useDefaults))}</button><button type="button" class="linkbtn bad" data-act="remove">${esc(cmOr('rmScene', 'Remove this scene', 'Bu sahneyi kaldır', t.removeScene))}</button></div>`;
+  $('#v-scenes').innerHTML = `<div class="sec"><div class="schd"><span class="sdot" style="--c:${sceneCol(st)}"></span><h2>${esc(sceneLabel(st))}</h2><small>${esc(cm('scWhat', 'what each strip shows', 'her şeridin gösterdiği'))}</small>${info(t.sc_lead)}
+    <button type="button" data-act="sim">${ICON.play}${esc(t.testState)}</button></div>
     ${body}</div>`;
   $$('#v-scenes input[type=range]').forEach(setRangeFill);
   paintPreviews();
@@ -5381,7 +5540,7 @@ function paintPreviews() {
     const s = P.strips[+el.dataset.dots], f = s && SIM.last[s.name]; if (!f) return;
     const n = Math.min(8, f.length);
     if (el.children.length !== n) el.innerHTML = '<i></i>'.repeat(n);
-    for (let i = 0; i < n; i++) el.children[i].style.background = rgbCss(f[Math.floor(i * f.length / n)].map(v => 0.12 + 0.88 * v));
+    for (let i = 0; i < n; i++) { const c = el.children[i].style; c.background = c.color = rgbCss(f[Math.floor(i * f.length / n)].map(v => 0.12 + 0.88 * v)); }
   });
 }
 // Blinks in one state share one period, so they blink together (same clock on the printer and here). Changing the
@@ -5691,7 +5850,10 @@ const Preview = {
     this.timers.__bright = setTimeout(() => this.cmd({ action: 'brightness', value: v }), 150);
   },
 };
-function liveMsg(m, kind) { Live.msg = m; Live.kind = kind; const el = $('#liveMsg'); if (el) { el.className = 'note ' + kind; el.textContent = m; el.hidden = !m; } }
+function liveMsg(m, kind) {
+  Live.msg = m; Live.kind = kind; const el = $('#liveMsg'); if (el) { el.className = 'note ' + kind; el.textContent = m; el.hidden = !m; }
+  const p = $('#pLiveMsg'); if (p) { const show = !!m && kind !== 'ok'; p.className = 'cmsg ' + kind; p.textContent = show ? m : ''; p.hidden = !show; }  // Settings > Printer: problems only
+}
 function renderLive() {
   const t = T(), st = Live.status;
   let stat = `<p class="muted">${esc(t.notConnected)}</p>`;
@@ -5704,12 +5866,10 @@ function renderLive() {
       ${Object.keys(strips).map(n => { const s = strips[n] || {}; return `<tr><td><b>${esc(n)}</b></td><td class="mono">${esc(s.output ?? '')}</td><td class="mono">${esc(s.effect ?? '')}</td><td>${esc(s.fps ?? '')}</td><td class="${s.errors ? 'bad' : ''}">${esc(s.errors ? (Array.isArray(s.errors) ? s.errors.join('; ') : s.errors) : '')}${s.disabled ? ' (' + T().disabled + (s.last_error ? ': ' + esc(s.last_error) : '') + ')' : ''}</td></tr>`; }).join('')}</tbody></table>`;
   }
   $('#v-live').innerHTML = `<div class="sec"><div><h2>${esc(t.lv_title)}</h2><p class="lead">${esc(t.lv_lead)}</p></div>
-    ${Live.here && st ? `<div class="row"><b class="ok">${esc(t.connected)}</b><span class="muted">${esc(cm('thisPrinter', 'this printer', 'bu yazıcı'))} · ${esc(location.host)}</span><button type="button" data-act="connect"${Live.busy ? ' disabled' : ''}>${esc(cm('refresh', 'Refresh', 'Yenile'))}</button></div>` : `<div class="row"><span class="muted">${esc(location.protocol === 'file:' ? t.fromDisk : t.notConnected)}</span><button type="button" class="primary" data-act="connect"${Live.busy || location.protocol === 'file:' ? ' disabled' : ''}>${esc(Live.busy ? t.connecting : t.connect)}</button></div>`}
     <div class="note bad kbox" id="liveKlip" hidden></div>
     <div class="note ${Live.kind}" id="liveMsg"${Live.msg ? '' : ' hidden'}>${esc(Live.msg)}</div>
-    ${st && !Live.here ? `<div class="row"><b class="ok">${esc(t.connected)}</b></div>` : ''}${stat}</div>
-    ${canApply() ? `<div class="sec" data-sasec${SA.steps.length || SA.note ? '' : ' hidden'}><div><h2>${esc(t.apply)}</h2></div>${applyBox('live')}</div>` : ''}
-    <div class="sec"><div>${sw('id="lvPrev"', Preview.on, t.preview)}<p class="lead">${esc(t.previewHint)}</p></div></div>`;
+    ${st ? '' : `<div class="row"><button type="button" class="small" data-sub="printer">${esc(cm('toConn', 'Connection: Settings > Printer', 'Bağlantı: Ayarlar > Yazıcı'))}</button></div>`}${stat}</div>
+    ${canApply() ? `<div class="sec" data-sasec${SA.steps.length || SA.note ? '' : ' hidden'}><div><h2>${esc(t.apply)}</h2></div>${applyBox('live')}</div>` : ''}`;
   renderKlip();
 }
 UI.addr = '';  // older pages stored a typed printer address; settings now only go to this page's own printer
@@ -5829,7 +5989,7 @@ async function syncFromPrinter() {
 }
 async function liveConnect(auto, o = {}) {
   Preview.legacy = false; Klip.hostname = '';
-  Live.busy = true; Live.status = null; Live.reach = false; liveMsg('', ''); if (onSub('live')) renderLive();
+  Live.busy = true; Live.status = null; Live.reach = false; liveMsg('', ''); if (onSub('live')) renderLive(); if (onSub('printer')) renderPrinter();
   prRefresh();  // the header names the host while connecting, not 'Demo'
   try {
     const j = await Preview.req('/printer/objects/query?lightspeed');
@@ -5889,6 +6049,7 @@ async function pollPrinter() {
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(Poll.timer); Poll.timer = 0; } else if (polling() && !Poll.timer) pollPrinter(); });
 $('#v-live').addEventListener('click', async e => {
+  const sb = e.target.closest('[data-sub]'); if (sb) { showTab('settings', sb.dataset.sub); return; }
   const a = e.target.closest('[data-act]'); if (!a) return;
   if (a.dataset.act === 'connect') await liveConnect(false);
 });
@@ -6274,10 +6435,8 @@ function renderPrnBtn() {
   renderPrFor();
 }
 function renderPrFor() {
-  const el = $('#prFor'); if (!el) return;
-  el.hidden = curTab !== 'settings';
+  const el = $('#prFor'); if (el) el.hidden = true;
   const inner = prForInner();
-  if (!el.hidden && el.innerHTML !== inner) el.innerHTML = inner;
   $$('.applyBox .prFor').forEach(x => { if (x.innerHTML !== inner) x.innerHTML = inner; });
 }
 function renderPrnMenu(keep) {

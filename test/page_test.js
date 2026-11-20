@@ -33,7 +33,7 @@ vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'web/lightspeed_engine.js'), 'utf8'), ctx);
 vm.runInContext(src + `
 ;globalThis.__t = { get P() { return P; }, set P(v) { P = v; }, cfgText, parseCfg, sanitizeProject, defaultProject, simPlan, stripSpec, SIM, liveCommands, restartSig,
-  valueControls, paramControls, renderScenes, renderChips, renderStripsNow, groupsSec, effScenes, simTriggers, stepSim: typeof stepSim === 'function' ? stepSim : null, trigText,
+  valueControls, paramControls, renderScenes, renderChips, renderStripsNow, groupsSec, stripCard, fxRow, renderPrinter, renderLive, effScenes, simTriggers, stepSim: typeof stepSim === 'function' ? stepSim : null, trigText,
   setEdit: v => { editState = v; }, setLang: v => { lang = v; }, ctxNow, sweepCtx, groupError, allErrors, setTab: v => { curTab = v; }, Party, partyStart, partyStop, partySpec, openSceneDlg, sdKind, sdSave, SD, get editState() { return editState; } };
 ;globalThis.__pr = { parseHost, printerUrl, sanitizePrinters, sanitizeScan, curPrinter, printerLabel, prForText, printerEntries, renderPrnMenu, renderPrnBtn,
   prAddSubmit, removePrinter, goPrinter, prScan, applyBox, loadAll, PR, UI, Live, Klip, setNav: f => { navTo = f; } };`, ctx);
@@ -137,12 +137,34 @@ try {
   for (const l of ['en', 'tr', 'fr']) {
     T.setLang(l);
     for (const e of ['idle', 'party', 'hot', 'cancelled']) { T.setEdit(e); T.setTab('scenes'); T.renderScenes(); }
-    T.renderChips(); T.renderStripsNow(); T.groupsSec();
+    T.renderChips(); T.renderStripsNow(); T.groupsSec(); T.renderPrinter(); T.renderLive();
+    P.strips.forEach((s, i) => T.stripCard(s, i));
     for (const s of Object.values(P.scenes).flatMap(o => Object.values(o))) { T.paramControls(s, false, false); T.paramControls(s, false, true); }
     for (const c of P.customs) T.trigText(c);
   }
 } catch (e) { threw = e; }
 check(!threw, 'renderers run in en/tr/fr ' + (threw ? threw.stack : ''));
+// panel layout: strip card = header (dots, name, places, output tag) + Connected to / Where on the printer / LEDs
+T.setLang('en');
+const sc0 = T.stripCard(P.strips[2], 2);
+const placesIn = (sc0.match(/data-place="/g) || []).length, grpsIn = (sc0.match(/class="pgrp"/g) || []).length;
+check(placesIn === 14 && grpsIn === 5 && sc0.includes('data-act="conn"') && sc0.includes('class="connDet" hidden') && sc0.includes('data-type="wled"')
+  && sc0.includes('data-k="count"') && sc0.includes('data-k="spacing"') && sc0.includes('data-k="brightness"') && sc0.includes('data-e="name"')
+  && sc0.includes('class="linkbtn bad" data-act="remove"') && sc0.includes('Beside the nozzle · 3 LEDs') && sc0.includes('>NeoPixel</span>') && !sc0.includes('class="grp"'),
+  'strip card: 14 places in 5 groups, connection line with folded controls, compact LED fields, remove link (' + placesIn + '/' + grpsIn + ')');
+const bad0 = T.sanitizeProject(JSON.parse(JSON.stringify(P))); bad0.strips[2].chain = 'bad name';
+const keepP = T.P; T.P = bad0;
+const sc1 = T.stripCard(bad0.strips[2], 2);
+T.P = keepP;
+check(sc1.includes('class="connDet">') && sc1.includes('aria-expanded="true"'), 'strip card: an output error opens the connection controls');
+const FV = { innerHTML: '', querySelectorAll: () => [] };
+FAKE['#v-scenes'] = FV; T.setEdit('idle'); T.setTab('scenes'); T.renderScenes();
+const sh = FV.innerHTML, iAll = sh.indexOf('data-key="all"'), iLeft = sh.indexOf('data-key="left"');
+check(iAll > iLeft && iLeft > 0 && sh.includes('class="fx allq"') && sh.includes('data-act="defaults"') && sh.includes('data-act="remove"') && sh.includes('data-act="sim"')
+  && /data-key="right"[\s\S]*?class="params"/.test(sh) && !sh.includes('Editing'), 'scenes: one card per strip, "All other strips" as the last quiet line, links, Test');
+T.setEdit('cancelled'); T.renderScenes();
+check(FV.innerHTML.includes('data-act="editcustom"') && FV.innerHTML.includes('data-act="delcustom"') && FV.innerHTML.includes('class="trigBox"'), 'scenes: custom scene keeps its trigger line with Edit / Delete');
+delete FAKE['#v-scenes'];
 const vc = T.valueControls('heat', LS.parseSpec(P.scenes.idle.left)[1], false);
 check(vc.includes('data-stop="4"') && vc.includes('data-p="min"') && vc.includes('heater_bed.temperature'), 'value controls: stops, range, source picker');
 check(T.groupError({ name: 'left', strips: ['left'] }, 9) !== '' && T.groupError({ name: 'g2', strips: [] }, 9) !== '', 'group errors');
@@ -289,6 +311,17 @@ check(!T.Party.on && !Object.keys(T.Party.specs).length && T.Party.ac === null, 
   // the configured printer is named where settings are written
   R.Live.status = { host: 'voron', strips: {} };
   check(R.applyBox('config').includes('Printer: <b>voron (192.168.1.100)</b>'), 'printers: Save & apply box names the printer');
+  // Settings > Printer holds the connection and the preview switch; Live keeps the status table; no printer line in the views
+  R.Live.status = { host: 'voron', version: '0.2.0', strips: { a: { output: 'neopixel x', effect: 'solid', fps: 25 } } };
+  const VP = { innerHTML: '' }, VL = { innerHTML: '' };
+  Object.assign(FAKE, { '#v-printer': VP, '#v-live': VL });
+  T.renderPrinter(); T.renderLive();
+  check(VP.innerHTML.includes('id="lvPrev"') && VP.innerHTML.includes('data-act="connect"') && VP.innerHTML.includes('voron · Lightspeed 0.2.0') && VP.innerHTML.includes('data-size="2"')
+    && !VP.innerHTML.includes('prFor') && !VL.innerHTML.includes('id="lvPrev"') && !VL.innerHTML.includes('data-act="connect"') && VL.innerHTML.includes('<table>') && !VL.innerHTML.includes('prFor'),
+    'settings: connection + preview switch in Printer, status table stays in Live, no printer line');
+  R.Live.status = null; T.renderPrinter();
+  check(VP.innerHTML.includes('class="primary" data-act="connect"') && VP.innerHTML.includes('id="lvPrev"'), 'settings: not connected -> Connect button in Printer');
+  delete FAKE['#v-printer']; delete FAKE['#v-live'];
   console.log(fails + ' failures');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.log('FAIL  printers test threw ' + e.stack); process.exit(1); });
