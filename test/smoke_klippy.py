@@ -1,7 +1,8 @@
 """Runs lightspeed.py against a fake Klipper: config parsing, scenes,
 homing/probing guard, MCU rate limit, WLED UDP packets, esp_bridge keys,
 that a failing output never takes the printer down, and custom scenes
-(triggers, priorities, groups, value sources, led_effect compatibility).
+(triggers, priorities, groups, value sources, led_effect compatibility) and
+the LAN scan for other printers (faked network, no real sockets).
 
     python test/smoke_klippy.py [path/to/lightspeed.cfg]
 """
@@ -618,6 +619,7 @@ def main():
     check(ls.state == 'shutdown', 'shutdown scene for WLED')
 
     scenes_main()
+    scan_main(p)
     print('\n%d failures' % len(failures))
     sys.exit(1 if failures else 0)
 
@@ -988,6 +990,318 @@ def scenes_main():
             check(False, 'config error: ' + why)
         except ConfigError:
             check(True, 'config error: ' + why)
+
+
+# ------------------------------------------------------------ network scan
+# No real sockets: the connect / HTTP helpers are faked and the real ones
+# made to fail, so a test can never reach the LAN.
+
+def _no_net(*a, **k):
+    raise AssertionError('real network used in a test')
+
+
+def scan_main(p):
+    import threading
+    saved = (LS._tcp_open, LS._http_json, socket.create_connection,
+             socket.gethostname)
+    socket.create_connection = _no_net
+    try:
+        _iface_tests()
+        _scan_tests(p, threading)
+    finally:
+        (LS._tcp_open, LS._http_json, socket.create_connection,
+         socket.gethostname) = saved
+
+
+def _scan_tests(p, threading):
+    # private ranges only
+    good = ['10.0.0.1', '172.16.0.1', '172.31.255.254', '192.168.1.100']
+    bad = ['172.32.0.1', '172.15.9.9', '127.0.0.1', '169.254.3.4', '8.8.8.8',
+           '192.169.1.1', 'abc', '1.2.3', '300.1.1.1', '', None]
+    check(all(LS.private_ipv4(ip) for ip in good)
+          and not any(LS.private_ipv4(ip) for ip in bad),
+          'scan: private-range filter (10/8, 172.16/12, 192.168/16 only)')
+    nets, own = LS.scan_subnets([
+        ('lo', '127.0.0.1'), ('docker0', '172.17.0.1'),
+        ('br-12ab', '172.18.0.1'), ('veth9', '10.9.9.9'),
+        ('eth0', '192.168.1.100'), ('wlan0', '192.168.1.101'),
+        ('', '169.254.10.1'), ('', '10.0.5.2'), ('usb0', '192.168.7.3')])
+    check(nets == ['192.168.1', '10.0.5'] and '192.168.1.101' in own
+          and '172.17.0.1' not in own and '10.9.9.9' not in own,
+          'scan: skips loopback / docker / bridges / link-local, at most 2 '
+          'subnets %r' % (nets,))
+
+    # probe_host against a fake network
+    hosts = {
+        ('192.168.1.20', 7125): {'ls': {'version': '0.2.0'}, 'name': 'voron'},
+        ('192.168.1.21', 7125): {'ls': None, 'name': 'plain'},
+        ('192.168.1.22', 80): {'ls': {'version': '0.3.0'}, 'name': 'ender'},
+        ('192.168.1.23', 7125): {'timeout': True},
+        ('192.168.1.24', 7125): {'ls': {'version': 7}, 'name': '<b>x</b>'},
+    }
+    seen = []
+
+    def tcp(ip, port, timeout):
+        seen.append(timeout)
+        return (ip, port) in hosts
+
+    def http(url, timeout):
+        rest = url[len('http://'):]
+        hp, path = rest.split('/', 1)
+        ip, port = hp.split(':')
+        h = hosts[(ip, int(port))]
+        if h.get('timeout'):
+            raise socket.timeout('timed out')
+        if path.startswith('printer/objects/query'):
+            st = {} if h['ls'] is None else {'lightspeed': h['ls']}
+            return {'result': {'status': st}}
+        if path == 'printer/info':
+            return {'result': {'hostname': h['name'], 'state': 'ready'}}
+        raise AssertionError(url)
+    LS._tcp_open, LS._http_json = tcp, http
+    r20 = LS.probe_host('192.168.1.20')
+    check(r20 == {'host': '192.168.1.20', 'port': 7125, 'hostname': 'voron',
+                  'version': '0.2.0'}, 'scan: probe finds Lightspeed %r' % r20)
+    check(LS.probe_host('192.168.1.21') is None,
+          'scan: Moonraker without Lightspeed is not listed')
+    r22 = LS.probe_host('192.168.1.22')
+    check(r22 and r22['port'] == 80 and r22['hostname'] == 'ender',
+          'scan: port 80 fallback (Mainsail / Fluidd proxy)')
+    check(LS.probe_host('192.168.1.23') is None
+          and LS.probe_host('192.168.1.99') is None,
+          'scan: timeouts and closed ports give no hit, no exception')
+    r24 = LS.probe_host('192.168.1.24')
+    check(r24 and r24['hostname'] == '' and r24['version'] == '',
+          'scan: odd hostname / version from another device dropped')
+    check(seen and all(t == LS.SCAN_CONNECT <= 0.5 for t in seen),
+          'scan: short connect timeout (%s s)' % LS.SCAN_CONNECT)
+
+    # the state machine
+    clock = [1000.0]
+    gate = threading.Event()
+    calls = {'spawn': 0, 'probe': 0}
+    peak = {'now': 0, 'max': 0}
+    lk = threading.Lock()
+
+    def probe(ip):
+        with lk:
+            calls['probe'] += 1
+            peak['now'] += 1
+            peak['max'] = max(peak['max'], peak['now'])
+        gate.wait(5)
+        with lk:
+            peak['now'] -= 1
+        if ip == '192.168.1.66':
+            raise RuntimeError('boom')
+        if ip in ('192.168.1.30', '192.168.1.4'):
+            return {'host': ip, 'port': 7125, 'hostname': 'p' + ip[-2:],
+                    'version': '0.2.0'}
+        return None
+
+    def mk():
+        ns = LS.NetScan()
+        ns.local_ips = lambda: [('eth0', '192.168.1.100'), ('lo', '127.0.0.1')]
+        ns.probe = probe
+        ns.now = lambda: clock[0]
+        real = ns.spawn
+
+        def spawn(fn):
+            calls['spawn'] += 1
+            return real(fn)
+        ns.spawn = spawn
+        return ns
+    ns = mk()
+    s0 = ns.request(start=False)
+    check(s0['state'] == 'idle' and calls['spawn'] == 0,
+          'scan: start=0 only reads (idle, nothing started)')
+    s1 = ns.request()
+    s2 = ns.request()
+    check(s1['state'] == 'running' and s2['state'] == 'running'
+          and calls['spawn'] == 1, 'scan: one scan at a time')
+    import time
+    t_end = time.time() + 5
+    while peak['now'] < LS.SCAN_THREADS and time.time() < t_end:
+        time.sleep(0.01)
+    gate.set()
+    ns.thread.join(10)
+    s3 = ns.request()
+    check(s3['state'] == 'done' and s3['total'] == 253 and s3['done'] == 253
+          and [f['host'] for f in s3['found']] == ['192.168.1.4',
+                                                   '192.168.1.30']
+          and s3['subnets'] == ['192.168.1.0/24']
+          and s3['addresses'] == ['192.168.1.100']
+          and s3['started'] == 1000.0 and s3['finished'] == 1000.0,
+          'scan: done, own address skipped, hits sorted, a failing probe '
+          'counted')
+    check(peak['max'] == LS.SCAN_THREADS,
+          'scan: bounded concurrency (%d at once)' % peak['max'])
+    clock[0] += 300
+    ns.request()
+    check(calls['spawn'] == 1, 'scan: result cached')
+    clock[0] += 301
+    r = ns.request()
+    check(calls['spawn'] == 2 and r['state'] == 'running',
+          'scan: cache runs out after 10 min')
+    ns.thread.join(10)
+    ns.request(refresh=True)
+    check(calls['spawn'] == 3, 'scan: refresh starts a new scan')
+    ns.thread.join(10)
+    # failures end in 'done' with an error, never an exception
+    ns2 = mk()
+
+    def broken():
+        raise OSError('no interfaces')
+    ns2.local_ips = broken
+    ns2.request()
+    ns2.thread.join(10)
+    r = ns2.request(start=False)
+    check(r['state'] == 'done' and r['found'] == [] and r['error'],
+          'scan: no address -> done with an error')
+    ns3 = mk()
+
+    def nospawn(fn):
+        raise RuntimeError("can't start new thread")
+    ns3.spawn = nospawn
+    r = ns3.request()
+    check(r['state'] == 'done' and 'thread' in r['error'],
+          'scan: thread start failure handled')
+    ns4 = mk()
+    ns4.local_ips = lambda: [('docker0', '172.17.0.1'), ('', '8.8.4.4')]
+    ns4.request()
+    ns4.thread.join(10)
+    r = ns4.request(start=False)
+    check(r['state'] == 'done' and r['total'] == 0 and r['error'],
+          'scan: public / docker only -> nothing scanned')
+    ns5 = mk()
+    gate.clear()
+    ns5.request()
+    ns5.stop()
+    gate.set()
+    ns5.thread.join(10)
+    check(ns5.state == 'done' and ns5.done < 253,
+          'scan: stop() (klippy:disconnect) ends it early')
+
+    # the endpoint
+    ls = p.objects['lightspeed']
+    ep = p.objects['webhooks'].endpoints.get('lightspeed/scan')
+    check(ep is not None, 'scan: endpoint lightspeed/scan registered')
+    ls.netscan = mk()
+    n_spawn = calls['spawn']
+    wr = WebRequest({'start': 'false'})
+    ep(wr)
+    check(wr.result and wr.result['state'] == 'idle'
+          and calls['spawn'] == n_spawn,
+          'scan endpoint: start=false only reads')
+    wr = WebRequest({})
+    ep(wr)
+    keys = set(['state', 'found', 'started', 'finished', 'subnets',
+                'addresses', 'done', 'total', 'error', 'self'])
+    check(wr.result['state'] == 'running' and keys <= set(wr.result)
+          and isinstance(wr.result['self'].get('hostname'), str),
+          'scan endpoint: shape %s' % sorted(wr.result))
+    ls.netscan.thread.join(10)
+    wr = WebRequest({})
+    ep(wr)
+    check(wr.result['state'] == 'done' and len(wr.result['found']) == 2,
+          'scan endpoint: repeated call returns the result')
+    p.send_event('klippy:disconnect')
+    check(ls.netscan.cancel, 'scan: klippy:disconnect stops a scan')
+
+    class Boom(object):
+        def request(self, *a):
+            raise RuntimeError('x')
+
+        def stop(self):
+            pass
+    ls.netscan = Boom()
+    try:
+        ep(WebRequest({}))
+        check(False, 'scan endpoint: errors become web errors')
+    except GCmdError:
+        check(True, 'scan endpoint: errors become web errors')
+
+    # this printer's own name in get_status
+    st = ls.get_status(REACTOR.t)
+    check(isinstance(st.get('host'), str), 'get_status: host %r' % st['host'])
+
+    def nohost():
+        raise OSError('no name')
+    socket.gethostname = nohost
+    check(LS._own_hostname() == '', 'hostname lookup failure -> empty')
+    socket.gethostname = lambda: 'voron-24.local'
+    check(LS._own_hostname() == 'voron-24', 'hostname without domain')
+    socket.gethostname = lambda: 'bad name<>'
+    check(LS._own_hostname() == '', 'odd hostname dropped')
+    ls.hostname = 'voron'
+    sd = ls._status_dict
+    ls._status_dict = lambda et: 1 / 0
+    st = ls.get_status(REACTOR.t)
+    ls._status_dict = sd
+    check(st.get('host') == 'voron', 'get_status fallback keeps host')
+
+
+def _iface_tests():
+    """_local_ipv4s with a fake fcntl / socket (the Linux branch)."""
+    import types
+    addrs = {'lo': '127.0.0.1', 'eth0': '192.168.1.100',
+             'docker0': '172.17.0.1'}
+
+    class FakeSock(object):
+        def __init__(self, *a):
+            pass
+
+        def connect(self, addr):
+            self.peer = addr
+
+        def getsockname(self):
+            return ('192.168.1.100', 40000)
+
+        def fileno(self):
+            return 3
+
+        def close(self):
+            pass
+
+    def ioctl(fd, req, buf):
+        name = buf[:16].rstrip(b'\0').decode()
+        if name not in addrs:
+            raise OSError('no address')
+        return b'\0' * 20 + socket.inet_aton(addrs[name]) + b'\0' * 8
+    fake_fcntl = types.ModuleType('fcntl')
+    fake_fcntl.ioctl = ioctl
+    saved = (socket.socket, getattr(socket, 'if_nameindex', None),
+             socket.getaddrinfo, socket.gethostname,
+             sys.modules.get('fcntl'))
+    try:
+        socket.socket = FakeSock
+        socket.if_nameindex = lambda: [(1, 'lo'), (2, 'eth0'),
+                                       (3, 'docker0'), (4, 'wlan0')]
+        socket.getaddrinfo = lambda *a: [(2, 2, 17, '', ('127.0.1.1', 0))]
+        socket.gethostname = lambda: 'voron'
+        sys.modules['fcntl'] = fake_fcntl
+        got = LS._local_ipv4s()
+        check(got == [('eth0', '192.168.1.100'), ('lo', '127.0.0.1'),
+                      ('docker0', '172.17.0.1'), ('', '127.0.1.1')],
+              'scan: interface list (default route named eth0) %r' % (got,))
+        check(LS.scan_subnets(got)[0] == ['192.168.1'],
+              'scan: only the LAN subnet from that list')
+
+        def broken(*a):
+            raise OSError('no sockets')
+        socket.socket = broken
+        socket.getaddrinfo = broken
+        check(LS._local_ipv4s() == [], 'scan: interface lookup failures -> []')
+    finally:
+        (socket.socket, ifn, socket.getaddrinfo, socket.gethostname,
+         fc) = saved
+        if ifn is None:
+            del socket.if_nameindex
+        else:
+            socket.if_nameindex = ifn
+        if fc is None:
+            sys.modules.pop('fcntl', None)
+        else:
+            sys.modules['fcntl'] = fc
 
 
 if __name__ == '__main__':

@@ -14,11 +14,13 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
+import json
 import logging
 import math
 import re
 import socket
 import threading
+import time
 
 try:
     from . import lightspeed_engine as engine
@@ -73,6 +75,326 @@ ESP_FX = {
 
 def _clamp01(v):
     return 0.0 if v < 0.0 else 1.0 if v > 1.0 else v
+
+
+######################################################################
+# Network scan: other printers on the LAN that run Lightspeed
+######################################################################
+# The page asks for it (lightspeed/scan). Everything runs in background
+# threads, never in the reactor, and only reads other hosts (HTTP GET).
+SCAN_CACHE = 600.0        # s a finished scan is answered from cache
+SCAN_CONNECT = 0.4        # s TCP connect timeout per host and port
+SCAN_HTTP = 1.5           # s for the HTTP answer of an open port
+SCAN_THREADS = 32         # probes at once
+SCAN_MAX_NETS = 2         # interfaces (/24 subnets) scanned at most
+SCAN_PORTS = (7125, 80)   # Moonraker, then Mainsail / Fluidd's proxy
+SCAN_MAX_BYTES = 65536
+SCAN_SKIP_IFACES = ('lo', 'docker', 'br-', 'veth', 'virbr', 'cni',
+                    'flannel', 'podman', 'lxc', 'lxd',
+                    'tun', 'tap', 'wg', 'zt', 'tailscale')  # VPNs too
+HOST_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$')
+try:
+    _TEXT = (str, unicode)    # noqa: F821 (Python 2)
+except NameError:
+    _TEXT = (str,)
+
+
+def _ipv4(ip):
+    """'192.168.1.5' -> (192, 168, 1, 5), anything else -> None."""
+    try:
+        parts = [int(p) for p in str(ip).split('.')]
+    except ValueError:
+        return None
+    if len(parts) != 4 or any(p < 0 or p > 255 for p in parts):
+        return None
+    return tuple(parts)
+
+
+def private_ipv4(ip):
+    """True for 10/8, 172.16/12 and 192.168/16 (so never loopback or
+    link-local)."""
+    o = _ipv4(ip)
+    if o is None:
+        return False
+    return (o[0] == 10 or (o[0] == 172 and 16 <= o[1] <= 31)
+            or (o[0] == 192 and o[1] == 168))
+
+
+def skip_iface(name):
+    name = (name or '').lower()
+    return any(name == p or name.startswith(p) for p in SCAN_SKIP_IFACES)
+
+
+def scan_subnets(addrs):
+    """[(iface, ip)] -> (['a.b.c' /24 prefixes, at most SCAN_MAX_NETS],
+    set of this host's private IPs)."""
+    nets, own = [], set()
+    for iface, ip in addrs:
+        if skip_iface(iface) or not private_ipv4(ip):
+            continue
+        own.add(ip)
+        net = '.'.join(ip.split('.')[:3])
+        if net not in nets and len(nets) < SCAN_MAX_NETS:
+            nets.append(net)
+    return nets, own
+
+
+def _local_ipv4s():
+    """This host's IPv4 addresses as [(iface name or '', ip)], best first.
+    Stdlib only; each method may fail on its own."""
+    out = []
+    # the address of the default route (a UDP connect sends nothing)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(('192.0.2.1', 9))
+            out.append(('', s.getsockname()[0]))
+        finally:
+            s.close()
+    except Exception:
+        pass
+    # every interface with its name (Linux)
+    try:
+        import fcntl
+        import struct
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            for _, name in socket.if_nameindex():
+                try:
+                    req = struct.pack('256s', name[:15].encode('utf-8'))
+                    res = fcntl.ioctl(s.fileno(), 0x8915, req)  # SIOCGIFADDR
+                    out.append((name, socket.inet_ntoa(res[20:24])))
+                except (IOError, OSError):
+                    pass
+        finally:
+            s.close()
+    except Exception:
+        pass
+    try:
+        for ai in socket.getaddrinfo(socket.gethostname(), None,
+                                     socket.AF_INET):
+            out.append(('', ai[4][0]))
+    except Exception:
+        pass
+    # an interface name seen for an address wins over an unnamed entry
+    named = dict((ip, n) for n, ip in out if n)
+    res, seen = [], set()
+    for n, ip in out:
+        if ip in seen:
+            continue
+        seen.add(ip)
+        res.append((named.get(ip, n), ip))
+    return res
+
+
+def _tcp_open(ip, port, timeout):
+    try:
+        s = socket.create_connection((ip, port), timeout)
+    except Exception:
+        return False
+    try:
+        s.close()
+    except Exception:
+        pass
+    return True
+
+
+def _http_json(url, timeout):
+    # no proxy from the environment and no redirects: a probe never leaves
+    # the host it was sent to
+    try:
+        import urllib.request as ur
+    except ImportError:              # Python 2
+        import urllib2 as ur
+
+    class NoRedirect(ur.HTTPRedirectHandler):
+        def redirect_request(self, *a, **k):
+            return None
+    opener = ur.build_opener(ur.ProxyHandler({}), NoRedirect())
+    r = opener.open(url, timeout=timeout)
+    try:
+        data = r.read(SCAN_MAX_BYTES)
+    finally:
+        r.close()
+    return json.loads(data.decode('utf-8', 'replace'))
+
+
+def _clean_text(v, n):
+    if not isinstance(v, _TEXT):
+        return ''
+    v = ''.join(c for c in v if 32 <= ord(c) < 127)
+    return v.strip()[:n]
+
+
+def _clean_host(v):
+    v = _clean_text(v, 63)
+    return v if HOST_RE.match(v) else ''
+
+
+def probe_host(ip):
+    """{host, port, hostname, version} when ip runs Moonraker with
+    Lightspeed loaded (and Klippy ready), else None. Never raises."""
+    for port in SCAN_PORTS:
+        if not _tcp_open(ip, port, SCAN_CONNECT):
+            continue
+        base = 'http://%s:%d' % (ip, port)
+        try:
+            j = _http_json(base + '/printer/objects/query?lightspeed=version',
+                           SCAN_HTTP)
+            st = j['result']['status']
+        except Exception:
+            continue                 # not Moonraker (or not ready) here
+        ls = st.get('lightspeed') if isinstance(st, dict) else None
+        if not isinstance(ls, dict) or 'version' not in ls:
+            return None              # Moonraker without Lightspeed
+        hostname = ''
+        try:
+            hostname = _clean_host(_http_json(base + '/printer/info',
+                                              SCAN_HTTP)['result']['hostname'])
+        except Exception:
+            pass
+        return {'host': ip, 'port': port, 'hostname': hostname,
+                'version': _clean_text(ls.get('version'), 24)}
+    return None
+
+
+def _spawn(fn):
+    t = threading.Thread(target=fn, name='lightspeed-scan')
+    t.daemon = True
+    t.start()
+    return t
+
+
+def _ip_key(ip):
+    return _ipv4(ip) or (999,)
+
+
+class NetScan(object):
+    """One scan at a time, the result cached SCAN_CACHE s. request() only
+    reads / starts under the lock and returns at once; the probes run in
+    up to SCAN_THREADS daemon threads that touch nothing but this object."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.state = 'idle'
+        self.found = []
+        self.started = self.finished = None
+        self.subnets = []
+        self.own = []
+        self.done = self.total = 0
+        self.error = ''
+        self.cancel = False
+        self.thread = None
+        self._logged = set()
+        # replaced by the tests
+        self.local_ips = _local_ipv4s
+        self.probe = probe_host
+        self.now = time.time
+        self.spawn = _spawn
+        self.threads = SCAN_THREADS
+
+    def _log_once(self, what):
+        if what not in self._logged:
+            self._logged.add(what)
+            logging.exception("lightspeed: network scan: %s", what)
+
+    def snapshot(self):
+        return {'state': self.state, 'found': [dict(f) for f in self.found],
+                'started': self.started, 'finished': self.finished,
+                'subnets': ['%s.0/24' % n for n in self.subnets],
+                'addresses': list(self.own), 'done': self.done,
+                'total': self.total, 'error': self.error}
+
+    def request(self, start=True, refresh=False):
+        go = False
+        with self.lock:
+            if start and self.state != 'running':
+                fresh = (self.state == 'done' and self.finished is not None
+                         and self.now() - self.finished < SCAN_CACHE)
+                if refresh or not fresh:
+                    go = True
+                    self.state = 'running'
+                    self.found, self.subnets, self.own = [], [], []
+                    self.done = self.total = 0
+                    self.error = ''
+                    self.cancel = False
+                    self.started, self.finished = self.now(), None
+            snap = self.snapshot()
+        if go:
+            try:
+                self.thread = self.spawn(self._run)
+            except Exception as e:
+                self._log_once('start')
+                with self.lock:
+                    self.state, self.finished = 'done', self.now()
+                    self.error = str(e)
+                    snap = self.snapshot()
+        return snap
+
+    def stop(self):
+        self.cancel = True
+
+    def _run(self):
+        try:
+            try:
+                addrs = self.local_ips()
+            except Exception:
+                self._log_once('addresses')
+                addrs = []
+            nets, own = scan_subnets(addrs)
+            hosts = ['%s.%d' % (n, i) for n in nets for i in range(1, 255)
+                     if '%s.%d' % (n, i) not in own]
+            with self.lock:
+                self.subnets, self.own = nets, sorted(own, key=_ip_key)
+                self.total = len(hosts)
+                if not nets:
+                    self.error = 'no private IPv4 network found'
+            todo = list(reversed(hosts))
+
+            def worker():
+                while not self.cancel:
+                    with self.lock:
+                        if not todo:
+                            return
+                        ip = todo.pop()
+                    try:
+                        hit = self.probe(ip)
+                    except Exception:
+                        self._log_once('probe')
+                        hit = None
+                    with self.lock:
+                        self.done += 1
+                        if hit:
+                            self.found.append(hit)
+            workers = []
+            for _ in range(min(self.threads, len(hosts))):
+                t = threading.Thread(target=worker, name='lightspeed-probe')
+                t.daemon = True
+                t.start()
+                workers.append(t)
+            for t in workers:
+                t.join()
+        except Exception as e:
+            self._log_once('run')
+            with self.lock:
+                self.error = str(e)
+        finally:
+            with self.lock:
+                self.found.sort(key=lambda f: _ip_key(f.get('host')))
+                self.state, self.finished = 'done', self.now()
+
+
+def _own_hostname():
+    try:
+        return _clean_host(socket.gethostname().split('.')[0])
+    except Exception:
+        return ''
+
+
+def _truthy(v):
+    if isinstance(v, _TEXT):
+        return v.strip().lower() in ('1', 'true', 'yes', 'on')
+    return bool(v)
 
 
 ######################################################################
@@ -667,6 +989,8 @@ class Lightspeed(object):
         self.heaters = []
         self.toolhead = None
         self._notified = set()
+        self.hostname = _own_hostname()
+        self.netscan = NetScan()
 
         self.printer.register_event_handler('klippy:connect', self._connect)
         # The page talks to this instead of G-code, so testing scenes does
@@ -674,6 +998,8 @@ class Lightspeed(object):
         webhooks = self.printer.lookup_object('webhooks', None)
         if webhooks is not None:
             webhooks.register_endpoint('lightspeed/cmd', self._web_cmd)
+            # other printers on the LAN with Lightspeed (background scan)
+            webhooks.register_endpoint('lightspeed/scan', self._web_scan)
         self.printer.register_event_handler('klippy:ready', self._ready)
         self.printer.register_event_handler('klippy:shutdown', self._shut)
         self.printer.register_event_handler('klippy:disconnect',
@@ -1000,6 +1326,7 @@ class Lightspeed(object):
                 out.busy = False
 
     def _disconnect(self):
+        self.netscan.stop()
         for out in self.outputs:
             out.close()
 
@@ -1414,7 +1741,7 @@ class Lightspeed(object):
             logging.exception("lightspeed: status failed")
             return {'version': __version__, 'enabled': self.enabled,
                     'state': self.state, 'auto_state': self.auto_state,
-                    'strips': {}}
+                    'host': getattr(self, 'hostname', ''), 'strips': {}}
 
     def _status_dict(self, eventtime):
         strips = {}
@@ -1442,6 +1769,7 @@ class Lightspeed(object):
                         key=lambda c: (-c.priority, -c.since))
         return {
             'version': __version__, 'enabled': self.enabled,
+            'host': self.hostname,
             'state': self.state, 'auto_state': self.auto_state,
             'override': self.override is not None, 'guard': guard,
             'brightness': self.brightness, 'model': self.model,
@@ -1634,6 +1962,20 @@ class Lightspeed(object):
             logging.exception("lightspeed: web command failed")
             raise web_request.error("Lightspeed: %s" % (e,))
         web_request.send({'ok': True})
+
+    def _web_scan(self, web_request):
+        """POST /printer/lightspeed/scan {start: 1, refresh: 0} - returns at
+        once with the scan's progress / result (see NetScan)."""
+        try:
+            start = _truthy(web_request.get('start', True))
+            refresh = _truthy(web_request.get('refresh', False))
+            res = self.netscan.request(start, refresh)
+        except Exception as e:
+            # anything raised in a web endpoint would shut Klipper down
+            logging.exception("lightspeed: scan request failed")
+            raise web_request.error("Lightspeed: %s" % (e,))
+        res['self'] = {'hostname': self.hostname}
+        web_request.send(res)
 
     def _web_item(self, item):
         a = str(item.get('action', ''))

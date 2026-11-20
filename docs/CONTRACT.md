@@ -214,8 +214,30 @@ Silent (nothing in the console). `{"action": ...}`:
 `strip {strip, brightness}`, `brightness {value}`, `scene_on {name, hold}` (hold 0 =
 until off), `scene_off {name}` (`all` allowed), `batch {actions: [...]}`.
 
+## Web endpoint `lightspeed/scan` (Moonraker: `POST /printer/lightspeed/scan`)
+Finds other printers on the LAN that run Lightspeed. Returns at once; the scan runs in
+background threads (never in the reactor) and only *reads* other hosts.
+Body (all optional): `start` (default 1; 0 = only read the current state, never start),
+`refresh` (default 0; 1 = start a new scan even if a cached result exists).
+* A scan runs at most once at a time; a finished result is answered from cache for
+  10 minutes, after that the next `start` call scans again.
+* Range: this printer's own IPv4 /24 subnet(s), at most 2 interfaces, private ranges only
+  (10/8, 172.16/12, 192.168/16); loopback, link-local and docker / bridge / veth
+  interfaces are skipped, and so are this printer's own addresses.
+* Per host: TCP connect to 7125 (Moonraker), then 80 (Mainsail / Fluidd proxy), 0.4 s
+  timeout, 32 hosts at once; an open port gets
+  `GET /printer/objects/query?lightspeed=version` (1.5 s) and, on a hit,
+  `GET /printer/info` for the hostname. Moonraker without a `lightspeed` object (or with
+  Klippy not ready) is not listed. Stdlib only; errors are caught and logged once.
+
+Answer: `{state: idle|running|done, found: [{host (IP), port (the port that answered:
+Moonraker's, not the page's), hostname, version}], started, finished (Unix time or null),
+subnets: ['a.b.c.0/24'], addresses: [this printer's IPs], done, total, error,
+self: {hostname}}`. `found` is sorted by IP; hostname / version from other devices are
+checked (`[A-Za-z0-9._-]`, short) and dropped when odd. `klippy:disconnect` stops a scan.
+
 ## Status object `lightspeed`
-`version, enabled, state, auto_state, override, guard, brightness, model, size,
+`version, host (this printer's hostname, '' if unknown), enabled, state, auto_state, override, guard, brightness, model, size,
 mcu_rate, strips: {name: {output, kind, count, place, color, spacing, effect, fps,
 bytes_sent, dropped, errors, disabled, last_error, manual}},
 scenes_active: [custom scene names, highest priority first],
@@ -232,3 +254,35 @@ SET_LED_EFFECT / STOP_LED_EFFECTS]`. `get_status` never raises.
 * Scene line edits (built-in and custom) go live with `scene`; new / removed custom
   scenes, triggers, priorities, holds and groups need Save & apply (restart).
 * A custom scene chip previews with `scene_on {name, hold}` and `scene_off` at the end.
+
+### Several printers
+* A browser cannot write to another printer's Moonraker from this page (CORS; Moonraker
+  normally does not trust IP origins), so the switcher **navigates** (same tab) to that
+  printer's own page, `http://<host>[:port]/lightspeed/` (the web port; never 7125).
+  Picking this page's own host does nothing. The switcher and the scan never send
+  commands or uploads to another host; the scan runs on this printer and is asked through
+  this page's own Moonraker. (The older *Printer address* field in Settings > Live still
+  points the page's Moonraker requests at the address typed there; the printer named in
+  the header is then that address.)
+* Header: a printer button (left of party mode) with the configured printer's name:
+  `lightspeed.host`, else `/printer/info` hostname, else the host; `Demo` when no
+  Moonraker answers (opened from disk, static host / 404). Its menu (keyboard + aria like
+  the language menu, closes on outside click / Escape) lists this printer (checked),
+  saved printers (removable: × or Delete), the printers found by the last scan with their
+  Lightspeed version, *Scan network* (`lightspeed/scan`, progress while it runs; only while
+  connected and Klipper is ready, otherwise disabled with a hint; a 404 from an older
+  module shows an update hint) and *Add printer…* (host or IPv4, optional `:port`,
+  validated). Saved printers: `UI.printers`, last scan: `UI.scan` (localStorage of this
+  page's origin, checked on load).
+* The configured printer is named wherever settings are written: under the Settings
+  tabs, in the Save & apply box, on the floating Save & apply button (tooltip) and in the
+  Save & apply / Restart firmware confirm dialogs ("Printer: <name> (<host>)").
+* Limits: only the scanning printer's own /24 subnet(s); another printer is found only
+  when its Moonraker answers this printer without authorization (trusted clients) and
+  Klippy is ready; any Lightspeed version is found, but scanning needs this module
+  version on the printer whose page is open, and the target printer needs this page
+  version for its own switcher. Saved lists are per origin (each printer's page has its
+  own). Other Moonraker instances on the scanning host itself are not listed (its own
+  addresses are skipped); a found printer always opens on port 80 (another web port:
+  *Add printer…* with `:port`); VPN interfaces (tun / tap / wg / zt / tailscale) are
+  skipped; IPv4 only.

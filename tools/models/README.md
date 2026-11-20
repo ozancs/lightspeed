@@ -39,3 +39,22 @@ triangle between parts), so the page stretches it inside the centre piece instea
 //VORON lettering of the 2.4 logo skirt is split off by geometry (`split_logo`) into the red bucket.
 Dragon Burner fans (not in its STEP): 3010 axial from the Voron 0.2 STEP, 4010 blowers from the DownDraft
 STEP, placed in the measured cowl pockets (see `dragonburner.json` `added_parts`).
+
+Compression (meshopt, after every build): `web/models/*.glb` are EXT_meshopt_compression files, about 3.5x smaller
+(35.1 MB -> 10.0 MB for the 10 files). The page needs `third_party/meshopt_decoder.js` (meshoptimizer 0.18, from
+three r147 `examples/js/libs`, global `MeshoptDecoder`) and `loader.setMeshoptDecoder(MeshoptDecoder)`.
+1. A build writes the plain GLB to `web/models/`; copy it to `models/raw/uncompressed/<name>.glb` (git-ignored; the
+   originals live there and can be copied back to restore).
+2. `npm i --prefix %TEMP%\mo meshoptimizer@0.18.1` once (outside the project), then
+   `set NODE_PATH=%TEMP%\mo\node_modules` and `node tools/models/compress.js` (all files, under a second;
+   `--only rx,voron24` for some). A plain GLB found in `web/models/` (fresh build) is first copied to
+   `models/raw/uncompressed/` automatically, so step 1 is optional. Writes `web/models/`; the .json files stay.
+3. `node tools/models/verify.js` loads originals and compressed files with the page's three/GLTFLoader/decoder and
+   runs the page's own cadIslands / lowestTip / cadPrep / cadPrepTh / CAD_ADAPT on both (names, materials, triangle
+   and vertex counts, islands, per-mesh bboxes, tips, prep boxes, stretch codes per vertex). Must say `all files match`.
+Lossless on purpose: positions stay float32 bit-exact, indices and triangles unchanged (only reordered for the
+vertex cache, vertices renumbered; nothing welded or dropped), node and mesh names, materials, no node transforms.
+Not gltfpack: it welds vertices (merges islands: rx 37 -> 29), drops the zero-area chain triangles, and its 16-bit
+quantization (or any rounding, even 23-bit) flips the stretch side of vertices that sit exactly on the thresholds.
+`tools/models/glb_float.js` (`glbFloat(root)`) bakes node transforms and quantized/normalized positions into float
+mm; a no-op on these files, a safety net if a quantized file ever comes in.
