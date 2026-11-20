@@ -3293,7 +3293,7 @@ const CAD_ADAPT = {
   trident: j => cadVoronJson(j, { cut: [[108, 145], [114, 159], [-201, 1e9]], rigid: 120 }),
   // V0: the cube's own top (inner z_top) sits under the Y rails; the top places go under the top hat's 1515 frame,
   // the real top of the printer
-  voron0: j => cadVoronJson(j, { cut: [[43, 87], [37, 66], [-89, 1e9]], rigid: 80, topZ: j.groups.frame.max[2] - (j.extrusion.profile || 15) }),
+  voron0: j => cadVoronJson(j, { cut: [[43, 87], [37, 66], [-89, 1e9]], rigid: 80, topZ: j.groups.frame.max[2] - (j.extrusion.profile || 15), doorZ: j.groups.frame.max[2] - (j.extrusion.profile || 15) / 2 }),
   // VzBot: the gantry rides at the height of the top extrusions (z 44.6..75); the top places hang just under it
   corexy: j => cadBoxJson(j, { cut: [[142, 200], [134, 260], [-299, 1e9]], rigid: 120, topZ: Math.min(j.extrusion.top, j.groups.gantry_y.min[2] - 1.5) }),
   ratrig: j => cadBoxJson(j, { cut: [[118, 237], [142, 240], [-220, 1e9]], rigid: 120 }),

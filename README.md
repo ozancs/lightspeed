@@ -86,7 +86,7 @@ Then:
 
    Each led_effect becomes a Lightspeed scene with the same name, so `SET_LED_EFFECT` and `STOP_LED_EFFECTS` in your macros keep working. `--apply` comments out the `[led_effect]` sections, adds `[include lightspeed.cfg]` (so you can skip step 1) and backs up every file it changes. If the new config would not load, it puts every file back. The installer can then remove the `led_effect` Klipper link and its `moonraker.conf` entry. It asks before each step.
 3. Restart Klipper when the printer is idle.
-4. Open `http://<your-printer>/lightspeed/lightspeed.html`, design your strips and press **Save & apply**.
+4. Open `http://<your-printer>/lightspeed.html`, design your strips and press **Save & apply**.
 
 A Mainsail or Fluidd update removes the page link; run `./install.sh` again after one.
 

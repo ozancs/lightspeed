@@ -39,6 +39,10 @@ for root in "$HOME/mainsail" "$HOME/fluidd" ${WEB_ROOT:+"$WEB_ROOT"}; do
     if ln -sfn "$REPO/web" "$root/lightspeed" 2>/dev/null; then
         echo "Page: linked into $root/lightspeed/"
         LINKED="$LINKED $root"
+        # short address: http://<printer>/lightspeed.html opens the page
+        if [ ! -e "$root/lightspeed.html" ] || grep -q 'url=/lightspeed/' "$root/lightspeed.html" 2>/dev/null; then
+            printf '<!doctype html><meta charset="utf-8"><title>Lightspeed</title><meta http-equiv="refresh" content="0; url=/lightspeed/"><a href="/lightspeed/">Lightspeed</a>\n' > "$root/lightspeed.html"
+        fi
     else
         echo "Page: could not link into $root (permissions?)"
     fi
@@ -150,6 +154,6 @@ fi
 echo "  3. Restart Klipper when the printer is idle (FIRMWARE_RESTART)."
 echo "  4. Check with the console command: LIGHTSPEED_STATUS"
 if [ -n "$LINKED" ]; then
-    echo "  Page: http://${IP:-<printer>}/lightspeed/lightspeed.html"
+    echo "  Page: http://${IP:-<printer>}/lightspeed.html"
 fi
 echo "  A Mainsail/Fluidd update removes the page link: run ./install.sh again after one."
