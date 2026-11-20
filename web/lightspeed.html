@@ -2621,7 +2621,7 @@ function stripErrors(s, i, strips = P.strips) {
   else if (strips.some((o, j) => j !== i && o.name === s.name)) e.name = t.e_dup;
   if (!(s.count >= 1 && s.count <= 500)) e.count = t.e_count;
   if (s.type === 'neopixel' || s.type === 'dotstar' || s.type === 'pin') {
-    if (!ID_RE.test(s.chain)) e.chain = t.e_chain;
+    if (!/^[A-Za-z0-9_-]+$/.test(s.chain)) e.chain = t.e_chain;  // Klipper section names may hold a dash
     const key = hwKey(s), h = P.hw[key];
     if (!h && !e.chain && Live.objects && syncedOwn().has(hwSection(key)) && !Object.keys(P.hw).includes(key)) e.chain = t.e_ownGone(hwSection(key));
     if (h) {
@@ -4762,6 +4762,27 @@ function stripMeta(s) { return `${placeNames(s)} · ${s.count} · ${T().outShort
 const ERR_OF = { 'hw.mcu': 'mcu', 'hw.pin': 'pin', 'hw.clock': 'clock', 'hw.count': 'hwcount' };
 const errKey = k => ERR_OF[k] || k;
 // printer objects of one kind, from Moonraker objects/list (null when not connected)
+// LED chains in the printer's config that no strip uses yet (added by hand to printer.cfg, or left from another
+// plugin) become strips by themselves; the page then shows Save & apply. A chain the user removed stays out.
+async function adoptPrinterLeds() {
+  if (!Live.objects) return;
+  let set = null;
+  try { const j = await Preview.req('/printer/objects/query?configfile=settings'); set = j.result.status.configfile.settings || null; } catch (e) { return; }
+  Live.ledEffect = set ? Object.keys(set).filter(k => k.startsWith('led_effect ')).length : 0;
+  const ign = new Set(UI.ignoredChains || []), added = [];
+  for (const o of Live.objects) {
+    const m = /^(neopixel|dotstar) (\S+)$/.exec(o); if (!m) continue;
+    const [, type, chain] = m;
+    if (ign.has(o) || P.strips.some(x => x.type === type && x.chain === chain)) continue;
+    const cs = set && set[o.toLowerCase()], n = Math.max(1, Math.min(500, Math.round(+(cs && cs.chain_count) || 1)));
+    const nm = chain.toLowerCase().replace(/[^a-z0-9_]/g, '_'), name = nm && !P.strips.some(x => x.name === nm) && !(P.groups || []).some(g => g.name === nm) ? nm : uniqueName('strip');
+    P.strips.push({ name, place: ['top_front'], spacing: 0, count: n, type, chain, first: 1, ip: '', start: 0, prefix: '', brightness: 1 });
+    added.push(o);
+  }
+  if (!added.length) return;
+  changed({ leds: true });
+  toast(cm('adopted', `Found in your printer config and added: ${added.join(', ')}. Place them, then Save & apply.`, `Yazıcı config'inde bulundu ve eklendi: ${added.join(', ')}. Yerlerini seçip Kaydet ve uygula.`, added.join(', ')));
+}
 function printerNames(prefix) { return Live.objects ? Live.objects.filter(o => o.startsWith(prefix + ' ')).map(o => o.slice(prefix.length + 1)) : null; }
 function pickSelect(k, cur, names, extra = []) {
   const all = []; for (const n of names.concat(extra)) if (!all.includes(n)) all.push(n);
@@ -4957,6 +4978,9 @@ $('#v-strips').addEventListener('click', async e => {
     renderStrips(); renderSel();
   } else if (act.dataset.act === 'remove') {
     P.strips.splice(i, 1);
+    if ((s.type === 'neopixel' || s.type === 'dotstar') && !P.hw[s.type + ' ' + s.chain] && !P.strips.some(x => x.type === s.type && x.chain === s.chain)) {
+      UI.ignoredChains = [...new Set([...(UI.ignoredChains || []), s.type + ' ' + s.chain])]; saveUI();
+    }
     for (const st in P.scenes) { delete P.scenes[st][s.name]; if (sceneKeyOf.has(s)) delete P.scenes[st][sceneKeyOf.get(s)]; }
     for (const g of P.groups) g.strips = g.strips.filter(n => n !== s.name && n !== sceneKeyOf.get(s));
     gcHw();
@@ -5433,6 +5457,7 @@ let importMsg = '';
 function renderConfig() {
   const t = T(), n = allErrors(), txt = cfgText();
   $('#v-config').innerHTML = `<div class="sec"><div><h2>${esc(t.c_title)}</h2><p class="lead">${esc(t.c_lead)}</p></div>
+    ${Live.ledEffect ? `<div class="note warn">${esc(cm('ledEffectFound', `Your printer config still has ${Live.ledEffect} [led_effect] section(s). To move them into Lightspeed, run on the printer: python3 ~/lightspeed/tools/migrate_led_effect.py --dry-run (then --apply).`, `Yazıcı config'inde hâlâ ${Live.ledEffect} [led_effect] bölümü var. Lightspeed'e taşımak için yazıcıda çalıştır: python3 ~/lightspeed/tools/migrate_led_effect.py --dry-run (sonra --apply).`, Live.ledEffect))}</div>` : ''}
     ${n ? `<div class="note bad">${esc(t.fixFirst(n))}</div>` : ''}
     ${canApply() ? applyBox('config') : ''}
     <pre class="cfg" id="cfgOut">${hiCfg(txt)}</pre>
@@ -5724,6 +5749,7 @@ async function liveConnect(auto, o = {}) {
       try { Live.here = b === '' || new URL(b).host === location.host; } catch (e) { Live.here = false; }
       Preview.on = UI.prevOn !== false;
       if (!o.keep) await syncFromPrinter();
+      await adoptPrinterLeds();
     }
   } catch (err) { if (err.status && err.status !== 404) Live.reach = true; if (!auto) liveMsg(err.message, 'bad'); }
   if (Live.status || Live.reach) await readKlipper(); else { Klip.state = 'ready'; Klip.msg = ''; }
