@@ -30,5 +30,12 @@ Parts are not welded to each other, so every part is its own island for the page
 Ladders are cached in `models/raw/<key>_lod.pkl`. Quality check without rendering:
 `LOD_DUMP=1 python -I tools/models/build_model.py voron24`, then
 `python -I tools/models/quality.py voron24 old.glb web/models/voron24.glb`.
+Skirts (Voron 2.4, Trident): the STEPs stack every skirt option in one place (250/300/350 lengths, both rear
+power inlets, and on the 2.4 the logo centre skirt AND the Mini12864 display case in one pocket); the coplanar
+copies z-fought and the long ones stretched into shards. Only the 250 set (the CAD frame size), the Filtered /
+1.2 mm inlet and the logo centre piece are kept (`drop_any` / `drop`). Skirt shells stay exact (no decimation) and
+each front / rear run (corner skirt, centre piece, corner skirt) leaves as one island (`lod.chain`, a zero-area
+triangle between parts), so the page stretches it inside the centre piece instead of opening gaps. The engraved
+//VORON lettering of the 2.4 logo skirt is split off by geometry (`split_logo`) into the red bucket.
 Dragon Burner fans (not in its STEP): 3010 axial from the Voron 0.2 STEP, 4010 blowers from the DownDraft
 STEP, placed in the measured cowl pockets (see `dragonburner.json` `added_parts`).

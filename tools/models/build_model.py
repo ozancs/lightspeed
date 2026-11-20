@@ -44,9 +44,22 @@ CONFIG = {
             ('bed', r"^Bed Components"),
             ('frame', r"^(Frame|Skirt|Z Assembly|Panels)"),
         ],
-        'budget': 345000,     # triangles for the whole model (lod.py, per part)
+        'budget': 425000,     # triangles for the whole model (lod.py, per part; ~40k go to the exact skirts)
         'min_size': 14.0,     # mm, bbox diagonal of a part kept
         'recolor': 'voron',
+        # The STEP stacks every skirt option on top of each other: 250/300/350 lengths, two IEC inlet skirts and,
+        # in the front centre, the logo skirt AND the Mini12864 display case in the same pocket. Their coplanar
+        # faces z-fight and the long variants' triangles across the page's cut planes stretch into shards.
+        # Keep one set: the 250 skirts (the CAD frame is 250) and the logo centre piece.
+        'drop_any': r"^(Mini12864 Assembly|For_1\.0mm_Mounting_Tabs):|^(300|350)( \(\d+\))?:\d+$",
+        # skirt runs: exact (no decimation) and one island each, so the page stretches them inside the centre
+        # piece (cut planes x 80 / 174) instead of moving the corner skirts away from it
+        'skirt': r"^(250( \(\d+\))?|Front_Skirt_Logo|For_1\.2mm_Mounting_Tabs|Keystone_Skirt|Middle_Fan_Support_ v1(\(Mirror\))?|"
+                 r"Belt_Guard|Belt Tensioner|Z Motor Mount)( \(\d+\))?:",   # + parts flush with the skirt front (y -38)
+        'chains': {'skirt_front': r"^(250:1 < Front Skirt A|Front_Skirt_Logo:1|250 \(1\):1 < Front Skirt B)",
+                   'skirt_rear': r"^(For_1\.2mm_Mounting_Tabs:1|250 \(2\):1 < Center|Keystone_Skirt:1)"},
+        # the engraved //VORON lettering in the logo skirt (same solid): floor 2 mm behind the pocket face -> red
+        'logo': {'part': r"^Front_Skirt_Logo:", 'axis': 1, 'face': -25.0, 'floor': -23.0},
     },
     'rx': {
         'src': RAW + r"\rx_raw.glb",
@@ -142,6 +155,23 @@ def fan_4010(centre, depth_axis_z=True):
     return frame, rotor
 
 
+def split_logo(m, axis, face, floor, tol=0.05):
+    """faces of engraved lettering: the floor at `floor` and its walls between `face` and `floor` (both planes
+    normal to `axis`), found by geometry. Returns (rest, lettering)."""
+    y = m.vertices[m.faces][:, :, axis]
+    lo, hi = min(face, floor) - tol, max(face, floor) + tol
+    deep = np.abs(y - floor).min(1) < tol          # touches the lettering floor
+    sel = deep & (y.min(1) >= lo) & (y.max(1) <= hi)
+    if not sel.any():
+        raise SystemExit('logo: no lettering faces found')
+    parts = []
+    for s in (~sel, sel):
+        p = trimesh.Trimesh(m.vertices.copy(), m.faces[s].copy(), process=False)
+        p.remove_unreferenced_vertices()
+        parts.append(p)
+    return parts
+
+
 def main(key):
     cfg = CONFIG[key]
     sc = trimesh.load(cfg['src'], force='scene')
@@ -150,7 +180,10 @@ def main(key):
     for e in G.to_edgelist():
         parent[e[1]] = e[0]
     drop = re.compile(cfg['drop'], re.I)
-    parts = []            # (group, colour), mesh, fixed
+    drop_any = re.compile(cfg['drop_any']) if cfg.get('drop_any') else None
+    chains = {k: re.compile(v) for k, v in cfg.get('chains', {}).items()}
+    logo = cfg.get('logo')
+    parts = []            # (group, colour), mesh, fixed[, link]
     dropped = kept = 0
     for node in G.nodes_geometry:
         T, gname = G[node]
@@ -161,7 +194,7 @@ def main(key):
             if x not in parent:
                 break
             x = parent[x]
-        if any(drop.search(n) for n in names[:3]):
+        if any(drop.search(n) for n in names[:3]) or (drop_any and any(drop_any.search(n) for n in names)):
             dropped += 1
             continue
         src = sc.geometry[gname]
@@ -185,23 +218,32 @@ def main(key):
             col = recolor(cfg['recolor'], grp, col, names)
         # the page measures the extrusion cube / X beam and the nozzle tip from these: keep them exact
         fixed = ((col == DARK_GREY and any(EXTRUSION.search(n) for n in names))
-                 or any(re.search(r"V7_wo_fan", n) for n in names[:2]))
-        parts.append(((grp, col), m, fixed))
+                 or any(re.search(r"V7_wo_fan", n) for n in names[:2])
+                 or bool(cfg.get('skirt') and re.search(cfg['skirt'], names[0])))
+        path = ' < '.join(names[:3])
+        link = next((k for k, rx in chains.items() if rx.search(path)), None)
+        if logo and re.search(logo['part'], names[0]):
+            rest, letters = split_logo(m, logo['axis'], logo['face'], logo['floor'])
+            print('logo: %d lettering faces -> red, %d stay %s' % (len(letters.faces), len(rest.faces), col))
+            parts.append(((grp, col), rest, True, link))
+            parts.append(((grp, RED), letters, True))
+        else:
+            parts.append(((grp, col), m, fixed, link))
         kept += 1
     print('kept', kept, 'dropped', dropped)
     if cfg.get('add_fan'):
         # behind the orange front ring: centre x 2.5, y 57.5; front cover inner face ~z 38
         frame, rotor = fan_4010((2.5, 57.5, 31.0))
-        parts.append((('toolhead', FAN_GREY), frame, True))
-        parts.append((('toolhead', BLACK), rotor, True))
+        parts.append((('toolhead', FAN_GREY), frame, True, None))
+        parts.append((('toolhead', BLACK), rotor, True, None))
     if cfg.get('clip'):
         # drop pieces (connected components) farther than clip mm from the centre
-        centre = np.median(np.vstack([m.vertices for _, m, _ in parts]), axis=0)
+        centre = np.median(np.vstack([p[1].vertices for p in parts]), axis=0)
         kept_parts = []
-        for k, m, f in parts:
+        for k, m, f, *ln in parts:
             comps = [p for p in m.split(only_watertight=False) if np.linalg.norm(p.centroid - centre) < cfg['clip']]
             if comps:
-                kept_parts.append((k, trimesh.util.concatenate(comps), f))
+                kept_parts.append((k, trimesh.util.concatenate(comps), f, *ln))
         parts = kept_parts
     dec, _ = lod.decimate_parts(parts, cfg['budget'], cache=key)
     merged = {k: trimesh.util.concatenate(v) for k, v in dec.items()}

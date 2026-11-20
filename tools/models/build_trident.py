@@ -170,7 +170,14 @@ def build(key, cfg, list_group=None):
 
     # ---- palette, per-part decimation (lod.py), merge per group+colour, export (as build_model.main)
     noz = re.compile(cfg['nozzle'])
-    items = [((g, recolor(g, c, n, cfg)), m, any(noz.search(x) for x in n)) for g, n, m, c in parts]
+    sk = re.compile(cfg['skirt']) if cfg.get('skirt') else None
+    chains = {k: re.compile(v) for k, v in cfg.get('chains', {}).items()}
+    items = []
+    for g, n, m, c in parts:
+        # skirt shells stay exact; a skirt run (corner, centre, corner) leaves as one island (lod.chain)
+        fixed = any(noz.search(x) for x in n) or bool(sk and sk.search(n[0]))
+        link = next((k for k, rx in chains.items() if rx.search(n[0])), None)
+        items.append(((g, recolor(g, c, n, cfg)), m, fixed, link))
     dec, _ = lod.decimate_parts(items, cfg['budget'], cache=key)
     merged = {k: trimesh.util.concatenate(v) for k, v in dec.items()}
     scene = trimesh.Scene()
@@ -205,7 +212,14 @@ CFG = {
     'source': 'github.com/VoronDesign/Voron-Trident CAD/trident_assembly.step.zip (GPLv3)',
     'src': RAW + r"\trident_raw.glb",
     'scale': 1000.0,
-    'drop': DROP + r"|^Probes|Panasonic",
+    # the STEP stacks the 250/300/350 skirt lengths and both rear power inlets (Filtered, Adam's Tech) on top of
+    # each other: coplanar faces z-fight and the long variants stretch into shards. Keep the 250 set + Filtered.
+    'drop': DROP + r"|^Probes|Panasonic|_(300|350)(_x2)?:|^Adam's Tech:",
+    'skirt': r"^(front_skirt_(left|right)_250|rear_skirt_(center_250|keystone|power_filtered)|side_skirt_(a|b)_250_x2|"
+             r"side_fan_support_x2|skirt_corner_(a_x2|b)|LCD Case Rear):",
+    # the page's x cut planes (108 / 145) lie inside the centre pieces (LCD case, rear centre skirt)
+    'chains': {'skirt_front': r"^(front_skirt_left_250|LCD Case Rear|front_skirt_right_250):",
+               'skirt_rear': r"^(rear_skirt_power_filtered|rear_skirt_center_250|rear_skirt_keystone):"},
     'groups': [          # first match on any ancestor name wins; unmatched (Tools, Filament_Path, Electronics) drop
         ('toolhead', r"^(Toolhead_Assembly|MGN12H:)"),  # the X carriage block rides with the toolhead
         ('gantry_y', r"^X Axis"),
@@ -223,7 +237,7 @@ CFG = {
     'mount_normal': [0, -1, 0],     # the toolhead bolts on the front face of the MGN12 block
     'nozzle': r"^e3d Revo Voron",
     'build': [250, 250, 250],
-    'budget': 295000,    # triangles, whole model (lod.py)
+    'budget': 360000,    # triangles, whole model (lod.py; was 295000, +65k for the exact skirt shells)
     'min_size': 14.0,
 }
 

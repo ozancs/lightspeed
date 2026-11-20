@@ -16,8 +16,13 @@ Here every CAD part is decimated on its own, against a measured error:
 - `fixed` parts (extrusions the page measures, the nozzle, primitives) are kept as they are.
 Ladders are cached in models/raw/<key>_lod.pkl (keyed by the part's geometry), so tuning a budget is quick.
 
-    parts = [(bucket_key, mesh, fixed), ...]
+    parts = [(bucket_key, mesh, fixed[, link]), ...]
     out, report = decimate_parts(parts, budget, cache='voron24')   # out: bucket_key -> [meshes]
+
+`link` (optional, a name): parts with the same link (same bucket) leave as ONE mesh, chained by a zero-area
+triangle between their nearest vertices, so the page treats them as one island: a skirt run (corner skirt,
+centre piece, corner skirt) then stretches at the page's cut planes inside the centre piece instead of the
+corner skirts moving away and leaving gaps.
 """
 import hashlib
 import os
@@ -201,11 +206,15 @@ def decimate_parts(parts, budget, small=1500, floor=0.65, rel=0.01, cache=None, 
         except Exception:
             store = {}
     items, new = [], 0
-    for key, m, fixed in parts:
+    links = []
+    for p in parts:
+        key, m, fixed = p[:3]
+        links.append(p[3] if len(p) > 3 else None)
         m = trimesh.Trimesh(np.asarray(m.vertices, np.float64).copy(), m.faces.copy(), process=False)
         m.merge_vertices()
         _clean(m)
         if not len(m.faces):
+            links.pop()
             continue
         if fixed:
             lad = [(len(m.faces), 0.0, ('full', 0))]
@@ -239,11 +248,17 @@ def decimate_parts(parts, budget, small=1500, floor=0.65, rel=0.01, cache=None, 
             mid = (lo + hi) / 2
             lo, hi = (lo, mid) if total(mid, rel) <= budget else (mid, hi)
         tol = hi
-    out, rep = {}, []
-    for key, m, lad, s in items:
+    out, rep, chains = {}, [], {}
+    for (key, m, lad, s), ln in zip(items, links):
         c = choose(lad, min(tol, rel * s))
-        out.setdefault(key, []).append(make(m, c[2]))
-        rep.append({'key': key, 'n0': len(m.faces), 'n': c[0], 'dev': c[1], 'size': s, 'how': c[2]})
+        d = make(m, c[2])
+        if ln is None:
+            out.setdefault(key, []).append(d)
+        else:
+            chains.setdefault((key, ln), []).append(d)
+        rep.append({'key': key, 'n0': len(m.faces), 'n': c[0], 'dev': c[1], 'size': s, 'how': c[2], 'link': ln})
+    for (key, ln), ms in chains.items():
+        out.setdefault(key, []).append(chain(ms))
     n1 = sum(r['n'] for r in rep)
     if verbose:
         print('lod: %d parts (%d new ladders, %.0f s), %d -> %d tri, budget %d, least possible %d, '
@@ -252,6 +267,29 @@ def decimate_parts(parts, budget, small=1500, floor=0.65, rel=0.01, cache=None, 
     if n1 > budget * 1.01:
         print('lod: WARNING over budget (%d > %d): raise `rel` or cap the dense parts' % (n1, budget))
     return out, {'parts': rep, 'tol': tol, 'n0': n0, 'n1': n1}
+
+
+def chain(meshes):
+    """one mesh, one island: every connected piece of every part (open CAD seams split a part into several)
+    is joined to the pieces before it by a zero-area triangle between the nearest vertex pair"""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+    m = trimesh.util.concatenate(meshes)
+    v, f = np.asarray(m.vertices, np.float64), np.asarray(m.faces)
+    e = np.r_[f[:, [0, 1]], f[:, [1, 2]]]
+    n, lab = connected_components(coo_matrix((np.ones(len(e)), (e[:, 0], e[:, 1])), shape=(len(v),) * 2), directed=False)
+    used = np.unique(f)
+    order = list(dict.fromkeys(lab[used]))            # pieces in part order
+    extra, done = [], np.nonzero(lab == order[0])[0]
+    for c in order[1:]:
+        idx = np.nonzero(lab == c)[0]
+        d, j = cKDTree(v[done]).query(v[idx])
+        k = int(np.argmin(d))
+        extra.append([done[j[k]], idx[k], idx[k]])
+        done = np.r_[done, idx]
+    if extra:
+        f = np.vstack([f, np.array(extra)])
+    return trimesh.Trimesh(v, f, process=False)
 
 
 def needles(mesh, min_angle_deg=1.0):
