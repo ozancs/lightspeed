@@ -1,0 +1,208 @@
+{
+ "groups": {
+  "bed": {
+   "tri": 14468,
+   "min": [
+    -64.4,
+    -8.2,
+    -82.0
+   ],
+   "max": [
+    394.4,
+    337.8,
+    -0.0
+   ],
+   "colours": [
+    "141518",
+    "383b40",
+    "404246",
+    "5c6066",
+    "765c2c",
+    "8c9096",
+    "c4161c"
+   ]
+  },
+  "frame": {
+   "tri": 100742,
+   "min": [
+    -112.4,
+    -62.4,
+    -531.8
+   ],
+   "max": [
+    442.4,
+    462.4,
+    118.6
+   ],
+   "colours": [
+    "141518",
+    "383b40",
+    "5c6066",
+    "8c9096",
+    "c4161c"
+   ]
+  },
+  "gantry_y": {
+   "tri": 16046,
+   "min": [
+    -77.0,
+    169.0,
+    44.6
+   ],
+   "max": [
+    407.0,
+    239.4,
+    75.1
+   ],
+   "colours": [
+    "141518",
+    "383b40",
+    "5c6066",
+    "8c9096",
+    "c4161c"
+   ]
+  },
+  "glass": {
+   "tri": 5902,
+   "min": [
+    -103.0,
+    -53.0,
+    -501.4
+   ],
+   "max": [
+    433.7,
+    453.0,
+    191.6
+   ],
+   "colours": [
+    "e1e8ee"
+   ]
+  },
+  "panels": {
+   "tri": 32899,
+   "min": [
+    -106.1,
+    -73.1,
+    -504.4
+   ],
+   "max": [
+    436.1,
+    521.0,
+    241.7
+   ],
+   "colours": [
+    "141518",
+    "383b40",
+    "c4161c"
+   ]
+  },
+  "toolhead": {
+   "tri": 39996,
+   "min": [
+    131.6,
+    153.4,
+    4.3
+   ],
+   "max": [
+    198.4,
+    257.4,
+    174.8
+   ],
+   "colours": [
+    "141518",
+    "5c6066",
+    "c4161c"
+   ]
+  }
+ },
+ "source": "VzBoT Vz-330 v1.2 (github.com/VzBoT3D/VzBoT-Vz330, CAD/Full Printer), CC BY-NC 4.0",
+ "units": "mm, Z up, front -Y; CAD shifted by [165.0, 145.0, 13.6] so the bed plate is x/y 0..330 and its top z 0",
+ "build_volume": [
+  330,
+  330,
+  397
+ ],
+ "kinematics": {
+  "bed": "z",
+  "gantry_y": "y",
+  "toolhead": "x"
+ },
+ "pose": "CAD pose: bed at the top (print z 0), carriage centred on X, beam at its CAD Y",
+ "extrusion": {
+  "outer_min": [
+   -100.0,
+   -50.0,
+   -501.4
+  ],
+  "outer_max": [
+   430.0,
+   450.0,
+   68.6
+  ],
+  "profile": 20,
+  "x0": -80.0,
+  "x1": 410.0,
+  "front": -30.0,
+  "rear": 430.0,
+  "bottom": -481.4,
+  "top": 48.6
+ },
+ "front_face": {
+  "y": -53.0,
+  "note": "outer face of the front door sheets; extrusion front face y -50.0"
+ },
+ "bed_top": {
+  "x0": 0.0,
+  "x1": 330.0,
+  "y0": -0.2,
+  "y1": 329.8,
+  "z": -0.0,
+  "z_travel": 397.2,
+  "z_travel_note": "free drop of the bed carriage before it meets the lower rod mounts (geometric limit, not a firmware value)"
+ },
+ "beam": {
+  "min": [
+   -55.0,
+   193.3,
+   48.6
+  ],
+  "max": [
+   385.0,
+   213.3,
+   68.6
+  ],
+  "rail_min": [
+   -35.0,
+   198.8,
+   68.6
+  ],
+  "rail_max": [
+   365.0,
+   207.8,
+   75.1
+  ]
+ },
+ "y_rails": {
+  "min": [
+   -80.0,
+   -10.0,
+   52.6
+  ],
+  "max": [
+   410.0,
+   405.0,
+   64.6
+  ]
+ },
+ "toolhead_mount": [
+  165.0,
+  203.3,
+  74.6
+ ],
+ "nozzle_tip": [
+  165.0,
+  180.9,
+  4.3
+ ],
+ "toolhead_lowest_z": 4.3
+}

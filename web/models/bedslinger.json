@@ -1,0 +1,197 @@
+{
+ "groups": {
+  "bed": {
+   "tri": 13052,
+   "min": [
+    0.0,
+    0.0,
+    -43.8
+   ],
+   "max": [
+    235.0,
+    235.0,
+    0.0
+   ],
+   "colours": [
+    "141518",
+    "383b40",
+    "765c2c",
+    "c4161c"
+   ]
+  },
+  "carriage": {
+   "tri": 4928,
+   "min": [
+    75.1,
+    123.5,
+    55.7
+   ],
+   "max": [
+    171.2,
+    150.9,
+    119.8
+   ],
+   "colours": [
+    "141518",
+    "383b40"
+   ]
+  },
+  "frame": {
+   "tri": 95795,
+   "min": [
+    -52.5,
+    -68.8,
+    -101.7
+   ],
+   "max": [
+    344.5,
+    341.2,
+    362.0
+   ],
+   "colours": [
+    "141518",
+    "2c2f34",
+    "383b40",
+    "8c9096",
+    "c4161c"
+   ]
+  },
+  "gantry_z": {
+   "tri": 32736,
+   "min": [
+    -95.4,
+    119.9,
+    40.1
+   ],
+   "max": [
+    324.5,
+    252.8,
+    152.7
+   ],
+   "colours": [
+    "141518",
+    "383b40",
+    "8c9096",
+    "967030",
+    "c4161c"
+   ]
+  },
+  "toolhead": {
+   "tri": 12061,
+   "min": [
+    83.1,
+    86.0,
+    53.4
+   ],
+   "max": [
+    149.0,
+    131.0,
+    109.8
+   ],
+   "colours": [
+    "141518",
+    "2c2f34",
+    "8c9096",
+    "967030"
+   ]
+  }
+ },
+ "source": "Creality3DPrinting/Ender-3 Ender-3 Mechanical/STP/01 MAIN ASM Ender_3.STEP (GPL-3.0)",
+ "units": "mm, Z up, front -Y (like voron24); bed top z = 0, bed plate from x 0 / y 0",
+ "build_volume": [
+  220,
+  220,
+  250
+ ],
+ "kinematics": {
+  "bed": "y",
+  "gantry_z": "z",
+  "carriage": "x",
+  "toolhead": "x"
+ },
+ "frame_box": [
+  [
+   -47.5,
+   -38.8,
+   -101.7
+  ],
+  [
+   282.5,
+   316.2,
+   358.3
+  ]
+ ],
+ "bed_top": {
+  "z": 0.0,
+  "rect": [
+   [
+    0.0,
+    0.0
+   ],
+   [
+    235.0,
+    235.0
+   ]
+  ],
+  "centre": [
+   117.5,
+   117.5
+  ],
+  "y_travel": 220,
+  "note": "bed as drawn; it moves along Y by +-110 round this centre"
+ },
+ "gantry": {
+  "bbox": [
+   [
+    -95.5,
+    120.4,
+    40.1
+   ],
+   [
+    324.4,
+    252.7,
+    152.7
+   ]
+  ],
+  "z_travel": 250,
+  "note": "gantry_z + carriage + toolhead rise with the nozzle; as drawn the nozzle is at z 53.4"
+ },
+ "carriage_bbox": [
+  [
+   75.1,
+   123.5,
+   55.7
+  ],
+  [
+   171.2,
+   150.9,
+   119.8
+  ]
+ ],
+ "x_travel": 220,
+ "toolhead": {
+  "bbox": [
+   [
+    83.1,
+    86.0,
+    53.4
+   ],
+   [
+    149.0,
+    131.0,
+    109.8
+   ]
+  ],
+  "nozzle_tip": [
+   125.3,
+   116.6,
+   53.4
+  ],
+  "mount": [
+   107.1,
+   123.5,
+   87.7
+  ],
+  "mount_note": "front face centre of the X carriage plate (E plate); a swapped toolhead hangs here"
+ }
+}

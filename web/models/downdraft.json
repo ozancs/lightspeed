@@ -1,0 +1,86 @@
+{
+ "groups": {
+  "toolhead": {
+   "tri": 65006,
+   "min": [
+    -34.0,
+    -0.0,
+    -72.4
+   ],
+   "max": [
+    34.0,
+    158.9,
+    42.6
+   ],
+   "colours": [
+    "141518",
+    "2c2f34",
+    "383b40",
+    "8c9096",
+    "967030",
+    "c4161c",
+    "d6d6d2"
+   ]
+  }
+ },
+ "source": "VoronDesign/voron-downdraft CAD/Downdraft_Toolheads.zip (GPL-3.0); hotend + X carriage from VoronDesign/Voron-Stealthburner Stealthburner_CW2.5_Assembly.step (GPL-3.0)",
+ "config": "dual 5015, low front mount, 2510 hotend fan, Revo Voron, collet bowden mount, umbilical PCB36 mount, x2 nozzle LEDs, Neopixel logo carrier",
+ "borrowed_parts": [
+  "Heatsink",
+  "PRODUCT_NAME",
+  "PTFE Tube Revo Voron 29.8",
+  "Part38",
+  "SW_Carriage_Left",
+  "SW_Carriage_Right",
+  "V7_wo_fanV7_Fitment_CAD_wo_fan_1.3",
+  "x_carriage_frame_left",
+  "x_carriage_frame_right"
+ ],
+ "units": "mm, Y up, front +Z (same frame as rx.glb); nozzle tip at origin",
+ "nozzle_tip": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "logo_led": [
+  [
+   -0.0,
+   63.9,
+   40.8
+  ]
+ ],
+ "logo_led_note": "front face of the logo LED diffuser (RGBW LED behind it)",
+ "nozzle_leds": [
+  [
+   -5.5,
+   18.3,
+   30.3
+  ],
+  [
+   5.5,
+   18.3,
+   30.3
+  ]
+ ],
+ "nozzle_leds_note": "front faces of the two Neopixel mini button boards in the x2 nozzle LED mount",
+ "mount": {
+  "kind": "Voron X carriage (MGN12 block), carriage from the Stealthburner CAD",
+  "rail_block_centre": [
+   -0.2,
+   51.0,
+   -33.9
+  ],
+  "rail_block_bbox": [
+   [
+    -22.9,
+    37.5,
+    -38.9
+   ],
+   [
+    22.5,
+    64.5,
+    -28.9
+   ]
+  ]
+ }
+}

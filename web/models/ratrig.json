@@ -1,0 +1,216 @@
+{
+ "groups": {
+  "bed": {
+   "tri": 8209,
+   "min": [
+    -84.0,
+    -26.7,
+    -54.2
+   ],
+   "max": [
+    413.0,
+    398.7,
+    0.0
+   ],
+   "colours": [
+    "141518",
+    "404246",
+    "5c6066",
+    "765c2c",
+    "c4161c"
+   ]
+  },
+  "frame": {
+   "tri": 94439,
+   "min": [
+    -89.5,
+    -62.0,
+    -457.6
+   ],
+   "max": [
+    418.5,
+    511.0,
+    306.4
+   ],
+   "colours": [
+    "141518",
+    "383b40",
+    "5c6066",
+    "8c9096",
+    "c4161c"
+   ]
+  },
+  "gantry_y": {
+   "tri": 20114,
+   "min": [
+    -84.0,
+    160.4,
+    9.4
+   ],
+   "max": [
+    413.0,
+    225.9,
+    65.4
+   ],
+   "colours": [
+    "141518",
+    "383b40",
+    "5c6066",
+    "8c9096",
+    "c4161c"
+   ]
+  },
+  "glass": {
+   "tri": 3364,
+   "min": [
+    -89.5,
+    -62.0,
+    -453.6
+   ],
+   "max": [
+    418.5,
+    511.0,
+    310.4
+   ],
+   "colours": [
+    "e1e8ee"
+   ]
+  },
+  "panels": {
+   "tri": 13920,
+   "min": [
+    -84.5,
+    -98.5,
+    -452.6
+   ],
+   "max": [
+    413.5,
+    434.0,
+    346.9
+   ],
+   "colours": [
+    "141518",
+    "c4161c"
+   ]
+  },
+  "toolhead": {
+   "tri": 39998,
+   "min": [
+    130.3,
+    134.8,
+    -0.0
+   ],
+   "max": [
+    197.8,
+    279.5,
+    124.6
+   ],
+   "colours": [
+    "141518",
+    "5c6066",
+    "c4161c"
+   ]
+  }
+ },
+ "source": "Rat Rig V-Core 3.1 300 Enclosure 2.0, official Fusion share exported to STEP; Rat Rig V-Core 3 files are CC BY-NC-SA 4.0 (github.com/Rat-Rig/V-core-3)",
+ "units": "mm, Z up, front -Y; CAD shifted by [164.5, 224.5, -453.6] so the bed plate front-left corner is x/y 0 and the PEI top z 0",
+ "build_volume": [
+  300,
+  300,
+  300
+ ],
+ "kinematics": {
+  "bed": "z",
+  "gantry_y": "y",
+  "toolhead": "x"
+ },
+ "pose": "CAD pose: bed at the top (nozzle touching the PEI), carriage centred on X",
+ "extrusion": {
+  "outer_min": [
+   -85.5,
+   -58.0,
+   -453.6
+  ],
+  "outer_max": [
+   414.5,
+   507.0,
+   306.4
+  ],
+  "profile": 30.0,
+  "x0": -55.5,
+  "x1": 384.5,
+  "front": -28.0,
+  "rear": 477.0,
+  "bottom": -423.6,
+  "top": 276.4,
+  "note": "outer 3030 cube incl. the Enclosure 2.0 top extension; inner rear sub-frame and the 3030 ring carrying the Y rails (outer z 26.4..56.4) are inside it"
+ },
+ "front_face": {
+  "y": -62.0,
+  "note": "outer face of the front door sheet; extrusion front face y -58.0"
+ },
+ "bed_top": {
+  "x0": 9.5,
+  "x1": 319.5,
+  "y0": -0.5,
+  "y1": 319.5,
+  "z": 0.0,
+  "plate_min": [
+   0.0,
+   0.0,
+   -7.5
+  ],
+  "plate_max": [
+   329.0,
+   329.0,
+   -1.5
+  ],
+  "z_travel": 345.8,
+  "z_travel_note": "geometric: bed-arm carriages down to the bottom of the Z rails; Rat Rig rates the 300 at 300 mm Z"
+ },
+ "beam": {
+  "min": [
+   -46.5,
+   183.3,
+   31.0
+  ],
+  "max": [
+   375.5,
+   203.3,
+   51.0
+  ],
+  "rail_min": [
+   -35.5,
+   187.3,
+   51.0
+  ],
+  "rail_max": [
+   364.5,
+   199.3,
+   59.0
+  ]
+ },
+ "y_rails": {
+  "min": [
+   -76.5,
+   15.0,
+   18.4
+  ],
+  "max": [
+   405.5,
+   365.0,
+   26.4
+  ]
+ },
+ "toolhead_mount": [
+  164.5,
+  193.3,
+  59.0
+ ],
+ "nozzle_tip": [
+  164.5,
+  163.2,
+  -0.0
+ ],
+ "toolhead_lowest_z": -0.0
+}

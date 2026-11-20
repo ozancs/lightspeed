@@ -1,0 +1,67 @@
+{
+ "groups": {
+  "toolhead": {
+   "tri": 40673,
+   "min": [
+    -27.5,
+    0.0,
+    -16.1
+   ],
+   "max": [
+    27.5,
+    78.7,
+    23.9
+   ],
+   "colours": [
+    "141518",
+    "383b40",
+    "8c9096",
+    "967030",
+    "d6d6d2"
+   ]
+  }
+ },
+ "source": "chirpy2605/voron V0/Dragon_Burner/CAD/Dragon_Burner_v0.2_v8.step (GPL-3.0); Revo Voron hotend from VoronDesign/Voron-Stealthburner Stealthburner_CW2.5_Assembly.step (GPL-3.0)",
+ "config": "V0.2 Dragon Burner: MainBody cowl, Standard ducts, RevoVoron mount, bowden mount, NeoPixel nozzle LED mount, Neopixel logo carrier + Voron diffuser",
+ "missing_in_cad": [
+  "part-cooling fans (2x 4010 blower)",
+  "hotend fan",
+  "X carriage (V0 MGN9)"
+ ],
+ "borrowed_parts": [
+  "Heatsink",
+  "PTFE Tube Revo Voron 29.8",
+  "V7_wo_fanV7_Fitment_CAD_wo_fan_1.3"
+ ],
+ "nozzle_tip_derived": true,
+ "units": "mm, Y up, front +Z (same frame as rx.glb); nozzle tip at origin",
+ "nozzle_tip": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "logo_led": [
+  [
+   -0.1,
+   61.2,
+   24.4
+  ]
+ ],
+ "logo_led_note": "front face of the logo diffuser (one WS2812B behind it)",
+ "nozzle_leds": [
+  [
+   -0.0,
+   18.4,
+   23.4
+  ]
+ ],
+ "nozzle_leds_note": "front face centre of the NeoPixel nozzle LED mount (LED count not in the CAD)",
+ "mount": {
+  "kind": "Voron V0 X carriage (not in the CAD); rear face of the cowl",
+  "rear_face_centre": [
+   -0.0,
+   39.4,
+   -16.1
+  ]
+ }
+}

@@ -1,0 +1,74 @@
+{
+ "groups": {
+  "toolhead": {
+   "tri": 65604,
+   "min": [
+    -35.5,
+    0.0,
+    -72.4
+   ],
+   "max": [
+    35.5,
+    158.3,
+    39.8
+   ],
+   "colours": [
+    "141518",
+    "2c2f34",
+    "383b40",
+    "8c9096",
+    "967030",
+    "c4161c",
+    "d6d6d2"
+   ]
+  }
+ },
+ "source": "VoronDesign/Voron-Stealthburner CAD/Stealthburner_CW2.5_Assembly.step (GPL-3.0)",
+ "units": "mm, Y up, front +Z (same frame as rx.glb); nozzle tip at origin",
+ "nozzle_tip": [
+  0.0,
+  0.0,
+  0.0
+ ],
+ "logo_led": [
+  [
+   0.0,
+   71.9,
+   38.3
+  ]
+ ],
+ "logo_led_note": "front face of the LED diffuser (one RGBW LED behind it)",
+ "nozzle_leds": [
+  [
+   -14.1,
+   8.1,
+   32.0
+  ],
+  [
+   14.1,
+   8.1,
+   32.0
+  ]
+ ],
+ "nozzle_leds_note": "front faces of the two RGBW LED PCBs either side of the nozzle",
+ "mount": {
+  "kind": "Voron X carriage (MGN12 block)",
+  "rail_block_centre": [
+   -0.2,
+   51.0,
+   -33.9
+  ],
+  "rail_block_bbox": [
+   [
+    -22.9,
+    37.5,
+    -38.9
+   ],
+   [
+    22.5,
+    64.5,
+    -28.9
+   ]
+  ]
+ }
+}
