@@ -53,6 +53,10 @@ WLED_TIMEOUT = 2          # s WLED waits before returning to its own effect
 WLED_MAX_PER_PACKET = 489
 
 NAME_RE = re.compile(r'^[a-z0-9_]+$')
+# Words scene sections use themselves: no strip / group / scene may be named so
+RESERVED = ('all', 'trigger', 'priority', 'hold')
+MOTION_OFF_DELAY = 0.3    # s extruding / retracting stays on after the last
+                          # sample (motion_report refreshes ~4x a second)
 
 # esp_bridge LED nodes animate these effects themselves
 # The esp_bridge LED node renders only these: solid, pulse, bar, chase,
@@ -355,22 +359,16 @@ class EspBridgeOutput(Output):
             rgb = '%d,%d,%d' % tuple(engine.to_byte(x) for x in c)
         elif name == 'fire':
             rgb = '255,70,0'
+        elif name in ('heat', 'progress'):
+            # value driven (progress, heat or any <object>.<field>): the
+            # colour it stands for right now
+            c = engine.value_color(name, params, self.light.ctx)
+            rgb = '%d,%d,%d' % tuple(engine.to_byte(x) for x in c)
         else:
             c = engine.parse_color(params.get('color', 'ffffff'))
-            if name == 'heat':
-                c = engine.mix(engine.parse_color(params['color2']), c,
-                               _clamp01(self.light.ctx['heat']))
-            elif name == 'progress' and params.get('gradient'):
-                v = self.light.ctx['heat' if params.get('source') == 'heat'
-                                    else 'progress']
-                c = engine.mix(c, engine.parse_color(params['color2']),
-                               _clamp01(v))
             rgb = '%d,%d,%d' % tuple(engine.to_byte(x) for x in c)
-        if name == 'progress':
-            p = self.light.ctx['heat' if params.get('source') == 'heat'
-                                else 'progress']
-        elif name == 'heat':
-            p = self.light.ctx['heat']
+        if name in ('progress', 'heat'):
+            p = engine.source_value(params, self.light.ctx)
         else:
             p = 1.0
         b = int(round(_clamp01(self.light.brightness * strip.brightness)
@@ -527,6 +525,10 @@ class Strip(object):
         self.wled_sent = 0.0
         self.last_frame = None
         self.output = None
+        # crossfade when the scene this strip shows changes
+        self.plan_key = None
+        self.fade_from = None
+        self.fade_since = -1e9
 
     def _parse_leds(self, config, spec):
         out = []
@@ -550,6 +552,60 @@ class Strip(object):
         return out
 
 
+class CustomScene(object):
+    """[lightspeed scene <name>] that is not a printer state: shown while
+    its trigger is on (or forced on by LIGHTSPEED_SCENE_ON /
+    SET_LED_EFFECT), on the strips it names, when no higher-priority
+    active scene names them."""
+
+    def __init__(self, name, trigger, priority, hold, items):
+        self.name = name
+        self.kind, self.arg = engine.parse_trigger(trigger)
+        self.trigger = engine.format_trigger(self.kind, self.arg)
+        self.priority = priority
+        self.hold = hold              # None = not set
+        self.items = items
+        self.forced = False           # LIGHTSPEED_SCENE_ON / SET_LED_EFFECT
+        self.forced_until = None      # None = until switched off
+        self.depth = 0                # macro running (nesting)
+        self.last_true = None         # trigger last seen on
+        self.event_at = None          # print_cancelled: when it happened
+        self.prev_level = None        # None: not sampled yet (no event at start)
+        self.active = False
+        self.since = 0.0
+        self.ref = None               # resolved (object, [fields]) or False
+
+    def linger(self):
+        h = self.hold or 0.0
+        if self.kind in ('extruding', 'retracting'):
+            h += MOTION_OFF_DELAY
+        return h
+
+    def update(self, now, level):
+        """level: the trigger right now (True/False). Sets self.active."""
+        if self.kind == 'print_cancelled':
+            # an event: the state stays 'cancelled' until the next print
+            if level and self.prev_level is False:
+                self.event_at = now
+            hold = engine.CANCEL_HOLD if self.hold is None else self.hold
+            on = bool(level and self.event_at is not None
+                      and now - self.event_at < hold)
+        else:
+            if level:
+                self.last_true = now
+            on = bool(level) or (self.last_true is not None
+                                 and now - self.last_true < self.linger())
+        self.prev_level = bool(level)
+        if self.forced and self.forced_until is not None \
+                and now >= self.forced_until:
+            self.forced = False
+        on = on or self.forced
+        if on and not self.active:
+            self.since = now
+        self.active = on
+        return on
+
+
 ######################################################################
 # Main object
 ######################################################################
@@ -570,18 +626,27 @@ class Lightspeed(object):
                                if c.strip()]
         self.strips = []
         self.scenes = {}          # state -> {strip name | 'all': spec}
+        self.scene_priority = {}  # state -> priority: from its section
+        self.custom = {}          # name -> CustomScene (config order)
+        self.groups = []          # [(name, [strip names])]
+        self.compat = []          # SET_LED_EFFECT / STOP_LED_EFFECTS if ours
+        self.ranges = {}          # value source -> (lo, hi) from max_temp
+        self._src_ref = {}        # value source -> (object, fields) | False
+        self._stc = {}            # status objects read in this tick
+        self._gframes = {}        # group frames rendered in this tick
+        self.state_since = 0.0
+        self.pstate = 'standby'
         self.outputs = []
         self.enabled = True
         self.shutdown = False
         self.state = 'idle'
         self.auto_state = 'idle'
         self.override = None      # (state, until)
-        self.preview = {}         # strip -> (spec, until)
+        self.preview = {}         # strip | group -> (spec, until)
         self.current_specs = {}   # strip -> (name, params)
-        self.scene_since = 0.0
-        self.prev_scene_frames = {}
+        self.plan = {}            # strip name -> (scene, key, spec, off, n)
         self.ctx = {'t': 0.0, 'progress': 0.0, 'heat': 0.0,
-                    'pos': (0.0, 0.0, 0.0)}
+                    'pos': (0.0, 0.0, 0.0), 'vars': {}, 'ranges': {}}
         self.timer = None
         self.tick_errors = 0
         self.late_strikes = []
@@ -640,10 +705,19 @@ class Lightspeed(object):
         g.register_command('LIGHTSPEED_ENABLE', self.cmd_ENABLE,
                            desc="LIGHTSPEED_ENABLE VALUE=<0|1> - stop or "
                                 "start all Lightspeed output")
+        g.register_command('LIGHTSPEED_SCENE_ON', self.cmd_SCENE_ON,
+                           desc="LIGHTSPEED_SCENE_ON NAME=<scene> [HOLD=s] - "
+                                "switch a custom scene on")
+        g.register_command('LIGHTSPEED_SCENE_OFF', self.cmd_SCENE_OFF,
+                           desc="LIGHTSPEED_SCENE_OFF NAME=<scene|all> - "
+                                "switch a custom scene off")
 
     # ------------------------------------------------------------ config
 
     def add_strip(self, strip):
+        if strip.name in RESERVED:
+            raise self.printer.config_error(
+                "lightspeed: a strip may not be called '%s'" % (strip.name,))
         if any(s.name == strip.name for s in self.strips):
             raise self.printer.config_error("lightspeed: strip '%s' defined "
                                             "twice" % (strip.name,))
@@ -651,28 +725,84 @@ class Lightspeed(object):
 
     def add_scene(self, config):
         state = config.get_name().split()[-1].lower()
-        if state not in engine.STATES:
-            raise config.error("lightspeed: unknown state '%s' (one of %s)"
-                               % (state, ', '.join(engine.STATES)))
+        builtin = state in engine.STATES
+        if not builtin and (not NAME_RE.match(state) or state in RESERVED):
+            raise config.error(
+                "lightspeed: scene name '%s' may only use a-z, 0-9 and _ "
+                "(printer states: %s)" % (state, ', '.join(engine.STATES)))
+        opts = [o.lower() for o in config.get_prefix_options('')]
+        if builtin and ('trigger' in opts or 'hold' in opts):
+            raise config.error(
+                "lightspeed scene %s: trigger / hold are for custom scenes "
+                "only; a printer state has its own trigger" % (state,))
+        if 'priority' in opts:
+            pri = config.getint('priority', engine.DEFAULT_PRIORITY)
+        else:
+            pri = None
         items = {}
-        for opt in config.get_prefix_options(''):
+        for opt in opts:
+            if opt in ('trigger', 'priority', 'hold'):
+                continue
             raw = config.get(opt)
             try:
-                items[opt.lower()] = engine.parse_spec(raw)
+                items[opt] = engine.parse_spec(raw)
             except engine.SpecError as e:
                 raise config.error("lightspeed scene %s, %s: %s"
                                    % (state, opt, e))
-        self.scenes[state] = items
+        if builtin:
+            self.scenes[state] = items
+            if pri is not None:
+                self.scene_priority[state] = pri
+            return
+        trigger = config.get('trigger', 'command')
+        hold = config.getfloat('hold', None, minval=0.) \
+            if 'hold' in opts else None
+        try:
+            sc = CustomScene(state, trigger, engine.DEFAULT_PRIORITY
+                             if pri is None else pri, hold, items)
+            if pri is None and sc.kind == 'command':
+                sc.priority = engine.COMMAND_PRIORITY
+            self.custom[state] = sc
+        except engine.SpecError as e:
+            raise config.error("lightspeed scene %s, trigger: %s"
+                               % (state, e))
+
+    def add_group(self, config):
+        name = config.get_name().split()[-1].lower()
+        if not NAME_RE.match(name) or name in RESERVED:
+            raise config.error("lightspeed: group name '%s' may only use "
+                               "a-z, 0-9 and _" % (name,))
+        if any(g[0] == name for g in self.groups):
+            raise config.error("lightspeed: group '%s' defined twice"
+                               % (name,))
+        members = [m.strip().lower() for m in config.getlist('strips')
+                   if m.strip()]
+        if not members or len(set(members)) != len(members):
+            raise config.error("lightspeed group %s: strips must list "
+                               "strips, each once" % (name,))
+        self.groups.append((name, members))
 
     def _connect(self):
         names = set(s.name for s in self.strips)
-        for state, items in self.scenes.items():
-            for key in items:
-                if key != 'all' and key not in names:
+        gnames = set(g[0] for g in self.groups)
+        for g, members in self.groups:
+            if g in names:
+                raise self.printer.config_error(
+                    "lightspeed group %s: a strip has that name too" % (g,))
+            for m in members:
+                if m not in names:
                     raise self.printer.config_error(
-                        "lightspeed scene %s: no strip named '%s' (strips: "
-                        "%s)" % (state, key, ', '.join(sorted(names)) or
-                                 'none'))
+                        "lightspeed group %s: no strip named '%s'" % (g, m))
+        every = list(self.scenes.items()) + [
+            (c.name, c.items) for c in self.custom.values()]
+        for state, items in every:
+            for key in items:
+                if key != 'all' and key not in names and key not in gnames:
+                    raise self.printer.config_error(
+                        "lightspeed scene %s: no strip or group named '%s' "
+                        "(strips: %s)" % (state, key, ', '.join(sorted(names))
+                                          or 'none'))
+        # only the printer-state scenes decide whether the defaults apply
         if not self.scenes:
             self.scenes = dict(
                 (st, {'all': engine.parse_spec(spec)})
@@ -712,10 +842,57 @@ class Lightspeed(object):
                 names = []
             self.heaters = [n for n in names
                             if n == 'heater_bed' or n.startswith('extruder')]
+        self._register_compat()
+        for sc in self.custom.values():
+            if sc.kind == 'condition':
+                ref = self._resolve_ref(sc.arg[0])
+                if ref is False:
+                    self.notify("Lightspeed: scene '%s': no printer object "
+                                "for '%s'; its trigger stays off"
+                                % (sc.name, sc.arg[0]))
+
+    # ------------------------------------------------- led_effect compat
+
+    def _led_effect_loaded(self):
+        p = self.printer
+        lo = getattr(p, 'lookup_objects', None)
+        if lo is not None:
+            try:
+                if lo('led_effect'):
+                    return True
+            except Exception:
+                pass
+        for name in ('led_effect', 'ledFrameHandler'):
+            if p.lookup_object(name, None) is not None:
+                return True
+        objs = getattr(p, 'objects', None)
+        if isinstance(objs, dict):
+            return any(k == 'led_effect' or k.startswith('led_effect ')
+                       for k in objs)
+        return False
+
+    def _register_compat(self):
+        """Without a led_effect module, its two commands switch Lightspeed
+        scenes, so existing macros keep working unchanged."""
+        if self.compat or self._led_effect_loaded():
+            return
+        for name, fn, desc in (
+                ('SET_LED_EFFECT', self.cmd_SET_LED_EFFECT,
+                 "SET_LED_EFFECT EFFECT=<scene> [STOP=1] - Lightspeed: "
+                 "switch a custom scene on (led_effect compatible)"),
+                ('STOP_LED_EFFECTS', self.cmd_STOP_LED_EFFECTS,
+                 "STOP_LED_EFFECTS [EFFECT=<scene>] - Lightspeed: switch "
+                 "custom scenes off")):
+            try:
+                self.gcode.register_command(name, fn, desc=desc)
+                self.compat.append(name)
+            except Exception:
+                logging.info("lightspeed: %s is taken, not registered", name)
 
     def _ready(self):
         self.shutdown = False
         self._wrap_guarded_commands()
+        self._wrap_scene_macros()
         if self.timer is None:
             self.timer = self.reactor.register_timer(self._tick,
                                                      self.reactor.NOW)
@@ -754,6 +931,66 @@ class Lightspeed(object):
                         g.register_command(name, old, desc=desc)
                     except Exception:
                         logging.exception("lightspeed: restoring %s", name)
+
+    def _wrap_scene_macros(self):
+        """'trigger: macro NAME': the scene is on while NAME runs. Wrapped
+        once (its own set, so a guarded command can be a trigger too); the
+        command always runs and always ends the scene, even if it fails."""
+        g = self.gcode
+        if getattr(g, '_lightspeed_scene_wrapped', None) is None:
+            g._lightspeed_scene_wrapped = set()
+        by_macro = {}
+        for sc in self.custom.values():
+            if sc.kind == 'macro':
+                by_macro.setdefault(sc.arg, []).append(sc)
+        for name, scs in by_macro.items():
+            if name in g._lightspeed_scene_wrapped:
+                continue
+            old = None
+            desc = None
+            try:
+                old = g.register_command(name, None)
+                if old is None:
+                    self.notify("Lightspeed: scene '%s': no G-code command "
+                                "'%s'; its trigger stays off"
+                                % (scs[0].name, name))
+                    continue
+                desc = getattr(g, 'gcode_help', {}).get(name)
+
+                def wrapper(gcmd, old=old, scs=scs):
+                    self._macro_begin(scs)
+                    try:
+                        old(gcmd)
+                    finally:
+                        self._macro_end(scs)
+                g.register_command(name, wrapper, desc=desc)
+                g._lightspeed_scene_wrapped.add(name)
+            except Exception:
+                logging.exception("lightspeed: could not watch %s", name)
+                if old is not None:
+                    try:
+                        g.register_command(name, None)
+                        g.register_command(name, old, desc=desc)
+                    except Exception:
+                        logging.exception("lightspeed: restoring %s", name)
+
+    def _macro_begin(self, scs):
+        try:
+            for sc in scs:
+                sc.depth += 1
+            self._kick()
+        except Exception:
+            logging.exception("lightspeed: macro scene begin")
+
+    def _macro_end(self, scs):
+        try:
+            now = self.reactor.monotonic()
+            for sc in scs:
+                sc.depth = max(0, sc.depth - 1)
+                sc.last_true = now
+            self._kick()
+        except Exception:
+            logging.exception("lightspeed: macro scene end")
 
     def _shut(self):
         self.shutdown = True
@@ -819,13 +1056,81 @@ class Lightspeed(object):
     # ------------------------------------------------------------ state
 
     def _status(self, name, eventtime):
+        st = self._status_or_none(name, eventtime)
+        return {} if st is None else st
+
+    def _status_or_none(self, name, eventtime):
+        """An object's status, read once per tick; None if no object."""
+        if name in self._stc:
+            return self._stc[name]
         obj = self.printer.lookup_object(name, None)
-        if obj is None:
-            return {}
-        try:
-            return obj.get_status(eventtime)
-        except Exception:
-            return {}
+        st = None
+        if obj is not None:
+            try:
+                st = obj.get_status(eventtime)
+                if not isinstance(st, dict):
+                    st = {}
+            except Exception:
+                st = {}
+        self._stc[name] = st
+        return st
+
+    def _resolve_ref(self, ref):
+        """'temperature_sensor chamber.temperature' -> (object, [fields]);
+        the longest prefix that is an object wins (nested fields allowed).
+        False when no object matches."""
+        if ref in self._src_ref:
+            return self._src_ref[ref]
+        if ref == 'print_stats.progress':
+            res = ('display_status', ['progress'])
+        else:
+            parts = ref.split('.')
+            res = False
+            for i in range(len(parts), 0, -1):
+                name = '.'.join(parts[:i])
+                if self.printer.lookup_object(name, None) is not None:
+                    res = (name, parts[i:])
+                    break
+        self._src_ref[ref] = res
+        if res and res[1] and res[1][-1] in ('temperature', 'target'):
+            top = self._max_temp(res[0])
+            if top is not None and top > 20.:
+                self.ranges[ref] = (20.0, float(top))
+        return res
+
+    def _max_temp(self, name):
+        obj = self.printer.lookup_object(name, None)
+        for get in (lambda o: o.max_temp, lambda o: o.heater.max_temp,
+                    lambda o: o.get_heater().max_temp):
+            try:
+                v = get(obj)
+                if isinstance(v, (int, float)):
+                    return v
+            except Exception:
+                pass
+        return None
+
+    def _read(self, ref, eventtime):
+        """Number behind '<object>[.<field>...]', or None."""
+        res = self._resolve_ref(ref)
+        if not res:
+            return None
+        v = self._status_or_none(res[0], eventtime)
+        if v is None:
+            return None
+        fields = res[1]
+        if not fields:
+            fields = [f for f in ('temperature', 'speed', 'value', 'progress')
+                      if f in v][:1]
+        for f in fields:
+            if isinstance(v, dict):
+                v = v.get(f)
+            elif isinstance(v, (list, tuple)) and f.isdigit() \
+                    and int(f) < len(v):
+                v = v[int(f)]
+            else:
+                return None
+        return engine._num(v)
 
     def _heat(self, eventtime):
         """(heating?, 0..1 progress towards target)"""
@@ -855,6 +1160,7 @@ class Lightspeed(object):
         klippy = self._status('webhooks', eventtime).get('state', 'ready')
         ps = self._status('print_stats', eventtime)
         pstate = ps.get('state', 'standby')
+        self.pstate = pstate
         if pstate == 'complete' and self.last_print_state != 'complete':
             self.complete_since = eventtime
         elif pstate != 'complete':
@@ -891,16 +1197,87 @@ class Lightspeed(object):
             return 'complete'
         return 'idle'
 
-    def _spec_for(self, strip, state, eventtime):
-        pv = self.preview.get(strip.name) or self.preview.get('all')
-        if pv is not None and eventtime < pv[1]:
-            return pv[0]
+    def _trigger_level(self, sc, eventtime):
+        k = sc.kind
+        if k == 'command':
+            return False
+        if k == 'macro':
+            return sc.depth > 0
+        if k == 'print_cancelled':
+            return self.pstate == 'cancelled'
+        if k in ('extruding', 'retracting'):
+            v = self._read('motion_report.live_extruder_velocity', eventtime)
+            if v is None:
+                return False
+            return v > engine.MOTION_SPEED if k == 'extruding' \
+                else v < -engine.MOTION_SPEED
+        ref, op, num = sc.arg
+        v = self._read(ref, eventtime)
+        if v is None:
+            if self._resolve_ref(ref):
+                self.notify("Lightspeed: scene '%s': '%s' is not a number on "
+                            "this printer; its trigger stays off"
+                            % (sc.name, ref))
+            return False
+        return engine.compare(v, op, num)
+
+    def _update_triggers(self, eventtime):
+        for sc in self.custom.values():
+            try:
+                level = self._trigger_level(sc, eventtime)
+            except Exception:
+                logging.exception("lightspeed: trigger of scene %s",
+                                  sc.name)
+                level = False
+            sc.update(eventtime, level)
+
+    def _make_plan(self, state, eventtime, overridden):
         scene = engine.resolve_scene(state, self.scenes)
-        if scene is None:
-            return ('off', {'reverse': 0})
-        items = self.scenes[scene]
-        return items.get(strip.name) or items.get('all') or \
-            ('off', {'reverse': 0})
+        items = self.scenes.get(scene, {}) if scene else {}
+        pri = self.scene_priority.get(state,
+                                      engine.BUILTIN_PRIORITY.get(state, 0))
+        cands = [(state, pri, self.state_since, items)]
+        if not overridden:   # a state test (LIGHTSPEED_STATE) shows only it
+            for sc in self.custom.values():
+                if sc.active:
+                    cands.append((sc.name, sc.priority, sc.since, sc.items))
+        strips = [(s.name, s.count) for s in self.strips]
+        plan = engine.plan_strips(strips, self.groups, cands)
+        # previews on top (a strip, a group or all), as before
+        pv = dict((k, v[0]) for k, v in self.preview.items()
+                  if eventtime < v[1])
+        if pv:
+            top = engine.plan_strips(strips, self.groups,
+                                     [('__preview__', 0, 0., pv)])
+            for name, hit in top.items():
+                if hit[0] is not None:
+                    plan[name] = hit
+        return plan
+
+    def _frame(self, strip, hit):
+        scene, key, spec, off, total = hit
+        if spec is None:
+            spec = ('off', {'reverse': 0})
+        if off == 0 and total == strip.count:
+            return engine.render(spec[0], spec[1], strip.count, self.ctx)
+        gk = (scene, key)
+        whole = self._gframes.get(gk)
+        if whole is None:
+            whole = engine.render(spec[0], spec[1], total, self.ctx)
+            self._gframes[gk] = whole
+        return whole[off:off + strip.count]
+
+    def _gather_vars(self, eventtime):
+        vs = {}
+        for hit in self.plan.values():
+            spec = hit[2]
+            if spec is None or spec[0] not in ('progress', 'heat'):
+                continue
+            src = spec[1].get('source', 'progress')
+            if src not in ('progress', 'heat') and src not in vs:
+                vs[src] = self._read(src, eventtime)
+        self.ctx['vars'] = vs
+        self.ctx['ranges'] = self.ranges
 
     # ------------------------------------------------------------ tick
 
@@ -940,13 +1317,18 @@ class Lightspeed(object):
             self._expected = None
             return eventtime + 0.5
 
+        self._stc = {}
+        self._gframes = {}
         guard, guard_state = self._guard(eventtime)
         auto = self._decide(eventtime, guard_state)
         self.auto_state = auto
         state = auto
+        self._update_triggers(eventtime)
+        overridden = False
         if self.override is not None:
             if eventtime < self.override[1]:
                 state = self.override[0]
+                overridden = True
                 if len(self.override) > 3 and self.override[3] > 0.:
                     f = (eventtime - self.override[2]) / self.override[3]
                     if state == 'heating':
@@ -960,11 +1342,19 @@ class Lightspeed(object):
         for k in [k for k, v in self.preview.items() if eventtime >= v[1]]:
             del self.preview[k]
         if state != self.state:
-            self.prev_scene_frames = dict(
-                (s, s.last_frame) for s in self.strips)
-            self.scene_since = eventtime
+            self.state_since = eventtime
             self.state = state
-        fade = _clamp01((eventtime - self.scene_since) / CROSSFADE)
+        self.plan = self._make_plan(state, eventtime, overridden)
+        for strip in self.strips:
+            hit = self.plan.get(strip.name)
+            if hit is None or hit[0] == '__preview__':
+                continue      # a preview never starts a crossfade (as before)
+            key = (hit[0], hit[1])
+            if key != strip.plan_key:
+                strip.fade_from = strip.last_frame
+                strip.fade_since = eventtime
+                strip.plan_key = key
+        self._gather_vars(eventtime)
         self.ctx['t'] = eventtime
 
         soonest = eventtime + 0.5
@@ -978,14 +1368,16 @@ class Lightspeed(object):
                 continue
             frames = {}
             for strip in out.strips:
-                spec = self._spec_for(strip, state, eventtime)
+                hit = self.plan.get(strip.name) or (None, None, None, 0,
+                                                    strip.count)
+                spec = hit[2] or ('off', {'reverse': 0})
                 self.current_specs[strip] = spec
                 if out.kind == 'esp_bridge':
                     continue
-                frame = engine.render(spec[0], spec[1], strip.count, self.ctx)
+                frame = self._frame(strip, hit)
+                fade = _clamp01((eventtime - strip.fade_since) / CROSSFADE)
                 if fade < 1.0 and not (guard and out.uses_mcu):
-                    frame = engine.crossfade(
-                        self.prev_scene_frames.get(strip), frame, fade)
+                    frame = engine.crossfade(strip.fade_from, frame, fade)
                 strip.last_frame = frame
                 frames[strip] = frame
             try:
@@ -1045,12 +1437,23 @@ class Lightspeed(object):
                                        (None, 0.))[1] - eventtime)),
             }
         guard, _ = self._guard(eventtime)
+        active = sorted((c for c in self.custom.values() if c.active),
+                        key=lambda c: (-c.priority, -c.since))
         return {
             'version': __version__, 'enabled': self.enabled,
             'state': self.state, 'auto_state': self.auto_state,
             'override': self.override is not None, 'guard': guard,
             'brightness': self.brightness, 'model': self.model,
             'size': self.size, 'mcu_rate': self.mcu_slow, 'strips': strips,
+            'scenes_active': [c.name for c in active],
+            'custom_scenes': [
+                {'name': c.name, 'trigger': c.trigger,
+                 'priority': c.priority, 'hold': c.hold,
+                 'active': c.active, 'forced': c.forced}
+                for c in self.custom.values()],
+            'groups': dict((g, list(m)) for g, m in self.groups),
+            'ranges': dict((k, list(v)) for k, v in self.ranges.items()),
+            'compat': list(self.compat),
         }
 
     # ------------------------------------------------------------ gcode
@@ -1085,7 +1488,49 @@ class Lightspeed(object):
         for s in self.strips:
             if s.name == name:
                 return s
+        if allow_all and any(g[0] == name for g in self.groups):
+            return None
         raise self.ActionError("no strip '%s'" % (name,))
+
+    def _scene_items(self, state):
+        """The editable items of a printer-state or custom scene."""
+        if state in self.custom:
+            return self.custom[state].items
+        if state not in engine.STATES:
+            raise self.ActionError(
+                "unknown scene '%s' (a state: %s, or a custom scene: %s)"
+                % (state, ', '.join(engine.STATES),
+                   ', '.join(self.custom) or 'none'))
+        return self.scenes.setdefault(state, {})
+
+    def _do_scene_on(self, name, hold):
+        if name in engine.STATES:
+            raise self.ActionError("'%s' is a printer state: use "
+                                   "LIGHTSPEED_STATE" % (name,))
+        sc = self.custom.get(name)
+        if sc is None:
+            raise self.ActionError("no custom scene '%s' (scenes: %s)"
+                                   % (name, ', '.join(self.custom) or 'none'))
+        now = self.reactor.monotonic()
+        if (hold is None or hold <= 0.) and sc.kind == 'command' and sc.hold:
+            hold = sc.hold      # a command scene with hold: is an event
+        sc.forced = True
+        sc.forced_until = now + min(hold, 86400.) if hold and hold > 0. \
+            else None
+        sc.since = now          # switched on again: newest of equals
+        sc.active = True
+        self._kick()
+        return sc
+
+    def _do_scene_off(self, name):
+        if name == 'all':
+            for sc in self.custom.values():
+                sc.forced = False
+        elif name in self.custom:
+            self.custom[name].forced = False
+        else:
+            raise self.ActionError("no custom scene '%s'" % (name,))
+        self._kick()
 
     def _do_state(self, state, hold):
         if state == 'auto' or hold <= 0.:
@@ -1116,14 +1561,11 @@ class Lightspeed(object):
         self._kick()
 
     def _do_scene(self, state, name, text):
-        if state not in engine.STATES:
-            raise self.ActionError("unknown state '%s' (one of %s)"
-                                   % (state, ', '.join(engine.STATES)))
+        items = self._scene_items(state)
         self._strip_named(name)
-        items = self.scenes.setdefault(state, {})
         if not text:
             items.pop(name, None)
-            if not items:
+            if not items and state in self.scenes:
                 del self.scenes[state]
         else:
             try:
@@ -1161,6 +1603,11 @@ class Lightspeed(object):
                                web_request.get_float('brightness'))
             elif action == 'brightness':
                 self._do_brightness(web_request.get_float('value'))
+            elif action == 'scene_on':
+                self._do_scene_on(web_request.get_str('name').lower(),
+                                  web_request.get_float('hold', 0.))
+            elif action == 'scene_off':
+                self._do_scene_off(web_request.get_str('name').lower())
             elif action == 'batch':
                 # several actions in one request (a state test touches every
                 # strip). One bad item (e.g. a strip the page has but this
@@ -1202,6 +1649,10 @@ class Lightspeed(object):
             self._do_strip(str(g('strip', '')).lower(), float(g('brightness', 1.)))
         elif a == 'brightness':
             self._do_brightness(float(g('value', 1.)))
+        elif a == 'scene_on':
+            self._do_scene_on(str(g('name', '')).lower(), float(g('hold', 0.)))
+        elif a == 'scene_off':
+            self._do_scene_off(str(g('name', '')).lower())
         else:
             raise self.ActionError("unknown action '%s'" % (a,))
 
@@ -1220,8 +1671,10 @@ class Lightspeed(object):
 
     def cmd_PREVIEW(self, gcmd):
         name = gcmd.get('STRIP').lower()
-        if name != 'all' and not any(s.name == name for s in self.strips):
-            raise gcmd.error("Lightspeed: no strip '%s'" % (name,))
+        try:
+            self._strip_named(name)
+        except self.ActionError as e:
+            raise gcmd.error("Lightspeed: %s" % (e,))
         # Up to a day: the page's light buttons hold a colour "until Auto"
         hold = gcmd.get_float('HOLD', 30., minval=0., maxval=86400.)
         if hold == 0.:
@@ -1238,25 +1691,54 @@ class Lightspeed(object):
     def cmd_SCENE(self, gcmd):
         # The page saves the same change into lightspeed.cfg, so it also
         # survives a restart; this makes it visible right away.
-        state = gcmd.get('STATE').lower()
-        if state not in engine.STATES:
-            raise gcmd.error("Lightspeed: unknown state '%s' (one of %s)"
-                             % (state, ', '.join(engine.STATES)))
-        name = gcmd.get('STRIP').lower()
-        if name != 'all' and not any(s.name == name for s in self.strips):
-            raise gcmd.error("Lightspeed: no strip '%s'" % (name,))
-        text = gcmd.get('EFFECT', '').strip()
-        items = self.scenes.setdefault(state, {})
-        if not text:
-            items.pop(name, None)
-            if not items:
-                del self.scenes[state]
+        try:
+            self._do_scene(gcmd.get('STATE').lower(), gcmd.get('STRIP').lower(),
+                           gcmd.get('EFFECT', '').strip())
+        except self.ActionError as e:
+            raise gcmd.error("Lightspeed: %s" % (e,))
+
+    def cmd_SCENE_ON(self, gcmd):
+        hold = gcmd.get_float('HOLD', 0., minval=0., maxval=86400.)
+        try:
+            sc = self._do_scene_on(gcmd.get('NAME').lower(), hold)
+        except self.ActionError as e:
+            raise gcmd.error("Lightspeed: %s" % (e,))
+        gcmd.respond_info("Lightspeed: scene '%s' on%s" % (
+            sc.name, ' for %.0f s' % (sc.forced_until - self.reactor.monotonic())
+            if sc.forced_until else ''))
+
+    def cmd_SCENE_OFF(self, gcmd):
+        try:
+            self._do_scene_off(gcmd.get('NAME', 'all').lower())
+        except self.ActionError as e:
+            raise gcmd.error("Lightspeed: %s" % (e,))
+
+    def cmd_SET_LED_EFFECT(self, gcmd):
+        # led_effect compatible: EFFECT=<scene> [STOP=1]; FADETIME, REPLACE,
+        # RESTART, LEDS... are accepted and ignored. Never an error: a
+        # macro written for led_effect must keep running.
+        name = str(gcmd.get('EFFECT', '')).strip().lower()
+        try:
+            stop = int(float(gcmd.get('STOP', '0') or 0))
+        except (TypeError, ValueError):
+            stop = 0
+        if name not in self.custom:
+            gcmd.respond_info("Lightspeed: no scene '%s' for SET_LED_EFFECT "
+                              "(custom scenes: %s)"
+                              % (name, ', '.join(self.custom) or 'none'))
+            return
+        if stop:
+            self._do_scene_off(name)
         else:
-            try:
-                items[name] = engine.parse_spec(text)
-            except engine.SpecError as e:
-                raise gcmd.error("Lightspeed: %s" % (e,))
-        self._kick()
+            self._do_scene_on(name, None)
+
+    def cmd_STOP_LED_EFFECTS(self, gcmd):
+        name = str(gcmd.get('EFFECT', '') or '').strip().lower()
+        if name and name not in self.custom:
+            gcmd.respond_info("Lightspeed: no scene '%s' for STOP_LED_EFFECTS"
+                              % (name,))
+            return
+        self._do_scene_off(name or 'all')
 
     def cmd_STRIP(self, gcmd):
         name = gcmd.get('STRIP').lower()
@@ -1312,12 +1794,15 @@ def load_config(config):
 def load_config_prefix(config):
     light = config.get_printer().load_object(config, 'lightspeed')
     parts = config.get_name().split()
-    if len(parts) != 3 or parts[1] not in ('strip', 'scene'):
+    if len(parts) != 3 or parts[1] not in ('strip', 'scene', 'group'):
         raise config.error("lightspeed: section must be [lightspeed strip "
-                           "<name>] or [lightspeed scene <state>], got [%s]"
+                           "<name>], [lightspeed scene <state|name>] or "
+                           "[lightspeed group <name>], got [%s]"
                            % (config.get_name(),))
     if parts[1] == 'strip':
         light.add_strip(Strip(light, config))
+    elif parts[1] == 'group':
+        light.add_group(config)
     else:
         light.add_scene(config)
     # A plain object: Moonraker lists only the main 'lightspeed' status

@@ -1,6 +1,7 @@
 """Runs lightspeed.py against a fake Klipper: config parsing, scenes,
 homing/probing guard, MCU rate limit, WLED UDP packets, esp_bridge keys,
-and that a failing output never takes the printer down.
+that a failing output never takes the printer down, and custom scenes
+(triggers, priorities, groups, value sources, led_effect compatibility).
 
     python test/smoke_klippy.py [path/to/lightspeed.cfg]
 """
@@ -293,7 +294,7 @@ ACCESSED = set()
 EARLY = []
 
 
-def build(cfg_text, wled_port):
+def build(cfg_text, wled_port, extra=None):
     p = Printer()
     g = GCode()
     p.objects['gcode'] = g
@@ -315,6 +316,8 @@ def build(cfg_text, wled_port):
     g.register_command('BED_MESH_CALIBRATE', lambda gcmd: None,
                        desc='Perform Mesh Bed Leveling')
     g.register_command('SENSEI_TAP', lambda gcmd: None, desc='tap')
+    if extra is not None:
+        extra(p, g)
     cfg_text = cfg_text.replace('WLEDPORT', str(wled_port))
     cp = configparser.RawConfigParser(strict=False,
                                       inline_comment_prefixes=(';', '#'))
@@ -615,8 +618,377 @@ def main():
     check(len(hot.updates) == n_hot, 'no MCU traffic after shutdown')
     check(ls.state == 'shutdown', 'shutdown scene for WLED')
 
+    scenes_main()
     print('\n%d failures' % len(failures))
     sys.exit(1 if failures else 0)
+
+
+# ------------------------------------------------------------ custom scenes
+
+CFG_SCENES = """
+[lightspeed]
+brightness: 1.0
+
+[lightspeed strip left]
+output: neopixel front
+leds: 1-6
+
+[lightspeed strip right]
+output: neopixel front
+leds: 7-12
+
+[lightspeed strip nozzle]
+output: neopixel hotend_rgb
+
+[lightspeed strip node]
+output: esp_bridge led
+count: 4
+
+[lightspeed group bar]
+strips: left, right
+
+[lightspeed group span]
+strips: right, nozzle
+
+[lightspeed scene idle]
+all: solid color=000010
+
+[lightspeed scene printing]
+left: heat source=heater_bed.temperature colors=0000ff,ffff00,ff8000,ff0000,a000ff
+right: heat source=extruder.temperature min=20 max=260
+node: heat source=heater_bed.temperature min=20 max=100 colors=0000ff,ff0000
+nozzle: off
+
+[lightspeed scene cancelled]
+trigger: print_cancelled
+priority: 60
+bar: blink color=ff0000 period=0.5
+
+[lightspeed scene clean]
+trigger: macro CLEAN_NOZZLE
+priority: 70
+hold: 2
+nozzle: solid color=00ffff
+
+[lightspeed scene boom]
+trigger: macro BOOM
+nozzle: solid color=ff00ff
+
+[lightspeed scene push]
+trigger: extruding
+priority: 55
+nozzle: solid color=00ff00
+
+[lightspeed scene pull]
+trigger: retracting
+priority: 56
+nozzle: solid color=ff0000
+
+[lightspeed scene hot]
+trigger: temperature_sensor chamber.temperature > 40
+priority: 30
+right: solid color=ff8800
+
+[lightspeed scene ghost]
+trigger: nosuch.value > 1
+all: solid color=ffffff
+
+[lightspeed scene party]
+bar: comet color=ffffff period=1 size=3
+
+[lightspeed scene party2]
+trigger: command
+priority: 90
+left: solid color=123456
+
+[lightspeed scene sweep]
+priority: 95
+span: comet color=ffffff period=1 size=3
+"""
+
+
+def scenes_main():
+    print('\n-- custom scenes')
+    seen = {}
+
+    def extra(p, g):
+        p.objects['neopixel front'] = Chain(12)
+        p.objects['motion_report'] = Obj({'live_extruder_velocity': 0.})
+        p.objects['temperature_sensor chamber'] = Obj({'temperature': 25.})
+
+        def clean(gcmd):
+            seen['depth'] = ls_ref[0].custom['clean'].depth
+
+        def boom(gcmd):
+            raise GCmdError('macro failed')
+        g.register_command('CLEAN_NOZZLE', clean, desc='wipe')
+        g.register_command('BOOM', boom)
+    ls_ref = []
+    p, g = build(CFG_SCENES, 9, extra)
+    ls = p.objects['lightspeed']
+    ls_ref.append(ls)
+    run = lambda dt: REACTOR.run_until(REACTOR.t + dt)
+    run(1.0)
+    st = ls.get_status(REACTOR.t)
+    check(st['state'] == 'idle' and st['scenes_active'] == [],
+          'idle, no custom scene active (%s)' % st['scenes_active'])
+    check([c['name'] for c in st['custom_scenes']][:2] == ['cancelled',
+                                                           'clean']
+          and st['groups'] == {'bar': ['left', 'right'],
+                                 'span': ['right', 'nozzle']},
+          'status lists custom scenes and groups')
+    pr = dict((c['name'], c['priority']) for c in st['custom_scenes'])
+    check(pr['party'] == 90 and pr['push'] == 55 and pr['boom'] == 50,
+          'priorities: command default 90, others 50, explicit kept (%s)'
+          % pr)
+    check(any('nosuch' in m for m in g.out),
+          'missing condition object warned at connect')
+    check(not ls.custom['ghost'].active, 'missing object: trigger off')
+
+    # compatibility commands
+    check(ls.compat == ['SET_LED_EFFECT', 'STOP_LED_EFFECTS']
+          and 'SET_LED_EFFECT' in g.handlers,
+          'SET_LED_EFFECT / STOP_LED_EFFECTS registered without led_effect')
+    g.run('SET_LED_EFFECT EFFECT=PARTY FADETIME=1 REPLACE=1 LEDS=x')
+    run(1.0)
+    pl = ls.plan
+    check(pl['left'][:2] == ('party', 'bar') and pl['left'][3:] == (0, 12)
+          and pl['right'][3:] == (6, 12),
+          'group line spans both strips (%s %s)' % (pl['left'][3:],
+                                                     pl['right'][3:]))
+    name, prm = pl['left'][2]
+    ls.ctx['t'] = REACTOR.t
+    ls._gframes = {}
+    whole = LS.engine.render(name, prm, 12, ls.ctx)
+    check(ls._frame(ls.strips[0], pl['left']) + ls._frame(ls.strips[1],
+                                                          pl['right'])
+          == whole, 'comet drawn once over the group, split in order')
+    front = p.objects['neopixel front']
+    n0 = len(front.updates)
+    run(0.5)
+    check(len(front.updates) > n0, 'shared chain keeps updating')
+    check(ls.get_status(REACTOR.t)['scenes_active'] == ['party'],
+          'scenes_active in status')
+    n_out = len(g.out)
+    g.run('SET_LED_EFFECT EFFECT=nope')
+    check(True, 'unknown SET_LED_EFFECT name does not raise')
+    g.run('SET_LED_EFFECT EFFECT=party STOP=1')
+    run(0.2)
+    check(not ls.custom['party'].active and ls.plan['left'][0] == 'idle',
+          'SET_LED_EFFECT STOP=1 switches the scene off, idle shows again')
+    # tie: newest wins
+    g.run('LIGHTSPEED_SCENE_ON NAME=party')
+    run(0.1)
+    g.run('LIGHTSPEED_SCENE_ON NAME=party2')
+    run(0.1)
+    check(ls.plan['left'][0] == 'party2' and ls.plan['right'][0] == 'party',
+          'equal priority: the most recently switched on wins (%s, %s)'
+          % (ls.plan['left'][0], ls.plan['right'][0]))
+    g.run('LIGHTSPEED_SCENE_ON NAME=party')
+    run(0.1)
+    check(ls.plan['left'][0] == 'party', 'switched on again: newest again')
+    g.run('STOP_LED_EFFECTS EFFECT=party2')
+    run(0.1)
+    check(not ls.custom['party2'].active and ls.custom['party'].active,
+          'STOP_LED_EFFECTS EFFECT= stops only that scene')
+    g.run('STOP_LED_EFFECTS')
+    run(0.1)
+    check(not ls.custom['party'].active, 'STOP_LED_EFFECTS stops all')
+
+    # a group over two chains: one frame cut over both
+    hot = p.objects['neopixel hotend_rgb']
+    n_f, n_h = len(front.updates), len(hot.updates)
+    g.run('LIGHTSPEED_SCENE_ON NAME=sweep')
+    run(1.0)
+    pl = ls.plan
+    check(pl['right'][:2] == ('sweep', 'span') and pl['right'][3:] == (0, 9)
+          and pl['nozzle'][3:] == (6, 9) and pl['left'][0] == 'idle',
+          'group across two chains (%s %s)' % (pl['right'][3:],
+                                               pl['nozzle'][3:]))
+    ls.ctx['t'] = REACTOR.t
+    ls._gframes = {}
+    whole = LS.engine.render('comet', pl['right'][2][1], 9, ls.ctx)
+    check(ls._frame(ls.strips[1], pl['right']) + ls._frame(ls.strips[2],
+                                                           pl['nozzle'])
+          == whole and len(front.updates) > n_f and len(hot.updates) > n_h,
+          'both chains get their part of the one frame')
+    g.run('LIGHTSPEED_SCENE_OFF NAME=sweep')
+    # command scene (90) beats homing (80), error (100) beats it
+    g.run('SET_LED_EFFECT EFFECT=party')
+    p.send_event('homing:home_rails_begin', None, [])
+    run(0.3)
+    check(ls.state == 'homing' and ls.plan['left'][0] == 'party',
+          'command scene (90) wins over homing (80)')
+    p.send_event('homing:home_rails_end', None, [])
+    run(1.5)
+    p.objects['print_stats'].st['state'] = 'error'
+    run(0.3)
+    check(ls.state == 'error' and ls.plan['left'][0] == 'error',
+          'error (100) wins over a command scene')
+    p.objects['print_stats'].st['state'] = 'standby'
+    g.run('STOP_LED_EFFECTS')
+    run(0.3)
+
+    # macro trigger
+    g.run('CLEAN_NOZZLE')
+    check(seen.get('depth') == 1, 'macro scene on while the macro runs')
+    check(g.gcode_help.get('CLEAN_NOZZLE') == 'wipe', 'macro help kept')
+    run(0.2)
+    check(ls.custom['clean'].active and ls.plan['nozzle'][0] == 'clean',
+          'macro scene held after the macro (hold 2)')
+    run(2.2)
+    check(not ls.custom['clean'].active, 'macro scene off after hold')
+    try:
+        g.run('BOOM')
+        check(False, 'macro error passes through')
+    except GCmdError:
+        check(True, 'macro error passes through unchanged')
+    run(0.1)
+    check(ls.custom['boom'].depth == 0 and not ls.custom['boom'].active,
+          'macro that raises still ends its scene')
+    check(ls.enabled and ls.tick_errors == 0, 'Lightspeed unaffected')
+
+    # extruding / retracting
+    mr = p.objects['motion_report']
+    mr.st['live_extruder_velocity'] = 3.
+    run(0.2)
+    check(ls.plan['nozzle'][0] == 'push', 'extruding scene')
+    mr.st['live_extruder_velocity'] = -30.
+    run(0.1)
+    check(ls.plan['nozzle'][0] == 'pull', 'retracting beats extruding (56)')
+    mr.st['live_extruder_velocity'] = 0.
+    run(0.15)
+    check(ls.custom['pull'].active, 'short debounce keeps a retract visible')
+    run(0.4)
+    check(not ls.custom['pull'].active and not ls.custom['push'].active,
+          'extruding / retracting off when the extruder stops')
+
+    # condition
+    ch = p.objects['temperature_sensor chamber']
+    ch.st['temperature'] = 45.
+    run(0.1)
+    check(ls.plan['right'][0] == 'hot' and ls.plan['left'][0] == 'idle',
+          'condition scene on the strip it names')
+    ch.st['temperature'] = 25.
+    run(0.1)
+    check(ls.plan['right'][0] == 'idle', 'condition off again')
+
+    # printing with value sources
+    p.objects['heater_bed'].temp = 70.
+    p.objects['heater_bed'].max_temp = 110.
+    p.objects['extruder'].temp = 140.
+    p.objects['print_stats'].st['state'] = 'printing'
+    run(1.0)
+    check(ls.state == 'printing' and
+          ls.ctx['vars'].get('heater_bed.temperature') == 70.,
+          'value source read into ctx vars (%s)' % ls.ctx['vars'])
+    check(ls.ranges.get('heater_bed.temperature') == (20., 110.),
+          'temperature range from max_temp (%s)' % ls.ranges)
+    c = ls._frame(ls.strips[0], ls.plan['left'])[0]
+    exp = LS.engine.gradient_at([LS.engine.parse_color(x) for x in
+                                 '0000ff,ffff00,ff8000,ff0000,a000ff'
+                                 .split(',')], 50. / 90.)
+    check(all(abs(a - b) < 1e-9 for a, b in zip(c, exp)),
+          'bed colour from its temperature (%s)' % (c,))
+    c = ls._frame(ls.strips[1], ls.plan['right'])[0]
+    exp = LS.engine.mix((0., 48 / 255., 1.), (1., 48 / 255., 0.), 0.5)
+    check(all(abs(a - b) < 1e-9 for a, b in zip(c, exp)),
+          'hotend heat with min/max (%s)' % (c,))
+    keys = dict(p.objects['esp_bridge'].producers[0](REACTOR.t))
+    check(keys.get('led.fx') == 'bar' and keys.get('led.p') == '0.62'
+          and keys.get('led.rgb') == '159,0,96',
+          'esp node gets the value colour + level (%s %s)'
+          % (keys.get('led.rgb'), keys.get('led.p')))
+
+    # print_cancelled: an event with 30 s
+    p.objects['print_stats'].st['state'] = 'cancelled'
+    run(0.2)
+    check(ls.plan['left'][:2] == ('cancelled', 'bar'),
+          'print_cancelled blinks the bar')
+    run(30.5)
+    check(not ls.custom['cancelled'].active, 'print_cancelled ends after 30 s')
+    p.objects['print_stats'].st['state'] = 'standby'
+
+    # a state test hides custom scenes
+    g.run('LIGHTSPEED_SCENE_ON NAME=party')
+    g.run('LIGHTSPEED_STATE STATE=error HOLD=2')
+    run(0.2)
+    check(ls.plan['left'][0] == 'error', 'LIGHTSPEED_STATE stays on top')
+    g.run('LIGHTSPEED_STATE STATE=auto')
+    run(0.2)
+    check(ls.plan['left'][0] == 'party', 'custom scene back after the test')
+
+    # live edit of a custom scene, group key
+    g.run('LIGHTSPEED_SCENE STATE=party STRIP=bar EFFECT="fire"')
+    run(0.1)
+    check(ls.plan['left'][2][0] == 'fire', 'runtime edit of a custom scene')
+    g.run('LIGHTSPEED_SCENE STATE=party STRIP=bar EFFECT=')
+    check('party' in ls.custom, 'emptied custom scene still exists')
+    g.run('LIGHTSPEED_SCENE_OFF NAME=all')
+    g.run('LIGHTSPEED_PREVIEW STRIP=bar EFFECT="solid color=00ff00" HOLD=2')
+    run(0.1)
+    check(ls.plan['right'][0] == '__preview__' and ls.plan['right'][3] == 6,
+          'preview of a group')
+    g.run('LIGHTSPEED_PREVIEW STRIP=bar HOLD=0')
+
+    # endpoint
+    ep = p.objects['webhooks'].endpoints['lightspeed/cmd']
+    wr = WebRequest({'action': 'scene_on', 'name': 'party', 'hold': 1})
+    ep(wr)
+    run(0.1)
+    check(wr.result == {'ok': True} and ls.custom['party'].active,
+          'endpoint scene_on')
+    run(1.1)
+    check(not ls.custom['party'].active, 'scene_on hold runs out')
+    ep(WebRequest({'action': 'batch', 'actions': [
+        {'action': 'scene_on', 'name': 'clean', 'hold': 0}]}))
+    run(0.1)
+    check(ls.custom['clean'].active, 'batch scene_on (any custom scene)')
+    ep(WebRequest({'action': 'scene_off', 'name': 'clean'}))
+    run(0.1)
+    check(not ls.custom['clean'].active, 'endpoint scene_off')
+    for bad in ({'action': 'scene_on', 'name': 'nope'},
+                {'action': 'scene_on', 'name': 'idle'},
+                {'action': 'scene_off', 'name': 'nope'}):
+        try:
+            ep(WebRequest(bad))
+            check(False, 'bad scene action rejected %s' % bad)
+        except GCmdError:
+            check(True, 'bad scene action rejected %s' % bad)
+    check(len(g.out) >= n_out, 'web commands quiet')
+
+    # get_status never raises
+    ls.custom['party'].since = None
+    ls.custom['party'].active = True
+    st = ls.get_status(REACTOR.t)
+    check(isinstance(st, dict) and 'state' in st,
+          'get_status survives a broken scene')
+    ls.custom['party'].since = 0.
+    ls.custom['party'].active = False
+
+    # with led_effect loaded the compat commands stay away
+    def extra2(p, g):
+        extra(p, g)
+        p.objects['led_effect fancy'] = Obj({})
+        g.register_command('SET_LED_EFFECT', lambda gcmd: None)
+    p2, g2 = build(CFG_SCENES, 9, extra2)
+    ls2 = p2.objects['lightspeed']
+    check(ls2.compat == [] and 'STOP_LED_EFFECTS' not in g2.handlers,
+          'not registered when a led_effect object exists')
+    # bad configs
+    for bad, why in (('[lightspeed scene x1]\ntrigger: sometimes\n',
+                      'bad trigger'),
+                     ('[lightspeed scene idle]\ntrigger: command\n',
+                      'trigger on a state'),
+                     ('[lightspeed group g]\nstrips: left, zz\n',
+                      'group with unknown strip'),
+                     ('[lightspeed scene x2]\nnogroup: fire\n',
+                      'scene key not a strip or group')):
+        try:
+            build(CFG_SCENES + bad, 9, extra)
+            check(False, 'config error: ' + why)
+        except ConfigError:
+            check(True, 'config error: ' + why)
 
 
 if __name__ == '__main__':

@@ -14,12 +14,18 @@
 #   progress  0..1 print progress
 #   heat      0..1 how far the heaters are on their way to target
 #   pos       (x, y, z) toolhead position, each 0..1 of the axis range
+#   vars      optional {source: raw number} for value sources such as
+#             'heater_bed.temperature' (the module reads them, the engine
+#             only maps them with min/max)
+#   ranges    optional {source: (lo, hi)} default min/max per source (the
+#             module knows each heater's max_temp); else default_range()
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import math
+import re
 
-__version__ = "0.1.3"
+__version__ = "0.2.0"
 
 STATES = ('shutdown', 'error', 'homing', 'probing', 'paused', 'heating',
           'printing', 'complete', 'idle')
@@ -53,10 +59,16 @@ EFFECTS = {
                  'density': 0.3},
     'fire':     {},
     # progress: lit part in color (A); gradient=1 runs A -> color2 (B).
-    # The unlit part is off.
+    # The unlit part is off. colors=a,b,c...: the lit part runs through
+    # these stops along the strip (gradient=1: coloured by the value).
+    # source: progress | heat | <object>.<field> mapped min..max -> 0..1
     'progress': {'color': 'ffffff', 'color2': 'ff0000',
-                 'source': 'progress', 'gradient': 0},
-    'heat':     {'color': 'ff3000', 'color2': '0030ff'},
+                 'source': 'progress', 'gradient': 0, 'min': 'auto',
+                 'max': 'auto', 'colors': ''},
+    # heat: one colour by value, color2 (cold) -> color (hot), or the
+    # colors= stops from first (min) to last (max)
+    'heat':     {'color': 'ff3000', 'color2': '0030ff', 'source': 'heat',
+                 'min': 'auto', 'max': 'auto', 'colors': ''},
     'follow':   {'color': 'ffffff', 'color2': '000000', 'axis': 'x',
                  'size': 1.5},
 }
@@ -80,9 +92,33 @@ DEFAULT_SCENES = {
 PARAM_TYPES = {
     'color': 'color', 'color2': 'color',
     'gradient': 'bool', 'period': 'float', 'size': 'float',
-    'density': 'float', 'source': ('progress', 'heat'),
+    'density': 'float', 'source': 'source',
     'axis': ('x', 'y', 'z'), 'reverse': 'bool',
+    'min': 'number', 'max': 'number', 'colors': 'colors',
 }
+
+# A value source other than progress/heat: '<object>.<field>', the object
+# name may hold one space ('temperature_sensor chamber.temperature');
+# in an effect spec the part after the space simply follows source=.
+SOURCE_RE = re.compile(r'^[A-Za-z0-9_]+( [A-Za-z0-9_-]+)?(\.[A-Za-z0-9_]+)+$')
+# Trigger condition reference: same, the field is optional
+REF_RE = re.compile(r'^[A-Za-z0-9_]+( [A-Za-z0-9_-]+)?(\.[A-Za-z0-9_]+)*$')
+
+# Scene priorities: a strip shows the highest-priority active scene that
+# names it; built-in states have these unless their section says otherwise
+BUILTIN_PRIORITY = {
+    'shutdown': 100, 'error': 100, 'homing': 80, 'probing': 80,
+    'heating': 20, 'printing': 20, 'paused': 20, 'complete': 20, 'idle': 0,
+}
+DEFAULT_PRIORITY = 50
+# A command scene (LIGHTSPEED_SCENE_ON / SET_LED_EFFECT from a macro) wins
+# over every printer state except error / shutdown unless it says otherwise
+COMMAND_PRIORITY = 90
+TRIGGERS = ('command', 'macro', 'print_cancelled', 'extruding',
+            'retracting', 'condition')
+TRIGGER_OPS = ('>=', '<=', '==', '!=', '>', '<')
+CANCEL_HOLD = 30.0        # s a print_cancelled scene shows without hold:
+MOTION_SPEED = 0.5        # mm/s extruder speed for extruding / retracting
 
 
 class SpecError(ValueError):
@@ -122,7 +158,17 @@ def parse_spec(text):
                         % (name, ', '.join(sorted(EFFECTS))))
     params = dict(EFFECTS[name])
     params.update(COMMON_PARAMS)
+    tokens = []
     for p in parts[1:]:
+        # 'source=temperature_sensor chamber.temperature': the object name's
+        # second word belongs to source
+        if '=' not in p and tokens and \
+                tokens[-1].lower().startswith('source=') and \
+                ' ' not in tokens[-1]:
+            tokens[-1] += ' ' + p
+            continue
+        tokens.append(p)
+    for p in tokens:
         if '=' not in p:
             raise SpecError("'%s' should be key=value" % (p,))
         k, v = p.split('=', 1)
@@ -141,6 +187,27 @@ def parse_spec(text):
                 raise SpecError("%s must not be negative" % (k,))
         elif t == 'bool':
             params[k] = 1 if v.lower() in ('1', 'true', 'yes', 'on') else 0
+        elif t == 'number':
+            if v.lower() == 'auto':
+                params[k] = 'auto'
+            else:
+                try:
+                    params[k] = float(v)
+                except ValueError:
+                    raise SpecError("%s must be a number, got %r" % (k, v))
+                if params[k] != params[k] or abs(params[k]) == float('inf'):
+                    raise SpecError("%s must be a number, got %r" % (k, v))
+        elif t == 'colors':
+            cs = [x for x in v.split(',') if x.strip()]
+            params[k] = ','.join(color_hex(parse_color(x)) for x in cs)
+        elif t == 'source':
+            if v.lower() in ('progress', 'heat'):
+                params[k] = v.lower()
+            elif SOURCE_RE.match(v):
+                params[k] = v
+            else:
+                raise SpecError("source must be progress, heat or "
+                                "<object>.<field>, got %r" % (v,))
         else:
             if v.lower() not in t:
                 raise SpecError("%s must be one of %s" % (k, ', '.join(t)))
@@ -307,12 +374,98 @@ def fx_fire(n, ctx, p):
     return out
 
 
+def _num(x):
+    if isinstance(x, bool):
+        return 1.0 if x else 0.0
+    if isinstance(x, (int, float)) and x == x and abs(x) != float('inf'):
+        return float(x)
+    return None
+
+
+def default_range(src):
+    """min..max a source maps to 0..1 when the spec does not say."""
+    if src in ('progress', 'heat'):
+        return (0.0, 1.0)
+    obj = src.split('.')[0]
+    field = src.split('.')[-1]
+    if field in ('temperature', 'target'):
+        if obj.startswith('extruder'):
+            return (20.0, 300.0)
+        if obj == 'heater_bed':
+            return (20.0, 120.0)
+        return (20.0, 80.0)
+    if field == 'live_extruder_velocity':
+        return (0.0, 10.0)
+    return (0.0, 1.0)
+
+
+def source_range(p, ctx):
+    src = p.get('source', 'progress')
+    r = (ctx.get('ranges') or {}).get(src) or default_range(src)
+    lo = r[0] if p.get('min', 'auto') == 'auto' else p['min']
+    hi = r[1] if p.get('max', 'auto') == 'auto' else p['max']
+    return float(lo), float(hi)
+
+
+def source_value(p, ctx):
+    """0..1: the effect's source mapped from min..max."""
+    src = p.get('source', 'progress')
+    if src == 'progress' or src == 'heat':
+        raw = _num(ctx.get(src, 0.0))
+    else:
+        raw = _num((ctx.get('vars') or {}).get(src))
+    if raw is None:
+        return 0.0
+    lo, hi = source_range(p, ctx)
+    if hi == lo:
+        return 1.0 if raw >= hi else 0.0
+    return max(0.0, min(1.0, (raw - lo) / (hi - lo)))
+
+
+def _stops(p):
+    c = p.get('colors')
+    if not c:
+        return None
+    return [parse_color(x) for x in c.split(',')]
+
+
+def gradient_at(stops, v):
+    """Colour at 0..1 along evenly spaced stops."""
+    if len(stops) == 1:
+        return stops[0]
+    x = max(0.0, min(1.0, v)) * (len(stops) - 1)
+    i = int(math.floor(x))
+    if i >= len(stops) - 1:
+        return stops[-1]
+    return mix(stops[i], stops[i + 1], x - i)
+
+
+def value_color(name, p, ctx):
+    """The one colour a progress / heat effect stands for right now
+    (outputs that cannot draw a bar, e.g. an esp_bridge node)."""
+    v = source_value(p, ctx)
+    stops = _stops(p)
+    if stops is not None:
+        return gradient_at(stops, v)
+    if name == 'heat':
+        return mix(parse_color(p['color2']), parse_color(p['color']), v)
+    if p.get('gradient'):
+        return mix(parse_color(p['color']), parse_color(p['color2']), v)
+    return parse_color(p['color'])
+
+
 def fx_progress(n, ctx, p):
     off = (0.0, 0.0, 0.0)
     a = parse_color(p['color'])
-    v = ctx['heat'] if p['source'] == 'heat' else ctx['progress']
-    v = max(0.0, min(1.0, v))
+    v = source_value(p, ctx)
     lit = v * n
+    stops = _stops(p)
+    if stops is not None:
+        out = []
+        for i in range(n):
+            pos = v if (n == 1 or p.get('gradient')) else i / float(n - 1)
+            out.append(mix(off, gradient_at(stops, pos), lit - i))
+        return out
     if not p.get('gradient'):
         return [mix(off, a, lit - i) for i in range(n)]
     # gradient: the fill runs from A (start / cold) to B (end / hot) along
@@ -326,8 +479,7 @@ def fx_progress(n, ctx, p):
 
 
 def fx_heat(n, ctx, p):
-    return [mix(parse_color(p['color2']), parse_color(p['color']),
-                max(0.0, min(1.0, ctx['heat'])))] * n
+    return [value_color('heat', p, ctx)] * n
 
 
 def fx_follow(n, ctx, p):
@@ -387,6 +539,89 @@ def resolve_scene(state, scenes):
         seen.add(state)
         state = STATE_FALLBACK[state]
     return state if state in scenes else None
+
+
+# ------------------------------------------------------- custom scenes
+
+def parse_trigger(text):
+    """'macro CLEAN_NOZZLE' -> ('macro', 'CLEAN_NOZZLE');
+    'heater_bed.temperature > 60' -> ('condition', (ref, op, number))"""
+    s = ' '.join(str(text).split())
+    low = s.lower()
+    if low in ('command', 'print_cancelled', 'extruding', 'retracting'):
+        return (low, None)
+    if low.startswith('macro ') or low == 'macro':
+        name = s[5:].strip().upper()
+        if not re.match(r'^[A-Z0-9_]+$', name):
+            raise SpecError("trigger 'macro <NAME>' needs a G-code command "
+                            "name, got %r" % (s,))
+        return ('macro', name)
+    m = re.match(r'^(.+?) ?(>=|<=|==|!=|>|<) ?(-?[0-9]*\.?[0-9]+)$', s)
+    if m and REF_RE.match(m.group(1)):
+        return ('condition', (m.group(1), m.group(2), float(m.group(3))))
+    raise SpecError("unknown trigger %r (command, macro <NAME>, "
+                    "print_cancelled, extruding, retracting or "
+                    "<object>.<field> <op> <number>)" % (s,))
+
+
+def format_trigger(kind, arg):
+    if kind == 'macro':
+        return 'macro ' + arg
+    if kind == 'condition':
+        v = arg[2]
+        if v == int(v):
+            v = int(v)
+        return '%s %s %s' % (arg[0], arg[1], v)
+    return kind
+
+
+def compare(value, op, number):
+    if op == '>':
+        return value > number
+    if op == '>=':
+        return value >= number
+    if op == '<':
+        return value < number
+    if op == '<=':
+        return value <= number
+    if op == '==':
+        return value == number
+    return value != number
+
+
+def plan_strips(strips, groups, candidates):
+    """Which scene each strip shows.
+
+    strips: [(name, count)] in order; groups: [(name, [member strips])];
+    candidates: active scenes [(scene, priority, since, {key: spec})], a key
+    being a strip, a group or 'all'. Highest priority wins, ties go to the
+    most recently activated. Within a scene a strip's own line beats a
+    group line, which beats 'all'. A group line is drawn once over the
+    group's LEDs: offset/total place the strip in that frame.
+    -> {strip: (scene, key, spec, offset, total)}; scene None = off
+    """
+    counts = dict(strips)
+    order = sorted(candidates, key=lambda c: (-c[1], -c[2]))
+    out = {}
+    for name, count in strips:
+        hit = None
+        for scene, _pri, _since, items in order:
+            if name in items:
+                hit = (scene, name, items[name], 0, count)
+            else:
+                for g, members in groups:
+                    if g in items and name in members:
+                        k = members.index(name)
+                        off = sum(counts.get(m, 0) for m in members[:k])
+                        total = sum(counts.get(m, 0) for m in members)
+                        hit = (scene, g, items[g], off, total)
+                        break
+                if hit is None and 'all' in items:
+                    hit = (scene, 'all', items['all'], 0, count)
+            if hit is not None:
+                break
+        out[name] = hit or (None, None, None, 0, count)
+    return out
 
 
 # ------------------------------------------------- load estimate (MCU)

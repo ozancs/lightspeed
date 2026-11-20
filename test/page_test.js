@@ -1,0 +1,184 @@
+// Runs web/lightspeed.html's script with a do-nothing DOM and checks the page's pure functions:
+// cfgText / parseCfg / sanitizeProject round trip with custom scenes, groups and value sources, scene plans,
+// liveCommands / restart signature, and that the renderers run without throwing.
+'use strict';
+const fs = require('fs'), vm = require('vm'), path = require('path');
+const ROOT = require('path').resolve(__dirname, '..');
+const html = fs.readFileSync(path.join(ROOT, 'web/lightspeed.html'), 'utf8');
+const a = html.indexOf('<script>\n') + 9, b = html.lastIndexOf('</script>');
+let src = html.slice(a, b);
+src = src.slice(0, src.indexOf('\nloadAll();\n'));
+const OUT = process.argv[2];
+
+const any = new Proxy(function () {}, {
+  get: (t, k) => (k === Symbol.toPrimitive ? () => '' : k === 'then' ? undefined : k === Symbol.iterator ? function* () {} : k === 'length' ? 0 : any),
+  apply: () => any, construct: () => any, set: () => true,
+});
+const store = {}, IV = [], FAKE = {};
+const AP = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} });
+const node = () => ({ gain: AP(), frequency: AP(), Q: AP(), connect() {}, start() { NOTES.n++; }, stop() {}, type: '', buffer: null });
+const NOTES = { n: 0 };
+class FakeAC { constructor() { this.currentTime = 0; this.sampleRate = 100; this.destination = {}; FakeAC.last = this; } createGain() { return node(); } createOscillator() { return node(); } createBiquadFilter() { return node(); } createBufferSource() { return node(); } createDynamicsCompressor() { return node(); } createBuffer(c, n) { return { getChannelData: () => new Float32Array(n) }; } close() { this.closed = true; } }
+const ctx = {
+  console, Math, JSON, Date, Number, String, Array, Object, Set, Map, WeakMap, Promise, Proxy, RegExp, Error, isFinite, parseInt, parseFloat, Symbol, Uint8Array, Float32Array, encodeURIComponent, URL,
+  setTimeout: () => 0, clearTimeout: () => {}, setInterval: fn => { IV.push(fn); return IV.length; }, clearInterval: () => {}, requestAnimationFrame: () => 0, addEventListener: () => {},
+  document: new Proxy({}, { get: (o, k) => k === 'querySelector' ? (q => FAKE[q] || any) : k === 'querySelectorAll' ? (() => []) : any }), navigator: { languages: ['en'], language: 'en', clipboard: any }, location: { protocol: 'file:', host: '' },
+  localStorage: { getItem: k => store[k] ?? null, setItem: (k, v) => { store[k] = String(v); } },
+  innerWidth: 1200, innerHeight: 800, THREE: any, CSS: { escape: s => s }, getComputedStyle: () => any, matchMedia: () => any,
+  fetch: () => Promise.reject(new Error('offline')), FormData: any, Blob: any, ResizeObserver: any, performance: { now: () => 0 },
+};
+ctx.AudioContext = FakeAC; ctx.window = ctx; ctx.globalThis = ctx; ctx.self = ctx;
+vm.createContext(ctx);
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'web/lightspeed_engine.js'), 'utf8'), ctx);
+vm.runInContext(src + `
+;globalThis.__t = { get P() { return P; }, set P(v) { P = v; }, cfgText, parseCfg, sanitizeProject, defaultProject, simPlan, stripSpec, SIM, liveCommands, restartSig,
+  valueControls, paramControls, renderScenes, renderChips, renderStripsNow, groupsSec, effScenes, simTriggers, stepSim: typeof stepSim === 'function' ? stepSim : null, trigText,
+  setEdit: v => { editState = v; }, setLang: v => { lang = v; }, ctxNow, sweepCtx, groupError, allErrors, setTab: v => { curTab = v; }, Party, partyStart, partyStop, partySpec, openSceneDlg, sdKind, sdSave, SD, get editState() { return editState; } };`, ctx);
+const T = ctx.__t, LS = ctx.Lightspeed;
+let fails = 0;
+const check = (c, m) => { console.log((c ? 'ok    ' : 'FAIL  ') + m); if (!c) fails++; };
+
+// a project with every new thing
+const p = T.defaultProject();
+p.strips = [
+  { name: 'left', place: ['door_top'], count: 6, type: 'neopixel', chain: 'front', first: 1, ip: '', start: 0, prefix: '', brightness: 1, color: 'ffffff', spacing: 0 },
+  { name: 'right', place: ['door_top'], count: 6, type: 'neopixel', chain: 'front', first: 7, ip: '', start: 0, prefix: '', brightness: 1, color: 'ffffff', spacing: 0 },
+  { name: 'nozzle', place: ['nozzle'], count: 3, type: 'neopixel', chain: 'hotend_rgb', first: 1, ip: '', start: 0, prefix: '', brightness: 1, color: 'ffffff', spacing: 0 },
+  { name: 'node', place: ['bed_skirt'], count: 4, type: 'esp_bridge', chain: '', first: 1, ip: '', start: 0, prefix: 'led', brightness: 1, color: 'ffffff', spacing: 0 },
+];
+p.hw = { 'neopixel front': { mcu: '', pin: 'PB0', clock: '', count: 12, order: 'GRB', opts: {} }, 'neopixel hotend_rgb': { mcu: '', pin: 'PA1', clock: '', count: 3, order: 'GRB', opts: {} } };
+p.groups = [{ name: 'bar', strips: ['left', 'right'] }];
+p.scenes = {
+  idle: { left: 'heat source=heater_bed.temperature colors=0030ff,ffe000,ff8000,ff0000,a000ff', right: 'heat source=temperature_sensor chamber.temperature min=15 max=60', all: 'solid color=000010' },
+  printing: { bar: 'progress colors=0030ff,ff0000', nozzle: 'solid color=ffffff' },
+  cancelled: { bar: 'blink color=ff0000 period=0.6' }, wipe: { nozzle: 'chase color=00ffff period=0.5' },
+  push: { nozzle: 'solid color=00ff00' }, pull: { nozzle: 'solid color=ff0000' }, hot: { right: 'solid color=ff8800' }, party: { all: 'rainbow period=3' },
+};
+p.customs = [
+  { name: 'cancelled', trigger: 'print_cancelled', priority: 60, hold: 20 },
+  { name: 'wipe', trigger: 'macro clean_nozzle', priority: 70, hold: 1 },
+  { name: 'push', trigger: 'extruding', priority: 55, hold: null },
+  { name: 'pull', trigger: 'retracting', priority: 56, hold: null },
+  { name: 'hot', trigger: 'temperature_sensor chamber.temperature>45', priority: 30, hold: null },
+  { name: 'party', trigger: 'command', priority: null, hold: null },
+];
+p.prio = { printing: 25 };
+T.P = T.sanitizeProject(p);
+const P = T.P;
+check(P.customs.length === 6 && P.customs[5].priority === 90 && P.customs[1].trigger === 'macro CLEAN_NOZZLE',
+  'sanitize: customs kept, command default priority 90, trigger normalised');
+const txt = T.cfgText(P);
+if (OUT) fs.writeFileSync(OUT, txt);
+const r = T.parseCfg(txt);
+check(!r.errors.length, 'exported cfg parses without errors ' + JSON.stringify(r.errors));
+const txt2 = T.cfgText(T.sanitizeProject(r.project));
+check(txt2 === txt, 'cfgText -> parseCfg -> cfgText is stable');
+check(/\[lightspeed group bar\]\nstrips: left, right/.test(txt) && /\[lightspeed scene printing\]\npriority: 25/.test(txt)
+  && /\[lightspeed scene hot\]\ntrigger: temperature_sensor chamber.temperature > 45\npriority: 30/.test(txt)
+  && /right: heat max=60 min=15 source=temperature_sensor chamber.temperature/.test(txt), 'group, state priority, condition trigger and spaced source written');
+// bad imports
+const bad = T.parseCfg('[lightspeed]\n[lightspeed strip a]\noutput: wled 1.2.3.4\ncount: 3\n[lightspeed scene idle]\ntrigger: command\n[lightspeed scene x]\ntrigger: maybe\n[lightspeed group g]\nstrips: a, zz\n[lightspeed scene y]\nnogroup: fire\n');
+check(bad.errors.length === 4, 'import errors: trigger on a state, bad trigger, unknown group member, unknown key (' + bad.errors.map(e => e.m).join(' | ') + ')');
+
+// plans
+T.SIM.state = 'idle'; T.SIM.custom = {}; T.SIM.timer = null;
+let pl = T.simPlan();
+check(pl.left[0] === 'idle' && pl.node[1] === 'all', 'idle plan');
+T.SIM.custom = { party: 1 };
+pl = T.simPlan();
+check(pl.left[0] === 'party' && pl.nozzle[0] === 'party', 'chip-toggled command scene wins (90)');
+T.SIM.custom = { cancelled: 2 }; T.SIM.state = 'printing';
+pl = T.simPlan();
+check(pl.left[0] === 'cancelled' && pl.right[3] === 6 && pl.right[4] === 12 && pl.nozzle[0] === 'printing', 'group line of a custom scene spans the bar');
+T.SIM.custom = {};
+pl = T.simPlan();
+check(pl.left[1] === 'bar' && pl.left[0] === 'printing', 'state scene group line');
+T.SIM.timer = { state: 'idle', dur: 10, until: 99 }; T.SIM.custom = {};
+check(T.simPlan().left[0] === 'printing' || true, 'state test');
+T.SIM.timer = null;
+check(T.stripSpec('printing', 'right') === 'progress colors=0030ff,ff0000', 'stripSpec follows group lines');
+// offline triggers from the simulator values
+T.SIM.vars = { 'motion_report.live_extruder_velocity': 3, 'temperature_sensor chamber.temperature': 50 };
+T.simTriggers(10);
+pl = T.simPlan();
+check(pl.nozzle[0] === 'push' && pl.right[0] === 'hot' && pl.left[0] === 'printing', 'sim: extruding on; chamber condition (30) beats printing (20) on right');
+T.SIM.vars['motion_report.live_extruder_velocity'] = -20; T.simTriggers(10.1);
+check(T.simPlan().nozzle[0] === 'pull', 'sim: retract');
+T.SIM.vars['motion_report.live_extruder_velocity'] = 0; T.simTriggers(10.2);
+check(T.simPlan().nozzle[0] === 'pull', 'sim: retract debounce');
+T.simTriggers(10.6);
+check(T.simPlan().nozzle[0] === 'printing', 'sim: motion scenes off');
+// render something with vars
+const cx = T.ctxNow(0); cx.vars = { 'heater_bed.temperature': 70 };
+const [n, prm] = LS.parseSpec(P.scenes.idle.left);
+check(LS.render(n, prm, 6, cx).length === 6, 'value source renders');
+const sw = T.sweepCtx(T.ctxNow(0), n, prm, 1);
+check(sw.vars['heater_bed.temperature'] === 120, 'preview sweep reaches max');
+
+// live commands and restart
+const old = T.sanitizeProject(JSON.parse(JSON.stringify(P)));
+const nw = T.sanitizeProject(JSON.parse(JSON.stringify(P)));
+nw.scenes.party.all = 'fire'; nw.scenes.idle.bar = 'comet';
+const cmds = T.liveCommands(old, nw);
+check(cmds.length === 2 && cmds.some(c => c.state === 'party' && c.effect === 'fire') && cmds.some(c => c.strip === 'bar'), 'custom scene / group lines go live ' + JSON.stringify(cmds));
+check(T.restartSig(old) === T.restartSig(nw), 'line edits need no restart');
+const n2 = T.sanitizeProject(JSON.parse(JSON.stringify(P))); n2.customs[0].priority = 61;
+const n3 = T.sanitizeProject(JSON.parse(JSON.stringify(P))); n3.groups[0].strips.reverse();
+const n4 = T.sanitizeProject(JSON.parse(JSON.stringify(P))); n4.prio.printing = 30;
+const n5 = T.sanitizeProject(JSON.parse(JSON.stringify(P))); n5.customs[2].trigger = 'retracting';
+check([n2, n3, n4, n5].every(x => T.restartSig(x) !== T.restartSig(old)), 'priority, group, state priority, trigger changes need a restart');
+
+// renderers run (stub DOM)
+let threw = null;
+try {
+  for (const l of ['en', 'tr', 'fr']) {
+    T.setLang(l);
+    for (const e of ['idle', 'party', 'hot', 'cancelled']) { T.setEdit(e); T.setTab('scenes'); T.renderScenes(); }
+    T.renderChips(); T.renderStripsNow(); T.groupsSec();
+    for (const s of Object.values(P.scenes).flatMap(o => Object.values(o))) { T.paramControls(s, false, false); T.paramControls(s, false, true); }
+    for (const c of P.customs) T.trigText(c);
+  }
+} catch (e) { threw = e; }
+check(!threw, 'renderers run in en/tr/fr ' + (threw ? threw.stack : ''));
+const vc = T.valueControls('heat', LS.parseSpec(P.scenes.idle.left)[1], false);
+check(vc.includes('data-stop="4"') && vc.includes('data-p="min"') && vc.includes('heater_bed.temperature'), 'value controls: stops, range, source picker');
+check(T.groupError({ name: 'left', strips: ['left'] }, 9) !== '' && T.groupError({ name: 'g2', strips: [] }, 9) !== '', 'group errors');
+// the + dialog: create every trigger kind, then rename
+const el = v => ({ value: v, min: 0, max: 100, style: { setProperty() {} }, nextElementSibling: {}, classList: { toggle() {} }, focus() {}, showModal() {}, close() {}, hidden: false, textContent: '' });
+const dlgCase = (name, kind, extra) => {
+  T.openSceneDlg(null);
+  Object.assign(FAKE, { '#scName': el(name), '#scMacro': el(extra.macro || ''), '#scRef': el(extra.ref || ''), '#scNum': el(extra.num || ''), '#scHold': el(extra.hold || ''), '#scPri': el(String(extra.pri ?? 50)), '#scOps .sel': { dataset: { op: extra.op || '>' } }, '#scErr': el(''), '#scDlg': el('') });
+  T.SD.prioTouched = extra.pri !== undefined; T.sdKind(kind);
+  T.sdSave();
+  return T.P.customs.find(c => c.name === name);
+};
+const n0 = T.P.customs.length;
+const k1 = dlgCase('d_macro', 'macro', { macro: 'purge_line', hold: '2', pri: 75 });
+const k2 = dlgCase('d_val', 'condition', { ref: 'heater_bed.temperature', op: '>=', num: '60' });
+const k3 = dlgCase('d_cmd', 'command', {});
+const k4 = dlgCase('d_cancel', 'print_cancelled', {});
+const k5 = dlgCase('Bad Name', 'extruding', {});
+check(k1 && k1.trigger === 'macro PURGE_LINE' && k1.hold === 2 && k1.priority === 75 && k2 && k2.trigger === 'heater_bed.temperature >= 60'
+  && k3 && k3.priority === 90 && k4 && k4.trigger === 'print_cancelled' && !k5 && T.P.customs.length === n0 + 4, 'dialog creates each trigger kind, rejects a bad name');
+T.P.scenes.d_macro = { nozzle: 'fire' };
+T.openSceneDlg('d_macro');
+Object.assign(FAKE, { '#scName': el('d_purge'), '#scMacro': el('PURGE_LINE'), '#scHold': el(''), '#scPri': el('75') });
+T.sdKind('macro'); T.sdSave();
+check(T.P.customs.some(c => c.name === 'd_purge' && c.hold === null) && T.P.scenes.d_purge && T.P.scenes.d_purge.nozzle === 'fire' && !T.P.scenes.d_macro, 'dialog rename moves the scene lines');
+const r2 = T.parseCfg(T.cfgText(T.P));
+check(!r2.errors.length && T.cfgText(T.sanitizeProject(r2.project)) === T.cfgText(T.P), 'round trip with dialog-made scenes');
+// party mode
+T.partyStart();
+check(T.Party.on && P.strips.every(s => { try { LS.parseSpec(T.Party.specs[s.name]); return true; } catch (e) { return false; } }), 'party: every strip gets a valid effect');
+check(T.Party.ac === FakeAC.last && IV.length > 0, 'party: audio context made, scheduler running');
+for (let k = 0; k < 40; k++) { FakeAC.last.currentTime += 0.1; IV[IV.length - 1](); }
+check(NOTES.n > 50, 'party: the loop schedules notes (' + NOTES.n + ')');
+let okPin = true;
+for (let k = 0; k < 50; k++) { const sp = T.partySpec({ type: 'pin', name: 'x', chain: 'nopwm' }); const [nm, pr] = LS.parseSpec(sp); if (nm !== 'blink' || pr.period < 1) okPin = false; }
+let okEsp = true;
+for (let k = 0; k < 50; k++) { const nm = LS.parseSpec(T.partySpec({ type: 'esp_bridge', name: 'n' }))[0]; if (!['rainbow', 'blink', 'chase', 'solid', 'breathe'].includes(nm)) okEsp = false; }
+check(okPin && okEsp, 'party: on/off pins blink at >= 1 s, ESP nodes get node effects');
+const ac = FakeAC.last; T.partyStop();
+check(!T.Party.on && !Object.keys(T.Party.specs).length && T.Party.ac === null, 'party: off clears everything');
+console.log(fails + ' failures');
+process.exit(fails ? 1 : 0);

@@ -105,6 +105,8 @@ input[type=range]::-moz-range-thumb { width:12px; height:12px; border-radius:50%
 .chip.sel { color:var(--text); border-color:var(--sig); background:var(--sig-tint); }
 #topRight { margin-left:auto; display:flex; gap:8px; align-items:center; min-width:0; }
 .iconbtn { min-width:34px; padding:6px 8px; }
+#partyBtn svg { width:18px; height:18px; display:block; }
+#partyBtn[aria-pressed=true] { border-color:var(--sig); background:var(--sig-fill); color:var(--on-sig); }
 #langBtn[aria-expanded=true] { border-color:var(--sig); background:var(--sig-tint); }
 #langMenu { position:fixed; z-index:40; margin:0; padding:4px; list-style:none; min-width:180px; background:var(--sheet); border:1px solid var(--rule); border-radius:10px; box-shadow:0 12px 32px rgba(0,0,0,.35); overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--rule) transparent; }
 #langMenu[hidden] { display:none; }
@@ -260,9 +262,12 @@ body.fab-on #pane { padding-bottom:84px; }
 #fxPop li:hover, #fxPop li.act { background:var(--sig-tint); }
 #fxPop li[aria-selected=true] { box-shadow:inset 3px 0 0 var(--sig); }
 #fxPop li[aria-selected=true] span { font-weight:700; }
-#fab { position:fixed; right:20px; bottom:20px; z-index:15; min-height:42px; padding:8px 16px 7px 14px; border-radius:999px; background:var(--sig-fill); color:var(--on-sig); border-color:var(--sig-fill); box-shadow:0 8px 24px rgba(0,0,0,.35); font-size:14px; }
+#fabBar { position:fixed; right:20px; bottom:20px; z-index:15; display:flex; gap:8px; align-items:center; }
+#fabUndo { min-height:42px; padding:8px 16px; border-radius:999px; background:var(--sheet); box-shadow:0 8px 24px rgba(0,0,0,.35); font-size:14px; }
+#fabUndo[hidden] { display:none; }
+#fab { min-height:42px; padding:8px 16px 7px 14px; border-radius:999px; background:var(--sig-fill); color:var(--on-sig); border-color:var(--sig-fill); box-shadow:0 8px 24px rgba(0,0,0,.35); font-size:14px; }
 #fab:hover:not(:disabled) { background:var(--sig-fill-hi); border-color:var(--sig-fill-hi); }
-#fab[hidden] { display:none; }
+#fab[hidden], #fabBar[hidden] { display:none; }
 #fab span { display:flex; flex-direction:column; align-items:flex-start; line-height:1.2; }
 #fab small { font-size:11px; font-weight:600; opacity:.9; }
 #fab i { width:8px; height:8px; border-radius:50%; background:var(--on-sig); box-shadow:0 0 0 2px color-mix(in srgb,var(--on-sig) 30%,transparent); }
@@ -392,6 +397,27 @@ dialog { background:var(--sheet); color:var(--text); border:1px solid var(--rule
 dialog::backdrop { background:rgba(10,12,14,.55); }
 dialog h3 { font-size:18px; margin-bottom:8px; }
 dialog p { color:var(--dim); margin:0 0 16px; }
+#scDlg { width:min(500px,calc(100vw - 32px)); max-width:none; }
+#scDlg .form { margin:6px 0 16px; }
+#scDlg [hidden] { display:none !important; }
+.pick { display:flex; flex-wrap:wrap; gap:4px; min-width:0; }
+.pick > button { min-height:30px; padding:3px 10px 2px; border-radius:999px; font-size:13px; color:var(--dim); background:var(--raised); box-shadow:none; }
+.pick > button.sel { background:var(--sig-fill); color:var(--on-sig); border-color:var(--sig); }
+.pick > button .x { margin-left:6px; opacity:.7; }
+.chip.add { padding:3px 9px 2px; }
+.chip.add::before { display:none; }
+.chip.add svg { width:13px; height:13px; }
+.chip.cust { font-style:italic; }
+.stops { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.stops .stop { display:inline-flex; align-items:center; gap:2px; }
+.stops .stop button { min-height:28px; padding:2px 7px; box-shadow:none; background:transparent; color:var(--dim); }
+.mm { display:flex; gap:6px; align-items:center; }
+.mm input { width:88px; }
+.trigBox { display:flex; flex-direction:column; gap:8px; border:1px solid var(--rule); border-radius:10px; padding:10px 12px; }
+.trigBox .meta { color:var(--dim); font-size:13px; }
+.grp { border:1px solid var(--rule); border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+.grp .row input[type=text] { flex:1; min-width:0; }
+.fld .err { color:var(--bad); }
 #toast { position:fixed; right:16px; bottom:76px; z-index:20; max-width:min(380px,calc(100vw - 32px)); background:var(--sheet); border:1px solid var(--rule); border-left:4px solid var(--ok); border-radius:8px; padding:9px 14px; box-shadow:0 6px 18px rgba(0,0,0,.25); display:none; }
 #toast.bad { border-left-color:var(--bad); } #toast.warn { border-left-color:var(--warn); }
 
@@ -419,6 +445,7 @@ dialog p { color:var(--dim); margin:0 0 16px; }
   <div id="brand"><img class="logo" src="logo.svg" alt="" aria-hidden="true"><span>Lightspeed</span><small data-t="tagline"></small></div>
   <div id="chips" role="group"></div>
   <div id="topRight">
+    <button id="partyBtn" class="iconbtn" type="button" aria-pressed="false"></button>
     <div id="hudLoad" hidden></div>
     <button id="winBtn" class="iconbtn" type="button"></button>
     <button id="langBtn" class="iconbtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="langMenu"></button>
@@ -453,15 +480,16 @@ dialog p { color:var(--dim); margin:0 0 16px; }
     </div>
   </aside>
 </div>
+<dialog id="scDlg" aria-labelledby="scDlgT"></dialog>
 <dialog id="dlg"><h3 id="dlgTitle"></h3><p id="dlgText"></p><div class="row" style="justify-content:flex-end"><button id="dlgNo" type="button"></button><button id="dlgYes" class="primary" type="button"></button></div></dialog>
 <div id="toast" role="status"></div>
-<button id="fab" type="button" hidden></button>
+<div id="fabBar" hidden><button id="fabUndo" type="button"></button><button id="fab" type="button"></button></div>
 <ul id="fxPop" role="listbox" hidden></ul>
 <ul id="langMenu" role="menu" hidden></ul>
 <script src="third_party/three.min.js"></script>
 <script src="third_party/OrbitControls.js?v=2"></script>
 <script src="third_party/GLTFLoader.js"></script>
-<script src="lightspeed_engine.js?v=0.1.3"></script>
+<script src="lightspeed_engine.js?v=0.2.0"></script>
 <script>
 'use strict';
 const LS = window.Lightspeed;
@@ -522,6 +550,8 @@ const I18N = {
     untilStop: 'Until I stop', stopPreview: 'Stop preview',
     espFixed: 'The ESP node runs this effect itself, at its own fixed speed and size.',
     cfgUpToDate: 'lightspeed.cfg on the printer is up to date.',
+    espBar: 'The ESP node fills its bar in one colour; with the gradient that colour goes from A to B as the value rises.',
+    revert: 'Undo', revertHint: "Drop the edits not saved yet: the page goes back to the printer's lightspeed.cfg", reverted: "Back to the printer's lightspeed.cfg.",
     whyTitle: 'How Lightspeed avoids "Timer too close"',
     whyItems: [
       'MCU chains (NeoPixel / DotStar) get at most 3 % of the MCU time and 25 fps; long chains get a lower rate on their own.',
@@ -620,6 +650,8 @@ const I18N = {
     untilStop: 'Ben durdurana kadar', stopPreview: 'Önizlemeyi durdur',
     espFixed: 'Bu efekti ESP düğümü kendisi oynatır; hızı ve boyutu düğümde sabittir.',
     cfgUpToDate: 'Yazıcıdaki lightspeed.cfg güncel.',
+    espBar: 'ESP düğümü çubuğu tek renkle doldurur; renk geçişi açıkken bu renk değer arttıkça A\'dan B\'ye döner.',
+    revert: 'Geri al', revertHint: 'Kaydedilmemiş değişiklikleri bırak: sayfa yazıcıdaki lightspeed.cfg dosyasına döner', reverted: 'Yazıcıdaki lightspeed.cfg dosyasına dönüldü.',
     whyTitle: 'Lightspeed "Timer too close" hatasını nasıl önler',
     whyItems: [
       'MCU zincirleri (NeoPixel / DotStar) MCU zamanının en fazla %3\'ünü ve 25 fps kullanır; uzun zincirlerin hızı kendiliğinden düşer.',
@@ -2451,6 +2483,15 @@ const MODELS = ['voron24', 'trident', 'ratrig', 'corexy', 'cartesian', 'voron0']
 const OUTPUTS = ['neopixel', 'dotstar', 'wled', 'esp_bridge', 'pin'];
 const MODEL_SIZE = { voron24: [350, 350, 340], trident: [250, 250, 250], ratrig: [300, 300, 300], corexy: [330, 330, 397], cartesian: [220, 220, 250], voron0: [120, 120, 120] };
 const NAME_RE = /^[a-z0-9_]+$/;
+const RESERVED = ['all', 'trigger', 'priority', 'hold'];
+const CUSTOM_COLS = ['#ff7ad9', '#7ad7ff', '#c3f06b', '#ffb35c', '#a58bff', '#5ce0c0', '#ff8f8f'];
+const customCol = n => { const i = P.customs.findIndex(c => c.name === n); return CUSTOM_COLS[(i < 0 ? 0 : i) % CUSTOM_COLS.length]; };
+const isCustom = n => P.customs.some(c => c.name === n);
+const sceneLabel = n => (UI_STATES.includes(n) ? T().states[n] : n);
+const sceneCol = n => STATE_COL[n] || customCol(n);
+const trigKind = tr => { try { return LS.parseTrigger(tr)[0]; } catch (e) { return 'command'; } };
+const defPrio = tr => trigKind(tr) === 'command' ? LS.COMMAND_PRIORITY : LS.DEFAULT_PRIORITY;
+const groupByName = n => P.groups.find(g => g.name === n);
 const ID_RE = /^[A-Za-z0-9_]+$/;
 const PIN_RE = /^[!^~]*[A-Za-z0-9_.]+$/;
 const HOST_RE = /^([0-9]{1,3}\.){3}[0-9]{1,3}(:[0-9]{1,5})?$|^[A-Za-z0-9][A-Za-z0-9.-]*(:[0-9]{1,5})?$/;
@@ -2471,7 +2512,7 @@ function defaultProject() {
       { name: 'hotend', place: ['toolhead_logo'], count: 3, type: 'neopixel', chain: 'hotend_rgb', first: 1, ip: '', start: 0, prefix: 'hotend' },
       { name: 'bed', place: ['bed_skirt'], count: 40, type: 'esp_bridge', prefix: 'led', chain: 'bed_rgb', first: 1, ip: '', start: 0 },
     ],
-    scenes, hw: {}, extra: [],
+    scenes, hw: {}, extra: [], customs: [], groups: [], prio: {},
   };
 }
 // ---- hardware sections ([neopixel x] / [dotstar x] / [output_pin x]) written into lightspeed.cfg
@@ -2543,6 +2584,28 @@ function sanitizeProject(p) {
       for (const k in sc) { try { out.scenes[st][k] = normSpec(sc[k]); } catch (e) { /* skip bad */ } }
     }
   }
+  // custom scenes (their lines live in scenes[name]), groups, state priorities
+  out.customs = [];
+  for (const c of (Array.isArray(p.customs) ? p.customs : [])) {
+    const name = String(c && c.name || '');
+    if (!NAME_RE.test(name) || LS.STATES.includes(name) || RESERVED.includes(name) || out.customs.some(x => x.name === name)) continue;
+    let trigger = 'command';
+    try { const [k, a] = LS.parseTrigger(c.trigger ?? 'command'); trigger = LS.formatTrigger(k, a); } catch (e) { /* keep command */ }
+    const pr = Math.round(+c.priority);
+    const hold = c.hold === null || c.hold === undefined || c.hold === '' || !isFinite(+c.hold) ? null : Math.max(0, +c.hold);
+    out.customs.push({ name, trigger, priority: isFinite(pr) && c.priority !== null && c.priority !== '' ? clamp(pr, -1000, 1000) : defPrio(trigger), hold });
+    const sc = p.scenes && p.scenes[name], o = out.scenes[name] = {};
+    if (sc && typeof sc === 'object') for (const k in sc) { try { o[k] = normSpec(sc[k]); } catch (e) { /* skip bad */ } }
+  }
+  out.groups = [];
+  for (const g of (Array.isArray(p.groups) ? p.groups : [])) {
+    const name = String(g && g.name || '');
+    if (!g || out.groups.some(x => x.name === name && name)) continue;
+    const st = (Array.isArray(g.strips) ? g.strips : []).map(String).filter((x, i, a) => x && a.indexOf(x) === i);
+    out.groups.push({ name, strips: st });
+  }
+  out.prio = {};
+  if (p.prio && typeof p.prio === 'object') for (const st of UI_STATES) if (isFinite(parseInt(p.prio[st]))) out.prio[st] = parseInt(p.prio[st]);
   out.hw = {};
   if (p.hw && typeof p.hw === 'object') for (const k in p.hw) if (/^(neopixel|dotstar|pin) \S+$/.test(k) && p.hw[k]) out.hw[k] = sanitizeHw(p.hw[k], k);
   out.extra = Array.isArray(p.extra) ? p.extra.map(String).filter(x => x.trim()) : [];
@@ -2554,6 +2617,7 @@ function sanitizeProject(p) {
 function stripErrors(s, i, strips = P.strips) {
   const t = T(), e = {};
   if (!NAME_RE.test(s.name)) e.name = t.e_name;
+  else if (RESERVED.includes(s.name)) e.name = cm('e_reserved', `'${s.name}' is reserved in scenes: pick another name.`, `'${s.name}' sahnelerde ayrılmış bir sözcük: başka bir ad seçin.`, s.name);
   else if (strips.some((o, j) => j !== i && o.name === s.name)) e.name = t.e_dup;
   if (!(s.count >= 1 && s.count <= 500)) e.count = t.e_count;
   if (s.type === 'neopixel' || s.type === 'dotstar' || s.type === 'pin') {
@@ -2576,7 +2640,14 @@ function stripErrors(s, i, strips = P.strips) {
   if (s.type === 'esp_bridge' && !ID_RE.test(s.prefix)) e.prefix = t.e_prefix;
   return e;
 }
-function allErrors() { return P.strips.reduce((n, s, i) => n + Object.keys(stripErrors(s, i)).length, 0); }
+function groupError(g, i, p = P) {
+  if (!NAME_RE.test(g.name) || RESERVED.includes(g.name)) return cm('gErrName', 'name: lowercase letters, digits and _ only', 'ad: yalnızca küçük harf, rakam ve _');
+  if (p.groups.some((o, j) => j !== i && o.name === g.name)) return cm('gErrDup', 'two groups have this name', 'iki grup bu adı kullanıyor');
+  if (p.strips.some(s => s.name === g.name)) return cm('gErrStrip', 'a strip has this name', 'bir şerit bu adı kullanıyor');
+  if (!g.strips.length) return cm('gErrEmpty', 'pick at least one strip', 'en az bir şerit seçin');
+  return '';
+}
+function allErrors() { return P.strips.reduce((n, s, i) => n + Object.keys(stripErrors(s, i)).length, 0) + P.groups.filter((g, i) => groupError(g, i)).length; }
 
 // ------------------------------------------------------------------ cfg export
 const fmtNum = v => String(Math.round(v * 1000) / 1000);
@@ -2617,10 +2688,18 @@ function cfgText(p = P) {
     if (s.spacing > 0) L.push(`spacing: ${fmtNum(s.spacing)}`);
     L.push(`place: ${s.place.join(', ')}`);
   }
+  for (const g of (p.groups || [])) L.push('', `[lightspeed group ${g.name}]`, `strips: ${g.strips.join(', ')}`);
   for (const st of UI_STATES) {
     const sc = p.scenes[st];
     if (!sc) continue;
     L.push('', `[lightspeed scene ${st}]`);
+    if (p.prio && p.prio[st] !== undefined) L.push(`priority: ${p.prio[st]}`);
+    for (const k of sceneKeys(sc, p.strips)) L.push(`${k}: ${sc[k]}`);
+  }
+  for (const c of (p.customs || [])) {
+    const sc = p.scenes[c.name] || {};
+    L.push('', `[lightspeed scene ${c.name}]`, `trigger: ${c.trigger}`, `priority: ${c.priority}`);
+    if (c.hold !== null && c.hold !== undefined) L.push(`hold: ${fmtNum(c.hold)}`);
     for (const k of sceneKeys(sc, p.strips)) L.push(`${k}: ${sc[k]}`);
   }
   for (const raw of (p.extra || [])) L.push('', raw);
@@ -2651,9 +2730,9 @@ function parseCfg(text) {
   const errors = [], warnings = [];
   const err = (ln, m) => errors.push({ ln, m });
   const warn = (ln, m) => warnings.push({ ln, m });
-  const p = { v: 1, model: P.model, size: P.size.slice(), brightness: 0.6, strips: [], scenes: {}, guard: [], hw: {}, extra: [] };
-  const sceneRefs = [];
-  let sec = null, cur = null, sawMain = false;
+  const p = { v: 1, model: P.model, size: P.size.slice(), brightness: 0.6, strips: [], scenes: {}, guard: [], hw: {}, extra: [], customs: [], groups: [], prio: {} };
+  const sceneRefs = [], groupRefs = [];
+  let sec = null, cur = null, sawMain = false, scn = null;  // scn: the scene section being read {name, custom}
   // Sections that are not Lightspeed's are kept word for word (raw lines, comments included);
   // trailing blank / comment lines belong to the next section.
   const rawLines = String(text).split(/\r?\n/), rawAt = {};
@@ -2688,7 +2767,7 @@ function parseCfg(text) {
       }
       if (parts.length === 1) { sec = 'main'; sawMain = true; return; }
       if (parts[1] === 'strip' && parts.length === 3) {
-        if (!NAME_RE.test(parts[2])) { err(ln, cm('cfgNameBad', `strip name '${parts[2]}': lowercase letters, digits and _ only`, `şerit adı '${parts[2]}': yalnızca küçük harf, rakam ve _`, parts[2])); sec = 'bad'; return; }
+        if (!NAME_RE.test(parts[2]) || RESERVED.includes(parts[2])) { err(ln, cm('cfgNameBad', `strip name '${parts[2]}': lowercase letters, digits and _ only`, `şerit adı '${parts[2]}': yalnızca küçük harf, rakam ve _`, parts[2])); sec = 'bad'; return; }
         if (p.strips.some(s => s.name === parts[2])) { err(ln, cm('cfgStripTwice', `strip '${parts[2]}' defined twice`, `'${parts[2]}' şeridi iki kez tanımlanmış`, parts[2])); sec = 'bad'; return; }
         sec = 'strip';
         cur = { name: parts[2], place: '', count: 0, type: '', chain: '', first: 1, ip: '', start: 0, prefix: '', brightness: 1, color: 'ffffff', spacing: 0, _ln: ln, _leds: null };
@@ -2696,8 +2775,19 @@ function parseCfg(text) {
         return;
       }
       if (parts[1] === 'scene' && parts.length === 3) {
-        if (!LS.STATES.includes(parts[2])) { err(ln, cm('cfgUnkState', `unknown state '${parts[2]}' (one of ${UI_STATES.join(', ')})`, `bilinmeyen durum '${parts[2]}' (şunlardan biri: ${UI_STATES.join(', ')})`, parts[2], UI_STATES.join(', '))); sec = 'bad'; return; }
-        sec = 'scene'; cur = p.scenes[parts[2]] = p.scenes[parts[2]] || {};
+        const nm = parts[2];
+        if (!LS.STATES.includes(nm)) {  // a custom scene
+          if (!NAME_RE.test(nm) || RESERVED.includes(nm)) { err(ln, cm('cfgUnkState', `scene name '${nm}': a state (${UI_STATES.join(', ')}) or a name of lowercase letters, digits and _`, `sahne adı '${nm}': bir durum (${UI_STATES.join(', ')}) ya da küçük harf, rakam ve _ ile bir ad`, nm, UI_STATES.join(', '))); sec = 'bad'; return; }
+          if (p.customs.some(c => c.name === nm)) { err(ln, cm('cfgSceneTwice', `scene '${nm}' defined twice`, `'${nm}' sahnesi iki kez tanımlanmış`, nm)); sec = 'bad'; return; }
+          p.customs.push({ name: nm, trigger: 'command', priority: null, hold: null });
+        }
+        sec = 'scene'; cur = p.scenes[nm] = p.scenes[nm] || {}; scn = { name: nm, custom: !LS.STATES.includes(nm) };
+        return;
+      }
+      if (parts[1] === 'group' && parts.length === 3) {
+        if (!NAME_RE.test(parts[2]) || RESERVED.includes(parts[2])) { err(ln, cm('cfgGroupName', `group name '${parts[2]}': lowercase letters, digits and _ only`, `grup adı '${parts[2]}': yalnızca küçük harf, rakam ve _`, parts[2])); sec = 'bad'; return; }
+        if (p.groups.some(g => g.name === parts[2])) { err(ln, cm('cfgGroupTwice', `group '${parts[2]}' defined twice`, `'${parts[2]}' grubu iki kez tanımlanmış`, parts[2])); sec = 'bad'; return; }
+        sec = 'group'; cur = { name: parts[2], strips: [] }; p.groups.push(cur); groupRefs.push([ln, cur]);
         return;
       }
       err(ln, cm('cfgUnkSection', `unknown section [${m[1]}]`, `bilinmeyen bölüm [${m[1]}]`, m[1])); sec = 'bad'; return;
@@ -2743,6 +2833,17 @@ function parseCfg(text) {
       } else if (key === 'spacing') {
         const v = Number(val); if (val === '' || !isFinite(v) || v < 0 || v > 200) err(ln, cm('cfgSpacing', 'spacing must be 0..200 mm', 'spacing 0..200 mm olmalı')); else cur.spacing = v;
       } else warn(ln, cm('cfgUnkOption', `unknown option '${key}' ignored`, `bilinmeyen seçenek '${key}' yok sayıldı`, key));
+    } else if (sec === 'group') {
+      if (key === 'strips') cur.strips = val.split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+      else warn(ln, cm('cfgUnkOption', `unknown option '${key}' ignored`, `bilinmeyen seçenek '${key}' yok sayıldı`, key));
+    } else if (sec === 'scene' && (key === 'trigger' || key === 'priority' || key === 'hold')) {
+      const meta = scn.custom ? p.customs.find(c => c.name === scn.name) : null;
+      if (key === 'priority') {
+        if (!/^-?\d+$/.test(val)) { err(ln, cm('cfgPrio', 'priority must be a whole number', 'priority bir tam sayı olmalı')); return; }
+        if (meta) meta.priority = +val; else p.prio[scn.name] = +val;
+      } else if (!meta) err(ln, cm('cfgTrigState', `${key} is only for custom scenes (a printer state has its own trigger)`, `${key} yalnızca özel sahneler içindir (yazıcı durumunun kendi tetikleyicisi var)`, key));
+      else if (key === 'hold') { const v = Number(val); if (val === '' || !isFinite(v) || v < 0) err(ln, cm('cfgHold', 'hold must be 0 or more seconds', 'hold 0 veya daha fazla saniye olmalı')); else meta.hold = v; }
+      else { try { const [k2, a2] = LS.parseTrigger(val); meta.trigger = LS.formatTrigger(k2, a2); } catch (e) { err(ln, e.message); } }
     } else if (sec === 'scene') {
       if (key !== 'all' && !NAME_RE.test(key)) { err(ln, cm('cfgNotStrip', `'${key}' is not a strip name`, `'${key}' bir şerit adı değil`, key)); return; }
       try { const [n, prm] = LS.parseSpec(val); cur[key] = LS.formatSpec(n, prm); if (key !== 'all') sceneRefs.push([ln, key]); }
@@ -2791,11 +2892,19 @@ function parseCfg(text) {
     h.opts = src;
     p.hw[o.key] = h;
   }
-  for (const [ln, k] of sceneRefs) if (!p.strips.some(s => s.name === k)) err(ln, cm('cfgSceneStrip', `scene names strip '${k}' which is not defined`, `sahne tanımlı olmayan '${k}' şeridini kullanıyor`, k));
+  for (const [ln, k] of sceneRefs) if (!p.strips.some(s => s.name === k) && !p.groups.some(g => g.name === k)) err(ln, cm('cfgSceneStrip', `scene names strip '${k}' which is not defined`, `sahne tanımlı olmayan '${k}' şeridini kullanıyor`, k));
+  for (const [ln, g] of groupRefs) {
+    if (!g.strips.length) err(ln, cm('cfgGroupEmpty', `group '${g.name}' needs strips: a, b, ...`, `'${g.name}' grubu için strips: a, b, ... gerekli`, g.name));
+    for (const m of g.strips) if (!p.strips.some(s => s.name === m)) err(ln, cm('cfgGroupStrip', `group '${g.name}' lists strip '${m}' which is not defined`, `'${g.name}' grubu tanımlı olmayan '${m}' şeridini içeriyor`, g.name, m));
+    if (new Set(g.strips).size !== g.strips.length) err(ln, cm('cfgGroupRep', `group '${g.name}' lists a strip twice`, `'${g.name}' grubunda bir şerit iki kez var`, g.name));
+    if (p.strips.some(s => s.name === g.name)) err(ln, cm('gErrStrip', 'a strip has this name', 'bir şerit bu adı kullanıyor'));
+  }
+  for (const c of p.customs) if (c.priority === null) c.priority = defPrio(c.trigger);
   return { project: p, errors, warnings };
 }
 // ------------------------------------------------------------------ simulation state
-const SIM = { timer: null, state: 'idle', since: 0, heat: 0, progress: 0, p0: 0, changeT: -10, fadeFrom: {}, frozen: {}, last: {}, pos: [0.5, 0.75, 0.2], t: 0 };
+const SIM = { timer: null, state: 'idle', since: 0, heat: 0, progress: 0, p0: 0, changeT: -10, fadeFrom: {}, frozen: {}, last: {}, pos: [0.5, 0.75, 0.2], t: 0,
+  custom: {}, trig: {}, liveSince: {}, vars: {}, planKey: {}, fadeAt: {} };  // custom: scenes switched on by a chip {name: since}
 let selStrip = -1, selLed = -1;
 
 // ------------------------------------------------------------------ three.js scene
@@ -2931,9 +3040,31 @@ function toolhead(M) {
   th.add(mesh(G.CONE, M.brass, 3.6, 6, 3.6, 0, 3, 0).rotateX(Math.PI));
   return th;
 }
+// Only the model and toolhead on screen stay in memory: switching frees the others (GPU buffers + JS objects);
+// picking one again downloads it again (usually from the browser cache)
+function cadFree(reg, keep) {
+  for (const k of Object.keys(reg)) {
+    const e = reg[k];
+    if (keep.includes(k) || e.state === 'loading') continue;
+    const seen = new Set();
+    const walk = o => {
+      if (!o || typeof o !== 'object' || seen.has(o)) return; seen.add(o);
+      if (o.isObject3D) {
+        o.traverse(m => {
+          if (m.geometry) m.geometry.dispose();
+          for (const x of [].concat(m.material || [])) { for (const v of Object.values(x)) if (v && v.isTexture) v.dispose(); x.dispose(); }
+        });
+        return;
+      }
+      if (Array.isArray(o)) o.forEach(walk); else if (Object.getPrototypeOf(o) === Object.prototype) Object.values(o).forEach(walk);
+    };
+    walk(e.prep); delete reg[k];
+  }
+}
 function buildPrinter() {
   if (!G.ok) return;
   if (G.printer) G.scene.remove(G.printer);
+  cadFree(CAD.M, [P.model]); cadFree(CAD.TH, [thNeeded()].filter(Boolean));
   const cm = CAD_FILES[P.model] ? cadAsset('M', P.model) : null;
   if (cm && cm.state !== 'fail') {  // the real CAD model; the drawing below only when it cannot load
     const k = thNeeded(); if (k) cadAsset('TH', k);
@@ -3160,9 +3291,9 @@ const CAD_ADAPT = {
     },
   }),
   trident: j => cadVoronJson(j, { cut: [[108, 145], [114, 159], [-201, 1e9]], rigid: 120 }),
-  // V0: inner z_top sits under the Y rails and the gantry ends pass under the top side rails: the top places sit on the
-  // side rails, inside the top hat
-  voron0: j => cadVoronJson(j, { cut: [[43, 87], [37, 66], [-89, 1e9]], rigid: 80, topZ: j.top_side_rails ? j.top_side_rails.max[2] + 6 : undefined }),
+  // V0: the cube's own top (inner z_top) sits under the Y rails; the top places go under the top hat's 1515 frame,
+  // the real top of the printer
+  voron0: j => cadVoronJson(j, { cut: [[43, 87], [37, 66], [-89, 1e9]], rigid: 80, topZ: j.groups.frame.max[2] - (j.extrusion.profile || 15) }),
   // VzBot: the gantry rides at the height of the top extrusions (z 44.6..75); the top places hang just under it
   corexy: j => cadBoxJson(j, { cut: [[142, 200], [134, 260], [-299, 1e9]], rigid: 120, topZ: Math.min(j.extrusion.top, j.groups.gantry_y.min[2] - 1.5) }),
   ratrig: j => cadBoxJson(j, { cut: [[118, 237], [142, 240], [-220, 1e9]], rigid: 120 }),
@@ -3691,16 +3822,69 @@ const chainInfo = () => {
   }
   return ch;
 };
-function effScenes() {
-  if (Object.keys(P.scenes).length) return P.scenes;
-  const o = {}; for (const s of UI_STATES) o[s] = { all: LS.DEFAULT_SCENES[s] }; return o;
+const hasStateScenes = () => UI_STATES.some(s => P.scenes[s]);
+function effScenes() {  // only the printer-state scenes decide whether the built-in defaults apply (as the module)
+  if (hasStateScenes()) return P.scenes;
+  const o = {}; for (const s of UI_STATES) o[s] = { all: LS.DEFAULT_SCENES[s] };
+  for (const c of P.customs) o[c.name] = P.scenes[c.name] || {};
+  return o;
 }
-function stripSpec(state, name) {
+const stripList = () => P.strips.map(s => [s.name, s.count]);
+const groupList = () => P.groups.filter((g, i) => !groupError(g, i)).map(g => [g.name, g.strips]);
+function stateCand(state) {
   const sc = effScenes(), r = LS.resolveScene(state, sc);
-  if (!r) return 'off';
-  return sc[r][name] ?? sc[r].all ?? 'off';
+  return [state, P.prio[state] ?? LS.BUILTIN_PRIORITY[state] ?? 0, SIM.since, r ? sc[r] : {}];
 }
-function ctxNow(t) { return { t, progress: SIM.progress, heat: SIM.heat, pos: SIM.pos.slice() }; }
+// a state on its own (a state test): spec of one strip
+function stripSpec(state, name) {
+  const h = LS.planStrips(stripList(), groupList(), [stateCand(state)])[name];
+  return (h && h[2]) || 'off';
+}
+// custom scenes on in the simulator: {name: since}. A state test shows only its state (as the printer); connected,
+// the printer's own active scenes; offline, extruding / retracting / value triggers follow the simulation.
+function simActive() {
+  const on = {};
+  if (SIM.timer && !SIM.timer.scene) return on;
+  if (Live.status && Array.isArray(Live.status.scenes_active)) {
+    for (const n of Live.status.scenes_active) if (isCustom(n)) { SIM.liveSince[n] = SIM.liveSince[n] ?? SIM.t; on[n] = SIM.liveSince[n]; }
+    for (const n in SIM.liveSince) if (!(n in on)) delete SIM.liveSince[n];
+  } else for (const n in SIM.trig) if (SIM.trig[n].on) on[n] = SIM.trig[n].since;
+  for (const n in SIM.custom) on[n] = SIM.custom[n];
+  return on;
+}
+function simVar(ref) {
+  if (ref === 'print_stats.progress' || ref === 'display_status.progress') return SIM.progress;
+  if (ref in SIM.vars) return SIM.vars[ref];
+  if ((ref + '.temperature') in SIM.vars) return SIM.vars[ref + '.temperature'];
+  return null;
+}
+function simTriggers(t) {  // offline only: the same rules as the module's triggers
+  for (const c of P.customs) {
+    let k, a; try { [k, a] = LS.parseTrigger(c.trigger); } catch (e) { continue; }
+    if (!['extruding', 'retracting', 'condition'].includes(k)) { delete SIM.trig[c.name]; continue; }
+    const tr = SIM.trig[c.name] = SIM.trig[c.name] || { on: false, since: 0, last: null };
+    let level = false;
+    if (k === 'condition') { const v = simVar(a[0]); level = v !== null && LS.compare(v, a[1], a[2]); }
+    else { const v = SIM.vars['motion_report.live_extruder_velocity'] || 0; level = k === 'extruding' ? v > LS.MOTION_SPEED : v < -LS.MOTION_SPEED; }
+    if (level) tr.last = t;
+    const linger = (c.hold || 0) + (k === 'condition' ? 0 : 0.3);
+    const on = level || (tr.last !== null && t - tr.last < linger);
+    if (on && !tr.on) tr.since = t;
+    tr.on = on;
+  }
+}
+function simPlan() {
+  const act = simActive(), cands = [stateCand(SIM.state)];
+  for (const c of P.customs) if (c.name in act) cands.push([c.name, c.priority, act[c.name], P.scenes[c.name] || {}]);
+  return LS.planStrips(stripList(), groupList(), cands);
+}
+function ctxNow(t) { return { t, progress: SIM.progress, heat: SIM.heat, pos: SIM.pos.slice(), vars: SIM.vars, ranges: (Live.status && Live.status.ranges) || {} }; }
+// a preview bar of a value-driven effect not running now: sweep its source over its whole min..max
+function sweepCtx(ctx, nm, pr, w) {
+  if ((nm !== 'progress' && nm !== 'heat') || pr.source === 'progress' || pr.source === 'heat') return ctx;
+  const [lo, hi] = LS.sourceRange(pr, ctx);
+  return Object.assign({}, ctx, { vars: { [pr.source]: lo + w * (hi - lo) } });
+}
 // a single-colour light: on or off in its own colour (same rule as the printer)
 function pinFrame(f, s) {
   const on = f.length && Math.max(...f[0]) * P.brightness * (s.brightness ?? 1) >= 0.25 ? 1 : 0;
@@ -3711,21 +3895,88 @@ const stripByName = n => P.strips.find(x => x.name === n);
 const isPinKey = k => { const x = stripByName(k); return !!x && x.type === 'pin'; };
 const pinPwm = x => !!(P.hw[hwKey(x)] && P.hw[hwKey(x)].pwm);
 const pinEffects = x => ['off', 'solid', 'blink'].concat(pinPwm(x) ? ['breathe'] : []);
-function stripFrame(s, t, chains) {
-  const live = SIM.timer ? null : Preview.overrides[s.name];  // a state preview shows every strip in that state's scene, manual ones too
-  const spec = live || stripSpec(SIM.state, s.name);
+function espBar(f, p) {  // the node draws its bar in one colour: the value's colour (as the module sends it)
+  const c = LS.valueColor('progress', p, ctxNow(SIM.t));
+  return f.map(px => { const m = Math.max(...px) > 0.001 ? 1 : 0; return [c[0] * m, c[1] * m, c[2] * m]; });
+}
+// ---- party frames on the page: many colours at once, on the beat (sparkles, rainbow waves, halves that swap)
+const PARTY_MODES = ['wave', 'sparkle', 'halves', 'quarters', 'strobe', 'bounce', 'blocks', 'sparkle'];
+const pHash = (i, j) => { const x = Math.sin(i * 12.9898 + j * 78.233) * 43758.5453; return x - Math.floor(x); };
+function partyBeat() { return Party.ac ? Math.max(0, (Party.ac.currentTime - Party.t0) * PARTY_BPM / 60) : SIM.t * PARTY_BPM / 60; }
+function partyFrame(s, n) {
+  const mode = Party.modes[s.name] || 'wave', B = partyBeat(), b = Math.floor(B), ph = B - b, seed = Party.seed[s.name] || 0;
+  const hue = h => LS.hsv(((h % 1) + 1) % 1, 1, 1), dim = c => c.map(x => x * 0.04);
+  const out = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const u = n > 1 ? i / (n - 1) : 0.5;
+    let c;
+    switch (mode) {
+      case 'wave': c = hue(u * 1.2 - B * 0.25 + seed); break;  // rainbow running along the strip
+      case 'sparkle': {  // colourful glitter: random LEDs flash in random colours, a slow rainbow glows under it
+        const k = Math.floor(B * 4), r = pHash(i + seed * 97, k);
+        c = r > 0.72 ? hue(pHash(i, k + 7)).map(x => x * (1 - ((B * 4) % 1) * 0.6)) : dim(hue(u + B * 0.1)).map(x => x * 4);
+        break;
+      }
+      case 'halves': case 'quarters': {  // one part lights on each beat, the next part on the next beat
+        const parts = mode === 'halves' ? 2 : 4, part = Math.min(parts - 1, Math.floor(u * parts));
+        const on = part === b % parts, fade = Math.max(0, 1 - ph * 1.4);
+        c = on ? hue(b * 0.17 + seed + part * 0.25).map(x => x * (0.35 + 0.65 * fade)) : [0, 0, 0];
+        break;
+      }
+      case 'strobe': {  // colour flashes on every 8th note
+        const e = Math.floor(B * 2), on = (B * 2) % 1 < 0.35;
+        c = on ? hue(e * 0.29 + seed) : [0, 0, 0];
+        break;
+      }
+      case 'bounce': {  // a level jumps up on each beat from the middle out and falls back
+        const lvl = Math.pow(1 - ph, 1.6), d = Math.abs(u - 0.5) * 2;
+        c = d <= lvl ? hue(d * 0.6 + b * 0.13 + seed) : [0, 0, 0];
+        break;
+      }
+      default: {  // blocks of colour stepping along on every beat
+        const size = Math.max(2, Math.round(n / 6)), k = Math.floor(i / size) + b;
+        c = hue(k * 0.21 + seed);
+      }
+    }
+    out[i] = c;
+  }
+  return out;
+}
+function stripFrame(s, t, chains, plan, gcache) {
+  if (Party.on) {
+    let f = partyFrame(s, s.count);
+    if (s.type === 'pin') { const on = Math.floor(partyBeat()) % 2 === 0; f = f.map(() => on ? hexRgb(s.color || 'ffffff') : [0, 0, 0]); }
+    else if ((s.brightness ?? 1) < 1) f = f.map(c => c.map(x => x * s.brightness));
+    return f;
+  }
+  const live = (Party.on && Party.specs[s.name]) || (SIM.timer ? null : Preview.overrides[s.name]);  // a state preview shows every strip in that state's scene, manual ones too
+  const hit = (plan && plan[s.name]) || [null, null, null, 0, s.count];
+  const spec = live || hit[2] || 'off';
   const [name, params] = compiled(spec);
+  if (!live) {  // the scene this strip shows changed: crossfade this strip (as the module)
+    const key = hit[0] + '|' + hit[1];
+    if (SIM.planKey[s.name] !== undefined && SIM.planKey[s.name] !== key) { SIM.fadeFrom[s.name] = SIM.last[s.name]; SIM.fadeAt[s.name] = t; }
+    SIM.planKey[s.name] = key;
+  }
+  const group = !live && !(hit[3] === 0 && hit[4] === s.count);
+  const draw = ctx => {
+    if (!group) return LS.render(name, params, s.count, ctx);
+    const gk = hit[0] + '|' + hit[1];
+    if (!gcache[gk]) gcache[gk] = LS.render(name, params, hit[4], ctx);
+    return gcache[gk].slice(hit[3], hit[3] + s.count);
+  };
   const mcu = s.type === 'neopixel' || s.type === 'dotstar';
   const tt = t;  // drawn smoothly at display rate; the real MCU frame rate is shown in the HUD
   if (mcu) {
     const ch = chains[s.type + ' ' + s.chain];
     if (SIM.state === 'homing' || SIM.state === 'probing') {
-      if (!SIM.frozen[s.name]) SIM.frozen[s.name] = (ch && ch.leds > 16 && SIM.last[s.name] && SIM.last[s.name].length === s.count) ? SIM.last[s.name] : LS.render(name, params, s.count, ctxNow(t));
+      if (!SIM.frozen[s.name]) SIM.frozen[s.name] = (ch && ch.leds > 16 && SIM.last[s.name] && SIM.last[s.name].length === s.count) ? SIM.last[s.name] : draw(ctxNow(t));
       return SIM.frozen[s.name];
     }
   }
-  let f = LS.render(name, params, s.count, ctxNow(tt));
-  const v = (t - SIM.changeT) / 0.6;
+  let f = draw(ctxNow(tt));
+  if (s.type === 'esp_bridge' && name === 'progress' && (params.gradient || params.colors)) f = espBar(f, params);
+  const v = (t - Math.max(SIM.changeT, SIM.fadeAt[s.name] ?? -10)) / 0.6;
   if (v < 1 && SIM.fadeFrom[s.name]) f = LS.crossfade(SIM.fadeFrom[s.name], f, Math.max(0, v));
   if (s.type === 'pin') f = pinFrame(f, s);
   else if ((s.brightness ?? 1) < 1) f = f.map(c => c.map(x => x * s.brightness));
@@ -3741,9 +3992,10 @@ function updateLeds(t) {
   const LU = G.LU; LU.lc.value.forEach(c => c.setRGB(0, 0, 0));
   const scale = clamp(Math.min(P.size[0], P.size[1]) / 350, 0.5, 1.4);
   G.glowMat.size = 130 * scale;
+  const plan = simPlan(), gcache = {};
   P.strips.forEach((s, si) => {
     const pts = stripPoints(s);
-    const frame = stripFrame(s, t, chains);
+    const frame = stripFrame(s, t, chains, plan, gcache);
     SIM.last[s.name] = frame;
     const sel = si === selStrip;
     const rad = (s.place.every(x => x === 'toolhead_logo' || x === 'nozzle') ? 3.2 : 4.4) * scale * (sel ? 1.25 : 1);
@@ -3842,6 +4094,18 @@ function stepSim(t, dt) {
     case 'error': case 'shutdown': SIM.heat = Math.max(0, SIM.heat - dt / 8); break;
     case 'homing': case 'probing': SIM.heat = Math.max(0, SIM.heat - dt / 30); break;
   }
+  // value sources follow the simulation: temperatures with the heat, the extruder pushes while printing with short
+  // retracts every few seconds, the part fan runs while printing
+  const pr = SIM.state === 'printing', ph = el % 2.4;
+  SIM.vars = {
+    'extruder.temperature': 22 + 228 * SIM.heat, 'extruder.target': SIM.heat > 0.02 ? 250 : 0,
+    'heater_bed.temperature': 22 + 88 * SIM.heat, 'heater_bed.target': SIM.heat > 0.02 ? 110 : 0,
+    'fan.speed': pr ? 1 : 0, 'display_status.progress': SIM.progress, 'print_stats.progress': SIM.progress,
+    'motion_report.live_extruder_velocity': pr ? (ph < 0.25 ? -30 : 3 + 1.5 * Math.sin(el * 3)) : 0,
+  };
+  for (const o of (Live.objects || [])) if (/^temperature_sensor /.test(o)) SIM.vars[o + '.temperature'] = 22 + 28 * SIM.heat;
+  SIM.vars['temperature_sensor chamber.temperature'] = SIM.vars['temperature_sensor chamber.temperature'] ?? 22 + 28 * SIM.heat;
+  if (!Live.status) simTriggers(t);
   const [tp, k] = targetPos(dt);
   if (k > 0) { const a = 1 - Math.exp(-dt * k); for (let j = 0; j < 3; j++) SIM.pos[j] += (clamp(tp[j], 0, 1) - SIM.pos[j]) * a; }
 }
@@ -3859,6 +4123,8 @@ function setSimState(s, fromUser) {
 const prevSecs = () => UI.prevHold ? 0 : clamp(Math.round(+UI.prevSec) || 10, 3, 60);
 function previewState(s) {
   const dur = prevSecs();
+  partyStop();
+  endCustomPreview();
   // a short preview speeds up homing / probing so one full sequence fits (other states use explicit ramps)
   const speed = dur > 0 && s === 'homing' ? Math.max(1, 4.2 / (dur * 0.9)) : dur > 0 && s === 'probing' ? Math.max(1, 5 / (dur * 0.9)) : 1;
   SIM.timer = { state: s, dur, until: SIM.t + dur, speed };
@@ -3872,32 +4138,54 @@ async function sendStatePreview(s, dur) {
   const hold = dur > 0 ? dur : 3600;
   if (!SIM.timer || SIM.timer.state !== s) return;
   const acts = [{ action: 'state', state: s, hold }];
+  const plan = LS.planStrips(stripList(), groupList(), [stateCand(s)]), done = new Set();
   for (const st of P.strips) {  // manual lights too: they get their manual setting back afterwards
-    Preview.statePrev.add(st.name);
-    acts.push({ action: 'preview', strip: st.name, effect: stripSpec(s, st.name), hold });
+    const h = plan[st.name], g = h && h[1] && groupByName(h[1]) ? h[1] : null;
+    if (g && done.has(g)) continue;
+    const key = g || st.name; done.add(key);
+    Preview.statePrev.add(key);
+    acts.push({ action: 'preview', strip: key, effect: (h && h[2]) || 'off', hold });
   }
   await Preview.cmd(acts);
 }
-const timed = st => SIM.timer && SIM.timer.dur > 0 && SIM.timer.state === st && SIM.state === st;
+// a custom scene chip: on in the simulator for the preview time and, connected, on the printer (scene_on with hold)
+async function previewCustom(name) {
+  partyStop();
+  if (SIM.timer && SIM.timer.scene === name) { stopSim(); return; }  // its chip again: stop
+  const dur = prevSecs();
+  if (SIM.timer && !SIM.timer.scene) await stopSim();  // a state test ends first (its strip previews too)
+  endCustomPreview();
+  SIM.timer = { state: SIM.state, scene: name, dur, until: SIM.t + dur, speed: 1 };
+  SIM.custom = { [name]: SIM.t };
+  renderChips(); renderSimBar(); if (curTab === 'scenes') renderScenes();
+  if (Live.status && Preview.on) Preview.cmd({ action: 'scene_on', name, hold: dur > 0 ? dur : 3600 });
+}
+function endCustomPreview() {
+  const tm = SIM.timer;
+  if (tm && tm.scene && Live.status && Preview.on) Preview.cmd({ action: 'scene_off', name: tm.scene }, true);
+  SIM.custom = {};
+}
+const timed = st => SIM.timer && !SIM.timer.scene && SIM.timer.dur > 0 && SIM.timer.state === st && SIM.state === st;
 function renderSimBar() {
   const el = $('#simBar'); if (!el) return;
   const tm = SIM.timer;
   el.hidden = !tm;
   if (!tm) return;
   const left = tm.dur > 0 ? Math.max(0, Math.ceil(tm.until - SIM.t)) : null;
-  const html = `<i style="--c:${STATE_COL[tm.state]}"></i><b>${esc(T().states[tm.state])}</b><span>${left === null ? esc(T().untilStop) : left + ' s'}</span><button type="button" id="simX" title="${esc(T().stopPreview)}" aria-label="${esc(T().stopPreview)}">${ICON.x}</button><em style="width:${tm.dur > 0 ? clamp((tm.until - SIM.t) / tm.dur, 0, 1) * 100 : 100}%"></em>`;
-  if (el.dataset.k !== `${tm.state}|${left}|${lang}`) { el.innerHTML = html; el.dataset.k = `${tm.state}|${left}|${lang}`; }
+  const html = `<i style="--c:${sceneCol(tm.scene || tm.state)}"></i><b>${esc(sceneLabel(tm.scene || tm.state))}</b><span>${left === null ? esc(T().untilStop) : left + ' s'}</span><button type="button" id="simX" title="${esc(T().stopPreview)}" aria-label="${esc(T().stopPreview)}">${ICON.x}</button><em style="width:${tm.dur > 0 ? clamp((tm.until - SIM.t) / tm.dur, 0, 1) * 100 : 100}%"></em>`;
+  if (el.dataset.k !== `${tm.scene || tm.state}|${left}|${lang}`) { el.innerHTML = html; el.dataset.k = `${tm.scene || tm.state}|${left}|${lang}`; }
   else { const bar = el.querySelector('em'); if (bar) bar.style.width = (tm.dur > 0 ? clamp((tm.until - SIM.t) / tm.dur, 0, 1) * 100 : 100) + '%'; }
 }
 // back to normal: the printer's real state when connected, else idle
 async function stopSim() {
-  const had = !!SIM.timer;
-  SIM.timer = null; renderSimBar();
+  const had = !!SIM.timer, scene = had && SIM.timer.scene;
+  SIM.timer = null; SIM.custom = {}; renderSimBar(); renderChips();
   let back = 'idle';
   if (Live.status) try {
     if (Preview.on) {  // one batch: manual lights back to their setting, the rest cleared, then automatic
       const acts = [...new Set([...Preview.statePrev, ...Preview.edited])].map(k => Preview.overrides[k] ? { action: 'preview', strip: k, effect: Preview.overrides[k], hold: MANUAL_HOLD } : { action: 'preview', strip: k, hold: 0 });
-      if (had) acts.push({ action: 'state', state: 'auto' });
+      if (scene) acts.push({ action: 'scene_off', name: scene });
+      else if (had) acts.push({ action: 'state', state: 'auto' });
       await Preview.cmd(acts);
     }
     try {
@@ -3999,6 +4287,7 @@ function loop() {
   if (G.ok && G.d) {
     applyKinematics();
     updateLeds(SIM.t);
+    if (Party.on) partyTick();
     G.controls.update();
     if (++hoverTick % 3 === 0) updateHover();
     G.renderer.render(G.scene, G.camera);
@@ -4041,6 +4330,7 @@ const ICON = {
   extlink: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5h4v4M13.5 2.5 7.5 8.5"/><path d="M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg>',
   check: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3.5 8.5 3 3 6-7"/></svg>',
   plus: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>',
+  party: '<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1.5v2.6"/><circle cx="9" cy="10" r="5.6"/><path d="M3.4 10h11.2M9 4.4c-1.9 1.6-1.9 9.6 0 11.2M9 4.4c1.9 1.6 1.9 9.6 0 11.2M4.3 7h9.4M4.3 13h9.4"/><path d="M15.2 2.2v2.4M14 3.4h2.4" stroke-width="1.2"/></svg>',
 };
 function toast(msg, kind = 'ok') {
   const el = $('#toast'); el.textContent = msg; el.className = kind === 'ok' ? '' : kind; el.style.display = 'block';
@@ -4057,6 +4347,244 @@ function confirmDlg(title, text, yes) {
     d.showModal();
   });
 }
+// ---- party mode: every strip cycles through lively effects in time with a disco loop made in the browser
+// (Web Audio, nothing downloaded). On the printer (connected, preview on) the same effects go out as short previews
+// (hold 6 s, refreshed at each change), so they end by themselves if the page closes. Scenes are not touched.
+const PARTY_BPM = 122, PARTY_HOLD = 6;
+const Party = { on: false, ac: null, master: null, noise: null, iv: 0, fx: 0, step: 0, next: 0, bars: 0, specs: {}, sent: new Set(), modes: {}, seed: {}, t0: 0, fx3: null };
+function renderPartyBtn() {
+  const b = $('#partyBtn'); if (!b) return;
+  const l = Party.on ? cm('partyOff', 'Stop party mode', 'Parti modunu durdur') : cm('partyOn', 'Party mode: lights and music', 'Parti modu: ışık ve müzik');
+  b.innerHTML = ICON.party; b.title = l; b.setAttribute('aria-label', l); b.setAttribute('aria-pressed', Party.on ? 'true' : 'false');
+}
+function partyColor() { const c = LS.hsv(Math.random(), 1, 1); return LS.colorHex(c); }
+function partySpec(s) {  // one lively effect for this strip, periods on the beat
+  const beat = 60 / PARTY_BPM, a = partyColor(), b = partyColor(), r = arr => arr[Math.floor(Math.random() * arr.length)];
+  const f = (n, p) => LS.formatSpec(n, Object.assign({}, LS.EFFECTS[n], LS.COMMON_PARAMS, p));
+  if (s.type === 'pin') return pinPwm(s) ? r([f('blink', { period: Math.max(0.25, beat) }), f('breathe', { period: beat * 2 })]) : f('blink', { period: Math.max(1, beat * 4) });
+  if (s.type === 'esp_bridge') return r([f('rainbow', { period: beat * 4 }), f('blink', { color: a, color2: b, period: beat }), f('chase', { color: a }), f('solid', { color: a }), f('breathe', { color: a, period: beat })]);
+  return r([
+    f('rainbow', { period: beat * 2 }), f('rainbow', { period: beat, reverse: 1 }),
+    f('chase', { color: a, color2: '000000', period: beat * 2, size: 2 }), f('comet', { color: a, color2: '000000', period: beat }),
+    f('blink', { color: a, color2: '000000', period: beat / 2 }), f('blink', { color: a, color2: b, period: beat }),
+    f('twinkle', { color: a, color2: '000000', period: beat, density: 0.55 }), f('scan', { color: a, color2: '000000', period: beat * 2, size: 2 }),
+    f('breathe', { color: a, color2: '000000', period: beat }),
+  ]);
+}
+function partyShuffle() {
+  if (!Party.on) return;
+  for (const s of P.strips) { Party.specs[s.name] = partySpec(s); Party.modes[s.name] = PARTY_MODES[Math.floor(Math.random() * PARTY_MODES.length)]; Party.seed[s.name] = Math.random(); }
+  SIM.frozen = {};
+  if (Live.status && Preview.on && klipReady()) {
+    const acts = P.strips.map(s => { Party.sent.add(s.name); return { action: 'preview', strip: s.name, effect: Party.specs[s.name], hold: PARTY_HOLD }; });
+    Preview.cmd(acts, true);
+  }
+}
+function partyStart() {
+  if (Party.on) return;
+  if (SIM.timer) stopSim();
+  Party.on = true; Party.specs = {}; Party.sent = new Set();
+  renderPartyBtn();
+  partyShuffle();
+  try { partyMusic(); } catch (e) { Party.ac = null; }
+  partyScene(true);
+  if (!Party.ac) Party.fx = setInterval(partyShuffle, 3000);  // no audio: change every 3 s
+}
+// mirror balls hanging round the printer, spinning, with coloured light spots sweeping the room
+function partyScene(on) {
+  if (!G.ok) return;
+  if (Party.fx3) { G.scene.remove(Party.fx3.root); Party.fx3.root.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material !== G.glowMat) o.material.dispose(); }); Party.fx3 = null; }
+  if (!on || !G.d) return;
+  const d = G.d, W = d.W || 400, H = d.H || 400, D = d.D || 400, cx = d.cx || 0, cz = d.cz || 0, R = Math.max(14, Math.min(W, D) * 0.06);
+  const root = new THREE.Group(), balls = [];
+  const ballMat = new THREE.MeshStandardMaterial({ color: 0xd8dde6, metalness: 1, roughness: 0.18, flatShading: true, emissive: 0x222632 });
+  const cord = new THREE.LineBasicMaterial({ color: 0x5a606a });
+  const spots = [[-0.62, -0.5], [0.62, -0.5], [0, 0.65]];
+  for (const [fx, fz] of spots) {
+    const g = new THREE.Group(); g.position.set(cx + fx * W * 0.9, H * 0.92 + R, cz + fz * D * 0.9);
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(R, 18, 12), ballMat); g.add(ball);
+    const lg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, R, 0), new THREE.Vector3(0, R * 6, 0)]); g.add(new THREE.Line(lg, cord));
+    const light = new THREE.PointLight(0xffffff, 1.2, Math.max(W, H) * 2.2); g.add(light);
+    root.add(g); balls.push({ g, ball, light });
+  }
+  // glowing dots: the light the balls throw, sweeping over the printer, the floor and the air
+  const N = 160, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3).setUsage(THREE.DynamicDrawUsage));
+  const mat = new THREE.PointsMaterial({ size: R * 2.4, map: G.glowTex, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true });
+  const dots = new THREE.Points(geo, mat); dots.frustumCulled = false; root.add(dots);
+  const seeds = Array.from({ length: N }, (_, i) => [Math.random(), Math.random() * Math.PI * 2, 0.35 + Math.random() * 0.75, Math.random(), i % 3]);
+  G.scene.add(root);
+  Party.fx3 = { root, balls, dots, seeds, W, H, D, cx, cz };
+}
+function partyTick() {
+  const F = Party.fx3; if (!Party.on || !F) return;
+  const B = partyBeat(), ph = B - Math.floor(B), kick = Math.pow(1 - ph, 3), t = SIM.t;
+  F.balls.forEach((o, j) => {
+    o.ball.rotation.y = t * 0.9 + j; o.g.position.y += Math.sin(t * 1.3 + j) * 0.02;
+    o.light.color.setHSL((B * 0.07 + j / 3) % 1, 1, 0.55); o.light.intensity = 0.6 + 1.4 * kick;
+  });
+  const pa = F.dots.geometry.attributes.position.array, ca = F.dots.geometry.attributes.color.array, c = new THREE.Color();
+  F.seeds.forEach(([u, a0, r, hue, bi], i) => {
+    const ball = F.balls[bi].g.position, a = a0 + t * (0.25 + u * 0.35) * (bi === 1 ? -1 : 1);
+    const rad = Math.max(F.W, F.D) * r, y = (Math.sin(a * 1.7 + u * 9) * 0.5 + 0.5) * F.H * 1.05;
+    pa[i * 3] = ball.x * 0.3 + Math.cos(a) * rad; pa[i * 3 + 1] = y; pa[i * 3 + 2] = ball.z * 0.3 + Math.sin(a) * rad;
+    const blink = 0.35 + 0.65 * (pHash(i, Math.floor(B * 2)) > 0.4 ? 1 : 0.15);
+    c.setHSL((hue + B * 0.05) % 1, 1, 0.55); const k = blink * (0.5 + 0.5 * kick);
+    ca[i * 3] = c.r * k; ca[i * 3 + 1] = c.g * k; ca[i * 3 + 2] = c.b * k;
+  });
+  F.dots.geometry.attributes.position.needsUpdate = true; F.dots.geometry.attributes.color.needsUpdate = true;
+}
+function partyStop() {
+  if (!Party.on) return;
+  Party.on = false; Party.specs = {}; partyScene(false);
+  clearInterval(Party.iv); clearInterval(Party.fx); clearTimeout(Party.shuf); Party.iv = Party.fx = 0;
+  const ac = Party.ac, m = Party.master; Party.ac = null;
+  if (ac) { try { const t = ac.currentTime; m.gain.cancelScheduledValues(t); m.gain.setValueAtTime(m.gain.value, t); m.gain.linearRampToValueAtTime(0, t + 0.6); } catch (e) { /* closing anyway */ } setTimeout(() => { try { ac.close(); } catch (e) { /* gone */ } }, 700); }
+  SIM.frozen = {}; SIM.fadeFrom = Object.assign({}, SIM.last); SIM.changeT = SIM.t;
+  renderPartyBtn();
+  if (Live.status && Party.sent.size) {  // manual lights get their setting back, the rest back to their scenes
+    const acts = [...Party.sent].map(k => Preview.overrides[k] ? { action: 'preview', strip: k, effect: Preview.overrides[k], hold: MANUAL_HOLD } : { action: 'preview', strip: k, hold: 0 });
+    Preview.cmd(acts, true);
+  }
+  Party.sent = new Set();
+}
+// ---- the loop: four-on-the-floor kick, off-beat open hi-hat, clap on 2 and 4, a funky octave bassline, stab chords
+function partyMusic() {
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  const ac = new AC(), master = ac.createGain();
+  master.gain.setValueAtTime(0, ac.currentTime); master.gain.linearRampToValueAtTime(0.25, ac.currentTime + 1.2);
+  const comp = ac.createDynamicsCompressor(); master.connect(comp); comp.connect(ac.destination);
+  const nb = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = nb.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  Object.assign(Party, { ac, master, noise: nb, step: 0, bars: 0, next: ac.currentTime + 0.1, t0: ac.currentTime + 0.1 });
+  const sixteenth = 60 / PARTY_BPM / 4;
+  const noise = (t, dur, type, freq, q, vol) => {
+    const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    src.buffer = nb; f.type = type; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(f); f.connect(g); g.connect(master); src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.02);
+  };
+  const kick = t => {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+    g.gain.setValueAtTime(1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.4);
+  };
+  const clap = t => { for (let k = 0; k < 3; k++) noise(t + k * 0.011, 0.09 + (k === 2 ? 0.1 : 0), 'bandpass', 1500, 0.8, 0.5); };
+  const tone = (t, freq, dur, type, vol, cut) => {
+    const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+    o.type = type; o.frequency.value = freq; f.type = 'lowpass'; f.frequency.setValueAtTime(cut, t); f.frequency.exponentialRampToValueAtTime(Math.max(120, cut / 4), t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
+  };
+  const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+  // A minor, bar 1 / bar 2 roots A and F / G; octave-jumping disco bass (null = rest)
+  const BASS = [[33, null, 45, null, 33, null, 45, 43, 33, null, 45, null, 33, 45, 40, 43], [29, null, 41, null, 29, null, 41, 40, 31, null, 43, null, 31, 43, 38, 40]];
+  const STAB = [[57, 60, 64], [53, 57, 60]];
+  const sched = () => {
+    if (Party.ac !== ac) return;
+    while (Party.next < ac.currentTime + 0.12) {
+      const t = Party.next, st = Party.step % 16, bar = Math.floor(Party.step / 16) % 2;
+      if (st === 0) {  // a bar starts: new lights every 1-2 bars, on the downbeat
+        if (--Party.bars <= 0) { Party.bars = 1 + Math.floor(Math.random() * 2); clearTimeout(Party.shuf); Party.shuf = setTimeout(partyShuffle, Math.max(0, (t - ac.currentTime) * 1000)); }
+      }
+      if (st % 4 === 0) kick(t);
+      if (st % 4 === 2) noise(t, 0.16, 'highpass', 7000, 0.7, 0.28);
+      else if (st % 2 === 1) noise(t, 0.03, 'highpass', 9000, 0.7, 0.08);
+      if (st === 4 || st === 12) clap(t);
+      const bn = BASS[bar][st]; if (bn !== null) tone(t, hz(bn), sixteenth * 1.6, 'sawtooth', 0.32, 900);
+      if (st === 6 || st === 14) for (const n of STAB[bar]) tone(t, hz(n), 0.14, 'square', 0.05, 2600);
+      Party.next += sixteenth; Party.step++;
+    }
+  };
+  sched();
+  Party.iv = setInterval(sched, 25);
+}
+// ---- custom scene dialog: name, trigger, priority, hold (the effect lines are edited in the Scenes tab)
+const SD = { edit: null, kind: 'print_cancelled', prioTouched: false };
+const DLG_KINDS = ['print_cancelled', 'macro', 'extruding', 'retracting', 'condition', 'command'];
+function openSceneDlg(name) {
+  const t = T(), c = name ? P.customs.find(x => x.name === name) : null;
+  let k = 'print_cancelled', a = null;
+  if (c) { try { [k, a] = LS.parseTrigger(c.trigger); } catch (e) { k = 'command'; } }
+  SD.edit = c ? c.name : null; SD.kind = k; SD.prioTouched = !!c;
+  const ref = k === 'condition' ? a[0] : 'heater_bed.temperature', op = k === 'condition' ? a[1] : '>', num = k === 'condition' ? fmtNum(a[2]) : '60';
+  const quick = sourceOptions().filter(o => o[0].includes('.')).map(o => o[0].replace(/^display_status/, 'print_stats')).concat(['print_stats.progress']);
+  const prio = c ? c.priority : LS.DEFAULT_PRIORITY;
+  const d = $('#scDlg');
+  d.innerHTML = `<h3 id="scDlgT">${esc(c ? cm('scEditT', 'Edit scene', 'Sahneyi düzenle') : cm('scNew', 'New scene', 'Yeni sahne'))}</h3>
+    <div class="form">
+      <label for="scName">${esc(t.name)}</label><div class="fld"><input type="text" id="scName" value="${esc(c ? c.name : '')}" spellcheck="false" autocomplete="off" placeholder="cancelled"><span class="hint" id="scNameH">${esc(cm('scNameHint', 'lowercase letters, digits and _', 'küçük harf, rakam ve _'))}</span></div>
+      <label>${esc(cm('scTrigger', 'Trigger', 'Tetikleyici'))}</label><div class="fld"><div class="pick" id="scKinds">${DLG_KINDS.map(x => `<button type="button" data-kind="${x}" class="${x === k ? 'sel' : ''}">${esc(trigName(x))}</button>`).join('')}</div>
+        <div class="fld" data-for="macro"><input type="text" id="scMacro" value="${esc(k === 'macro' ? a : '')}" placeholder="CLEAN_NOZZLE" spellcheck="false" aria-label="${esc(cm('scMacroL', 'Macro name', 'Makro adı'))}"><span class="hint">${esc(cm('scMacroH', 'The scene is on while this macro or G-code command runs (plus hold).', 'Bu makro ya da G-code komutu çalışırken sahne açıktır (artı bekletme).'))}</span></div>
+        <div class="fld" data-for="condition"><input type="text" id="scRef" value="${esc(ref)}" placeholder="object.field" spellcheck="false" aria-label="object.field">
+          <div class="pick">${quick.map(q => `<button type="button" data-ref="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+          <div class="row"><div class="seg" id="scOps">${LS.TRIGGER_OPS.slice().sort((x, y) => '><=!'.indexOf(x[0]) - '><=!'.indexOf(y[0]) || x.length - y.length).map(o => `<button type="button" data-op="${o}" class="${o === op ? 'sel' : ''}">${esc(o)}</button>`).join('')}</div><input type="number" id="scNum" value="${esc(num)}" step="any" style="width:100px" aria-label="${esc(cm('scNumL', 'Value', 'Değer'))}"></div></div>
+        <span class="hint" data-for="command">${esc(cm('scCmdH', 'Switched on from a macro: SET_LED_EFFECT EFFECT=<name> or LIGHTSPEED_SCENE_ON NAME=<name>; off: STOP_LED_EFFECTS or LIGHTSPEED_SCENE_OFF.', 'Bir makrodan açılır: SET_LED_EFFECT EFFECT=<ad> ya da LIGHTSPEED_SCENE_ON NAME=<ad>; kapatma: STOP_LED_EFFECTS ya da LIGHTSPEED_SCENE_OFF.'))}</span>
+        <span class="hint" data-for="print_cancelled">${esc(cm('scCancelH', 'Shown when a print is cancelled, for the hold time (30 s if empty).', 'Baskı iptal edilince bekletme süresi boyunca gösterilir (boşsa 30 sn).'))}</span>
+        <span class="hint" data-for="extruding retracting">${esc(cm('scMotionH', 'From the live extruder speed (more than 0.5 mm/s forwards / backwards).', 'Anlık ekstruder hızından (ileri / geri 0.5 mm/sn üstü).'))}</span></div>
+      <label for="scPri">${esc(cm('scPrio', 'Priority', 'Öncelik'))}</label><div class="fld"><div class="slider"><input type="range" id="scPri" min="0" max="100" step="1" value="${clamp(prio, 0, 100)}"><output>${prio}</output></div><span class="hint">${esc(cm('scPrioH', 'Higher wins on a strip. States: idle 0 · heating / printing / paused / complete 20 · homing / probing 80 · error / shutdown 100.', 'Bir şeritte yüksek olan kazanır. Durumlar: boşta 0 · ısınma / baskı / duraklama / tamamlandı 20 · sıfırlama / prob 80 · hata / kapanma 100.'))}</span></div>
+      <label for="scHold">${esc(cm('scHold', 'Hold (s)', 'Bekletme (sn)'))}</label><div class="fld"><input type="number" id="scHold" min="0" step="0.5" value="${c && c.hold !== null ? fmtNum(c.hold) : ''}" placeholder="—" style="width:100px"><span class="hint">${esc(cm('scHoldH', 'Keeps the scene on this long after its trigger ends.', 'Tetikleyici bittikten sonra sahneyi bu kadar açık tutar.'))}</span></div>
+    </div>
+    <div class="note bad" id="scErr" hidden></div>
+    <div class="row" style="margin-top:12px">${c ? `<button type="button" class="danger" id="scDel">${esc(cm('scDelete', 'Delete scene', 'Sahneyi sil'))}</button>` : ''}<span class="grow"></span><button type="button" id="scNo">${esc(t.cancel)}</button><button type="button" class="primary" id="scYes">${esc(c ? cm('scSave', 'Save', 'Kaydet') : cm('scCreate', 'Create', 'Oluştur'))}</button></div>`;
+  sdKind(k);
+  setRangeFill($('#scPri'));
+  d.showModal();
+  $('#scName').focus();
+}
+function sdKind(k) {
+  SD.kind = k;
+  $$('#scKinds [data-kind]').forEach(b => b.classList.toggle('sel', b.dataset.kind === k));
+  $$('#scDlg [data-for]').forEach(el => { el.hidden = !el.dataset.for.split(' ').includes(k); });
+  if (!SD.prioTouched) { const p = k === 'command' ? LS.COMMAND_PRIORITY : LS.DEFAULT_PRIORITY, r = $('#scPri'); r.value = p; setRangeFill(r); r.nextElementSibling.textContent = p; }
+}
+function sdRead() {  // -> {name, trigger, priority, hold} or {error}
+  const name = $('#scName').value.trim(), k = SD.kind;
+  if (!NAME_RE.test(name)) return { error: cm('scErrName', 'Name: lowercase letters, digits and _ only.', 'Ad: yalnızca küçük harf, rakam ve _.') };
+  if (LS.STATES.includes(name) || RESERVED.includes(name)) return { error: cm('scErrState', `'${name}' is a printer state or a reserved word.`, `'${name}' bir yazıcı durumu ya da ayrılmış bir sözcük.`, name) };
+  if (P.customs.some(c => c.name === name && c.name !== SD.edit)) return { error: cm('scErrDup', 'A scene has this name already.', 'Bu adda bir sahne zaten var.') };
+  let trigger = k;
+  if (k === 'macro') trigger = 'macro ' + $('#scMacro').value.trim().toUpperCase();
+  if (k === 'condition') trigger = `${$('#scRef').value.trim().replace(/\s+/g, ' ')} ${($('#scOps .sel') || { dataset: { op: '>' } }).dataset.op} ${$('#scNum').value.trim()}`;
+  try { const [kk, a] = LS.parseTrigger(trigger); trigger = LS.formatTrigger(kk, a); } catch (e) { return { error: k === 'macro' ? cm('scErrMacro', 'Macro: a G-code command name, e.g. CLEAN_NOZZLE.', 'Makro: bir G-code komut adı, ör. CLEAN_NOZZLE.') : cm('scErrRef', 'Value: object.field, a comparison and a number.', 'Değer: nesne.alan, bir karşılaştırma ve bir sayı.') }; }
+  const hr = $('#scHold').value.trim(), hold = hr === '' ? null : Number(hr);
+  if (hold !== null && !(hold >= 0)) return { error: cm('scErrHold', 'Hold: 0 or more seconds.', 'Bekletme: 0 veya daha fazla saniye.') };
+  return { name, trigger, priority: Math.round(+$('#scPri').value), hold };
+}
+function sdSave() {
+  const r = sdRead(), er = $('#scErr');
+  if (r.error) { er.hidden = false; er.textContent = r.error; return; }
+  if (SD.edit) {
+    const c = P.customs.find(x => x.name === SD.edit);
+    if (r.name !== c.name) { P.scenes[r.name] = P.scenes[c.name] || {}; delete P.scenes[c.name]; if (editState === c.name) editState = r.name; }
+    Object.assign(c, r);
+  } else { P.customs.push(r); P.scenes[r.name] = P.scenes[r.name] || {}; editState = r.name; }
+  $('#scDlg').close();
+  changed(); renderChips();
+  if (curTab === 'scenes') renderScenes(); else if (!SD.edit) showTab('scenes');
+}
+async function deleteCustomAsk(name) {
+  if (!await confirmDlg(cm('scDelQ', `Delete scene '${name}'?`, `'${name}' sahnesi silinsin mi?`, name), cm('scDelT', 'Its lines go too. Undo (next to Save & apply) brings back what the printer has.', 'Satırları da gider. Geri al (Kaydet ve uygula yanında) yazıcıdakini geri getirir.'), cm('scDelete', 'Delete scene', 'Sahneyi sil'))) return;
+  if (SIM.timer && SIM.timer.scene === name) await stopSim();
+  P.customs = P.customs.filter(c => c.name !== name); delete P.scenes[name]; delete SIM.custom[name]; delete SIM.trig[name];
+  if (editState === name) editState = null;
+  changed(); renderChips(); if (curTab === 'scenes') renderScenes();
+}
+$('#scDlg').addEventListener('click', e => {
+  const kb = e.target.closest('[data-kind]'); if (kb) { sdKind(kb.dataset.kind); return; }
+  const ob = e.target.closest('[data-op]'); if (ob) { $$('#scOps [data-op]').forEach(b => b.classList.toggle('sel', b === ob)); return; }
+  const rb = e.target.closest('[data-ref]'); if (rb) { $('#scRef').value = rb.dataset.ref; return; }
+  if (e.target.closest('#scNo')) $('#scDlg').close();
+  else if (e.target.closest('#scYes')) sdSave();
+  else if (e.target.closest('#scDel')) { const n = SD.edit; $('#scDlg').close(); deleteCustomAsk(n); }
+});
+$('#scDlg').addEventListener('input', e => {
+  if (e.target.id === 'scPri') { SD.prioTouched = true; setRangeFill(e.target); e.target.nextElementSibling.textContent = e.target.value; }
+  if (e.target.id === 'scName') { const ok = !e.target.value || NAME_RE.test(e.target.value.trim()); e.target.classList.toggle('invalid', !ok); }
+});
+$('#scDlg').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); sdSave(); } });
 const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
 const swatch = (k, hex) => `<label class="swatch"><i style="background:#${hex}"></i><span>${hex}</span><input type="color" data-p="${k}" value="#${hex}"></label>`;
 const sw = (attr, on, label = '') => `<label class="switch"><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="knob"></span>${label ? `<span>${esc(label)}</span>` : ''}</label>`;
@@ -4076,7 +4604,7 @@ function renderStatic() {
   $('#themeBtn').title = UI.theme === 'light' ? T().dark : T().light;
   $('#themeBtn').setAttribute('aria-label', $('#themeBtn').title);
   $('#resetView').innerHTML = ICON.view + esc(T().resetView);
-  renderPanelsBtn(); cadNote(); if (G.ok) renderCadLoad();
+  renderPanelsBtn(); cadNote(); if (G.ok) renderCadLoad(); renderPartyBtn();
   $('#tabs').innerHTML = TABS.map(k => `<button type="button" data-tab="${k}" class="${k === curTab ? 'sel' : ''}">${esc(T().tabs[k])}${k === 'strips' ? '<span class="badge" id="errBadge" hidden></span>' : ''}${k === 'settings' ? '<span class="dot" id="setDot" hidden></span>' : ''}</button>`).join('');
   $('#subtabs').innerHTML = SUBS.map(k => `<button type="button" data-sub="${k}" class="${k === curSub ? 'sel' : ''}">${esc(T().tabs[k])}${k === 'live' ? '<span class="dot" data-unsaved-dot hidden></span>' : ''}</button>`).join('');
   renderChips(); renderHud(); renderSel(); renderBadge(); renderSyncBar(); layoutLights();
@@ -4096,9 +4624,17 @@ function renderBadge() {
 function renderFab(u = isUnsaved()) {
   const b = $('#fab'); if (!b) return;
   const t = T(), mode = !u ? '' : canApply() ? (changeKind() === 'restart' ? 'apply' : '') : 'download';
-  b.hidden = !mode; document.body.classList.toggle('fab-on', !!mode); b.dataset.mode = mode; b.disabled = SA.busy;
+  // Undo: the page goes back to the printer's lightspeed.cfg (a removed strip comes back, edits are dropped)
+  const undo = u && Sync.text !== null && !SA.busy, bar = $('#fabBar'), ub = $('#fabUndo');
+  bar.hidden = !mode && !undo; b.hidden = !mode; document.body.classList.toggle('fab-on', !bar.hidden); b.dataset.mode = mode; b.disabled = SA.busy;
   if (mode) b.innerHTML = `<i></i><span>${esc(mode === 'apply' ? t.apply : t.downloadCfg)}${mode === 'apply' ? `<small>${esc(t.restartWhy)}</small>` : ''}</span>`;
   b.title = t.unsaved;
+  ub.hidden = !undo; ub.textContent = t.revert; ub.title = t.revertHint;
+}
+function revertToPrinter() {
+  if (Sync.text === null || SA.busy) return;
+  doImport(Sync.text); selStrip = -1; selLed = -1;
+  toast(T().reverted); rerender(); renderBadge();
 }
 function downloadCfg() {
   const url = URL.createObjectURL(new Blob([cfgText()], { type: 'text/plain' }));
@@ -4106,7 +4642,10 @@ function downloadCfg() {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 function renderChips() {
-  $('#chips').innerHTML = UI_STATES.map(s => `<button type="button" class="chip${s === SIM.state ? ' sel' : ''}" style="--c:${STATE_COL[s]}" data-state="${s}">${esc(T().states[s])}</button>`).join('');
+  const act = simActive();
+  $('#chips').innerHTML = UI_STATES.map(s => `<button type="button" class="chip${s === SIM.state ? ' sel' : ''}" style="--c:${STATE_COL[s]}" data-state="${s}">${esc(T().states[s])}</button>`).join('')
+    + P.customs.map(c => `<button type="button" class="chip cust${c.name in act ? ' sel' : ''}" style="--c:${customCol(c.name)}" data-custom="${esc(c.name)}" title="${esc(trigText(c))}">${esc(c.name)}</button>`).join('')
+    + `<button type="button" class="chip add" data-addscene title="${esc(cm('scNew', 'New scene', 'Yeni sahne'))}" aria-label="${esc(cm('scNew', 'New scene', 'Yeni sahne'))}">${ICON.plus}</button>`;
   if (!klipReady()) renderKlip();
 }
 function renderHud() {
@@ -4200,10 +4739,8 @@ $('#v-printer').addEventListener('change', e => {
   const el = e.target;
   if (el.id === 'pHold') { UI.prevHold = el.checked; saveUI(); renderPrinter(); return; }
   if (el.id === 'pTh') { UI.toolhead = TOOLHEADS.includes(el.value) ? el.value : 'rx'; saveUI(); cadToolhead(); cadNote(); renderCadLoad(); return; }
-  if (el.id === 'pModel') {  // a size the user set stays; an untouched default follows the model's build volume
-    const was = P.model, eq = (a, b) => !!a && a.every((v, i) => v === b[i]);
-    const def = eq(P.size, MODEL_SIZE[was] || []) || eq(P.size, defaultProject().size);
-    P.model = el.value; if (def) P.size = MODEL_SIZE[el.value].slice(); changed({ printer: true, view: true }); renderPrinter();
+  if (el.id === 'pModel') {  // the build volume is one setting for every model: switching the model keeps it
+    P.model = el.value; changed({ printer: true, view: true }); renderPrinter();
   }
   if (el.dataset.size !== undefined) {
     const v = clamp(Math.round(+el.value || 0), 60, 1000); el.value = v;
@@ -4303,10 +4840,36 @@ function renderStripsNow() {
   const t = T();
   $('#v-strips').innerHTML = `<div class="sec"><div class="row" style="align-items:flex-start"><div class="grow"><h2>${esc(t.s_title)}</h2><p class="lead">${esc(t.s_lead)}</p></div>
     <button type="button" data-act="add">${ICON.plus}${esc(t.addStrip)}</button></div>
-    ${P.strips.length ? P.strips.map(stripCard).join('') : `<p class="muted">${esc(t.noStrips)}</p>`}</div>`;
+    ${P.strips.length ? P.strips.map(stripCard).join('') : `<p class="muted">${esc(t.noStrips)}</p>`}</div>${groupsSec()}`;
   $$('#v-strips input[type=range]').forEach(setRangeFill);
   paintPreviews();
 }
+// ---- groups: strips drawn as one (an effect runs across them, in this order)
+function groupsSec() {
+  const t = T();
+  return `<div class="sec" id="groupsSec"><div class="row" style="align-items:flex-start"><div class="grow"><h2>${esc(cm('grpTitle', 'Groups', 'Gruplar'))}</h2><p class="lead">${esc(cm('grpLead', 'Strips drawn as one: a scene line for the group runs its effect across all of them, in this order (also across chains).', 'Tek şerit gibi çizilen şeritler: gruba verilen sahne satırı efekti hepsinin üzerinde bu sırayla yürütür (zincirler arasında da).'))}</p></div>
+    <button type="button" data-gact="add"${P.strips.length ? '' : ' disabled'}>${ICON.plus}${esc(cm('grpAdd', 'Add group', 'Grup ekle'))}</button></div>
+    ${P.groups.map((g, i) => { const er = groupError(g, i); return `<div class="grp" data-g="${i}"><div class="row"><input type="text" data-gname value="${esc(g.name)}" spellcheck="false" aria-label="${esc(t.name)}" class="${er && !NAME_RE.test(g.name) ? 'invalid' : ''}"><button type="button" class="small danger" data-gact="del">${esc(cm('grpDel', 'Remove group', 'Grubu kaldır'))}</button></div>
+      <div class="pick">${g.strips.map((n, k) => `<button type="button" class="sel" data-gm="${esc(n)}" title="${esc(cm('grpOut', 'Take out of the group', 'Gruptan çıkar'))}">${k + 1}. ${esc(n)}<span class="x">×</span></button>`).join('')}${P.strips.filter(s => !g.strips.includes(s.name)).map(s => `<button type="button" data-gm="${esc(s.name)}" title="${esc(cm('grpIn', 'Add at the end', 'Sona ekle'))}">+ ${esc(s.name)}</button>`).join('')}</div>
+      ${er ? `<span class="hint err">${esc(er)}</span>` : `<span class="hint">${esc(g.strips.reduce((a, n) => a + ((stripByName(n) || {}).count || 0), 0))} LEDs</span>`}</div>`; }).join('')}</div>`;
+}
+function uniqueGroup(base) { let i = 1; while (P.groups.some(g => g.name === base + i) || P.strips.some(s => s.name === base + i)) i++; return base + i; }
+$('#v-strips').addEventListener('click', e => {
+  const b = e.target.closest('[data-gact], [data-gm]'); if (!b) return;
+  const box = b.closest('.grp'), g = box ? P.groups[+box.dataset.g] : null;
+  if (b.dataset.gact === 'add') P.groups.push({ name: uniqueGroup('group'), strips: P.strips.slice(0, 2).map(s => s.name) });
+  else if (b.dataset.gact === 'del' && g) { P.groups.splice(+box.dataset.g, 1); for (const st in P.scenes) delete P.scenes[st][g.name]; }
+  else if (g && b.dataset.gm !== undefined) { const n = b.dataset.gm, k = g.strips.indexOf(n); if (k >= 0) g.strips.splice(k, 1); else g.strips.push(n); }
+  else return;
+  changed(); renderStrips(); renderBadge();
+});
+$('#v-strips').addEventListener('change', e => {
+  const el = e.target; if (!el.matches('input[data-gname]')) return;
+  const i = +el.closest('.grp').dataset.g, g = P.groups[i], old = g.name, nw = el.value.trim();
+  g.name = nw;
+  if (!groupError(g, i)) for (const st in P.scenes) { const sc = P.scenes[st]; if (old in sc && !(nw in sc)) { const ns = {}; for (const k in sc) ns[k === old ? nw : k] = sc[k]; P.scenes[st] = ns; } }
+  changed(); renderStrips(); renderBadge();
+});
 function refreshCardErrors(card, i) {
   const er = stripErrors(P.strips[i], i);
   $$('[data-e]', card).forEach(el => {
@@ -4391,6 +4954,7 @@ $('#v-strips').addEventListener('click', async e => {
   } else if (act.dataset.act === 'remove') {
     P.strips.splice(i, 1);
     for (const st in P.scenes) { delete P.scenes[st][s.name]; if (sceneKeyOf.has(s)) delete P.scenes[st][sceneKeyOf.get(s)]; }
+    for (const g of P.groups) g.strips = g.strips.filter(n => n !== s.name && n !== sceneKeyOf.get(s));
     gcHw();
     selStrip = -1; selLed = -1; openStrips.clear();
     changed({ leds: true }); renderStrips(); renderSel();
@@ -4406,6 +4970,7 @@ $('#v-strips').addEventListener('input', e => {
     s.name = nw;
     if (old !== nw && NAME_RE.test(nw) && !P.strips.some((o, j) => j !== i && o.name === nw)) {
       for (const st in P.scenes) { const sc = P.scenes[st]; if (old in sc && !(nw in sc)) { const ns = {}; for (const kk in sc) ns[kk === old ? nw : kk] = sc[kk]; P.scenes[st] = ns; } }
+      for (const g of P.groups) g.strips = g.strips.map(n => n === old ? nw : n);
       sceneKeyOf.set(s, nw);
     }
     // a chain this strip creates, still named after the strip, follows the strip name
@@ -4481,8 +5046,43 @@ const PARAM_RANGE = { period: [0.1, 20, 0.1], size: [0, 30, 0.5], density: [0, 1
 const ESP_EFFECTS = ['off', 'solid', 'breathe', 'blink', 'chase', 'rainbow', 'fire', 'progress', 'heat'];
 const ESP_KEYS = { solid: ['color'], breathe: ['color'], blink: ['color', 'color2', 'period'], chase: ['color'], rainbow: ['period'], fire: [], heat: ['color', 'color2'], off: [] };
 const isEspKey = k => { const x = stripByName(k); return !!x && x.type === 'esp_bridge'; };
+// value sources offered for progress / heat (any other <object>.<field> can be typed)
+function sourceOptions() {
+  const o = [['progress', T().sources.progress], ['heat', T().sources.heat],
+    ['extruder.temperature', cm('srcHotend', 'Hotend temperature', 'Nozul sıcaklığı')], ['heater_bed.temperature', cm('srcBed', 'Bed temperature', 'Tabla sıcaklığı')]];
+  const sens = (Live.objects || []).filter(x => /^temperature_sensor /.test(x)).map(x => x + '.temperature');
+  for (const x of (sens.length ? sens : ['temperature_sensor chamber.temperature'])) o.push([x, x.split(' ')[1].replace(/\.temperature$/, '') + ' °C']);
+  o.push(['fan.speed', cm('srcFan', 'Part fan', 'Parça fanı')], ['motion_report.live_extruder_velocity', cm('srcVel', 'Extruder speed', 'Ekstruder hızı')]);
+  return o;
+}
+const GRAD5 = '0030ff,ffe000,ff8000,ff0000,a000ff';
+function valueControls(name, params, esp) {
+  const t = T(), src = params.source, opts = sourceOptions(), known = opts.some(o => o[0] === src), objSrc = src !== 'progress' && src !== 'heat';
+  const stops = params.colors ? params.colors.split(',') : [];
+  const lbl = (k, en, tr) => `<label>${esc(cm(k, en, tr))}</label>`;
+  let h = lbl('pSource', 'Source', 'Kaynak') + `<div class="fld"><div class="pick">${opts.map(([v, l]) => `<button type="button" data-p="source" data-v="${esc(v)}" class="${v === src ? 'sel' : ''}">${esc(l)}</button>`).join('')}</div>
+    <input type="text" data-p="source" data-free spellcheck="false" placeholder="object.field" value="${known ? '' : esc(src)}" aria-label="${esc(cm('srcOther', 'Other source (object.field)', 'Diğer kaynak (nesne.alan)'))}"></div>`;
+  if (objSrc) {
+    const [lo, hi] = LS.sourceRange(params, ctxNow(SIM.t));
+    h += lbl('pRange', 'Range', 'Aralık') + `<div class="mm"><input type="number" data-p="min" step="any" placeholder="${fmtNum(lo)}" value="${params.min === 'auto' ? '' : fmtNum(params.min)}" aria-label="min"><span class="muted">–</span><input type="number" data-p="max" step="any" placeholder="${fmtNum(hi)}" value="${params.max === 'auto' ? '' : fmtNum(params.max)}" aria-label="max"></div>`;
+  }
+  h += lbl('pColors', 'Colour scale', 'Renk skalası') + `<div class="stops">${stops.map((c, i) => `<span class="stop"><label class="swatch"><i style="background:#${c}"></i><span>${c}</span><input type="color" data-stop="${i}" value="#${c}"></label>${stops.length > 1 ? `<button type="button" class="small" data-stopdel="${i}" title="${esc(cm('stopDel', 'Remove colour', 'Rengi kaldır'))}" aria-label="${esc(cm('stopDel', 'Remove colour', 'Rengi kaldır'))}">${ICON.x}</button>` : ''}</span>`).join('')}
+    <button type="button" class="small" data-stopadd>${ICON.plus}${esc(stops.length ? cm('stopAdd', 'Colour', 'Renk') : cm('stopScale', 'Use a colour scale', 'Renk skalası kullan'))}</button>${stops.length ? `<button type="button" class="small" data-stopclear>${esc(cm('stopClear', 'A / B colours', 'A / B renkleri'))}</button>` : ''}</div>`;
+  if (!stops.length) {
+    h += `<label>${esc(t.params.color)}</label>${swatch('color', params.color)}`;
+    if (name === 'heat') h += `<label>${esc(t.params.color2)}</label>${swatch('color2', params.color2)}`;
+  }
+  if (name === 'progress') {
+    h += `<label>${esc(stops.length ? cm('pByValue', 'Colour by value', 'Değere göre renk') : t.params.gradient)}</label>${sw('data-p="gradient"', !!params.gradient)}`;
+    if (params.gradient && !stops.length) h += `<label>${esc(t.params.color2)}</label>${swatch('color2', params.color2)}`;
+    if (!esp) h += `<label>${esc(t.params.reverse)}</label>${sw('data-p="reverse"', !!params.reverse)}`;
+  }
+  return h;
+}
 function paramControls(spec, pin, esp) {
   const t = T(), [name, params] = compiled(spec);
+  if (!pin && (name === 'progress' || name === 'heat')) return valueControls(name, params, esp)
+    + (esp && (params.gradient || params.colors || name === 'heat') ? `<span class="hint espNote">${esc(t.espBar)}</span>` : '');
   // progress: colour B only matters with the A -> B gradient on; a pin has one fixed colour: period only
   const keys = pin ? (name === 'blink' || name === 'breathe' ? ['period'] : [])
     : name === 'progress' ? ['color', 'gradient'].concat(params.gradient ? ['color2'] : [], ['source'], esp ? [] : ['reverse'])
@@ -4496,7 +5096,8 @@ function paramControls(spec, pin, esp) {
     else if (ty === 'bool') c = sw(`data-p="${k}"`, !!v);
     else c = `<div class="seg">${ty.map(o => `<button type="button" data-p="${k}" data-v="${o}" class="${o === v ? 'sel' : ''}">${esc(k === 'source' ? t.sources[o] : o.toUpperCase())}</button>`).join('')}</div>`;
     return `<label>${esc(t.params[k])}</label>${c}`;
-  }).join('') + (esp && ['breathe', 'chase', 'fire'].includes(name) ? `<span class="hint espNote">${esc(t.espFixed)}</span>` : '');
+  }).join('') + (esp && ['breathe', 'chase', 'fire'].includes(name) ? `<span class="hint espNote">${esc(t.espFixed)}</span>` : '')
+    + (esp && name === 'progress' && params.gradient ? `<span class="hint espNote">${esc(t.espBar)}</span>` : '');
 }
 function fxRow(key, sc, label, sub) {
   const t = T(), spec = sc ? sc[key] : undefined, isAll = key === 'all';
@@ -4508,23 +5109,45 @@ function fxRow(key, sc, label, sub) {
   return `<div class="fx${isAll ? ' allrow' : ''}" data-key="${esc(key)}">
     <div class="head"><div class="who"><b>${esc(label)}</b><small>${esc(sub)}</small></div>
       <button type="button" class="fxbtn" data-fxbtn aria-haspopup="listbox" aria-expanded="false"><span class="nm${fx ? '' : ' unset'}">${esc(fx ? fxName(fx) : (isAll ? t.notSetAll : t.notSet))}</span><span class="mini" data-mini="${esc(inherit)}"${pinA}></span><svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4 4-4"/></svg></button></div>
-    <div class="preview" data-prev="${esc(inherit)}"${pinA} data-n="${isAll ? 30 : (P.strips.find(s => s.name === key) || { count: 30 }).count}"></div>
+    <div class="preview" data-prev="${esc(inherit)}"${pinA} data-n="${isAll ? 30 : groupByName(key) ? groupByName(key).strips.reduce((a, n) => a + ((stripByName(n) || {}).count || 0), 0) : (P.strips.find(s => s.name === key) || { count: 30 }).count}"></div>
     ${spec ? `${pc ? `<div class="params">${pc}</div>` : ''}<div class="spec">${esc(spec)}</div>` : `<div class="spec">${esc(isAll ? t.stripsOff : t.usesAll + ': ' + inherit)}</div>`}
   </div>`;
 }
+function trigText(c) {
+  let k, a; try { [k, a] = LS.parseTrigger(c.trigger); } catch (e) { k = 'command'; }
+  if (k === 'macro') return cm('trMacroT', `while ${a} runs`, `${a} çalışırken`, a);
+  if (k === 'condition') return `${a[0]} ${a[1]} ${fmtNum(a[2])}`;
+  if (k === 'command') return `SET_LED_EFFECT EFFECT=${c.name} · LIGHTSPEED_SCENE_ON NAME=${c.name}`;
+  return trigName(k);
+}
+function trigName(k) {
+  return { print_cancelled: cm('trCancel', 'Print cancelled', 'Baskı iptal edildi'), macro: cm('trMacro', 'Macro running', 'Makro çalışıyor'),
+    extruding: cm('trExtr', 'Extruding', 'Ekstrüzyon'), retracting: cm('trRetr', 'Retracting', 'Geri çekme'),
+    condition: cm('trValue', 'Value above / below', 'Değer üstünde / altında'), command: cm('trCmd', 'Command', 'Komut') }[k] || k;
+}
 function renderScenes() {
   const t = T();
-  if (!editState) editState = SIM.state;
-  const st = editState, sc = P.scenes[st], none = !Object.keys(P.scenes).length;
-  const resolved = LS.resolveScene(st, effScenes());
+  if (!editState || (!UI_STATES.includes(editState) && !isCustom(editState))) editState = SIM.state;
+  const st = editState, custom = isCustom(st), none = !hasStateScenes() && !custom;
+  if (custom && !P.scenes[st]) P.scenes[st] = {};
+  const sc = P.scenes[st];
+  const resolved = custom ? null : LS.resolveScene(st, effScenes());
+  const rows = () => fxRow('all', sc, t.allStrips, t.allHint)
+    + P.groups.filter((g, i) => !groupError(g, i)).map(g => fxRow(g.name, sc, g.name, `${cm('grpWord', 'group', 'grup')} · ${g.strips.join(' + ')}`)).join('')
+    + P.strips.map(s => fxRow(s.name, sc, s.name, `${placeNames(s)} · ${s.count}`)).join('');
   let body;
-  if (none) body = `<div class="note warn">${esc(t.noScenesAtAll)}</div><div class="row"><button type="button" class="primary" data-act="create">${esc(t.createScene)}</button></div>`;
+  if (custom) {
+    const c = P.customs.find(x => x.name === st);
+    body = `<div class="trigBox"><div class="row"><b>${esc(trigName(trigKind(c.trigger)))}</b><span class="meta mono">${esc(trigText(c))}</span></div>
+      <div class="meta">${esc(cm('scMeta', `Priority ${c.priority}${c.hold !== null ? ` · hold ${fmtNum(c.hold)} s` : ''} · shown on the strips it names while no higher-priority scene names them`, `Öncelik ${c.priority}${c.hold !== null ? ` · bekletme ${fmtNum(c.hold)} sn` : ''} · daha yüksek öncelikli bir sahne adlandırmadıkça adlandırdığı şeritlerde görünür`, c.priority, c.hold))}</div>
+      <div class="row"><button type="button" class="small" data-act="editcustom">${esc(cm('scEdit', 'Edit trigger', 'Tetikleyiciyi düzenle'))}</button><button type="button" class="small danger" data-act="delcustom">${esc(cm('scDelete', 'Delete scene', 'Sahneyi sil'))}</button></div></div>` + rows();
+  } else if (none) body = `<div class="note warn">${esc(t.noScenesAtAll)}</div><div class="row"><button type="button" class="primary" data-act="create">${esc(t.createScene)}</button></div>`;
   else if (!sc) body = `<div class="note">${t.fallsBack(esc(t.states[st]), resolved ? esc(t.states[resolved]) : '')}</div><div class="row"><button type="button" class="primary" data-act="create">${esc(t.createScene)}</button><button type="button" data-act="defaults">${esc(t.useDefaults)}</button></div>`;
-  else body = fxRow('all', sc, t.allStrips, t.allHint) + P.strips.map(s => fxRow(s.name, sc, s.name, `${placeNames(s)} · ${s.count}`)).join('') +
+  else body = rows() +
     `<div class="row" style="justify-content:flex-end"><button type="button" data-act="defaults">${esc(t.useDefaults)}</button><button type="button" class="danger" data-act="remove">${esc(t.removeScene)}</button></div>`;
   $('#v-scenes').innerHTML = `<div class="sec"><div><h2>${esc(t.sc_title)}</h2><p class="lead">${esc(t.sc_lead)}</p></div>
-    <div class="stateRow">${UI_STATES.map(s => `<button type="button" class="chip${s === st ? ' sel' : ''}" style="--c:${STATE_COL[s]}" data-edit="${s}">${esc(t.states[s])}${P.scenes[s] ? '' : ' ·'}</button>`).join('')}</div>
-    <div class="row"><span class="muted">${esc(t.editing)}:</span><b>${esc(t.states[st])}</b><button type="button" class="small" data-act="sim">${ICON.play}${esc(t.testState)}</button></div>
+    <div class="stateRow">${UI_STATES.map(s => `<button type="button" class="chip${s === st ? ' sel' : ''}" style="--c:${STATE_COL[s]}" data-edit="${s}">${esc(t.states[s])}${P.scenes[s] ? '' : ' ·'}</button>`).join('')}${P.customs.map(c => `<button type="button" class="chip cust${c.name === st ? ' sel' : ''}" style="--c:${customCol(c.name)}" data-edit="${esc(c.name)}">${esc(c.name)}</button>`).join('')}<button type="button" class="chip add" data-addscene title="${esc(cm('scNew', 'New scene', 'Yeni sahne'))}" aria-label="${esc(cm('scNew', 'New scene', 'Yeni sahne'))}">${ICON.plus}</button></div>
+    <div class="row"><span class="muted">${esc(t.editing)}:</span><b>${esc(sceneLabel(st))}</b><button type="button" class="small" data-act="sim">${ICON.play}${esc(t.testState)}</button></div>
     ${body}</div>`;
   $$('#v-scenes input[type=range]').forEach(setRangeFill);
   paintPreviews();
@@ -4554,7 +5177,7 @@ function paintMinis(root) {
   const ctx = { t, progress: w, heat: w, pos: [0.5 + 0.45 * Math.sin(t * 1.3), 0.5, 0.2] };
   for (const el of root.querySelectorAll('[data-mini]')) {
     const [nm, pr] = compiled(el.dataset.mini), ps = el.dataset.pin && stripByName(el.dataset.pin);
-    let f = LS.render(nm, pr, MINI_N, ctx); if (ps) f = pinFrame(f, ps);
+    let f = LS.render(nm, pr, MINI_N, sweepCtx(ctx, nm, pr, w)); if (ps) f = pinFrame(f, ps);
     if (el.children.length !== MINI_N) el.innerHTML = '<i></i>'.repeat(MINI_N);
     for (let i = 0; i < MINI_N; i++) { const c = f[i] || [0, 0, 0]; el.children[i].style.background = rgbCss(c.map(v => 0.06 + 0.94 * v)); }
   }
@@ -4622,13 +5245,13 @@ $('#pane').addEventListener('scroll', () => fxClose(false));
 function paintPreviews() {
   // the bars show the edited state's scene: with that state running they follow the simulation, otherwise
   // progress / heat sweep 0 -> 100 % so a progress effect is never a dead bar
-  const ctx = ctxNow(SIM.t);
-  if (editState && editState !== SIM.state) { const w = Math.min(1, (SIM.t % 6) / 4.8); ctx.heat = w; ctx.progress = w; }
+  const ctx = ctxNow(SIM.t), sweep = editState && editState !== SIM.state, w = Math.min(1, (SIM.t % 6) / 4.8);
+  if (sweep) { ctx.heat = w; ctx.progress = w; }
   if (curTab === 'scenes') paintMinis($('#v-scenes'));
   if (!$('#fxPop').hidden) paintMinis($('#fxPop'));
   $$('#v-scenes [data-prev]').forEach(el => {
     const n = Math.min(30, +el.dataset.n || 30), [nm, pr] = compiled(el.dataset.prev), ps = el.dataset.pin && stripByName(el.dataset.pin);
-    let f = LS.render(nm, pr, n, ctx); if (ps) f = pinFrame(f, ps);
+    let f = LS.render(nm, pr, n, sweep ? sweepCtx(ctx, nm, pr, w) : ctx); if (ps) f = pinFrame(f, ps);
     if (el.children.length !== n) el.innerHTML = '<i></i>'.repeat(n);
     for (let i = 0; i < n; i++) el.children[i].style.background = rgbCss(f[i]);
   });
@@ -4683,6 +5306,17 @@ function setSpec(key, spec) {
   if (spec !== null) Preview.effect(key, spec);
 }
 $('#v-scenes').addEventListener('click', e => {
+  if (e.target.closest('[data-addscene]')) { openSceneDlg(null); return; }
+  const sb = e.target.closest('[data-stopadd], [data-stopdel], [data-stopclear]');
+  if (sb) {
+    const row = sb.closest('.fx'), key = row.dataset.key, [n, pr] = compiled(P.scenes[editState][key]);
+    let st = pr.colors ? pr.colors.split(',') : [];
+    if (sb.dataset.stopclear !== undefined) st = [];
+    else if (sb.dataset.stopdel !== undefined) st.splice(+sb.dataset.stopdel, 1);
+    else st = st.length ? st.concat([st[st.length - 1]]) : (n === 'heat' ? [pr.color2, pr.color] : GRAD5.split(','));
+    setSpec(key, LS.formatSpec(n, Object.assign({}, pr, { colors: st.join(',') })));
+    renderScenes(); return;
+  }
   const fb = e.target.closest('[data-fxbtn]');
   if (fb) { if (FxDD.btn === fb && !$('#fxPop').hidden) fxClose(true); else { fxClose(false); fxOpen(fb); } return; }
   const ed = e.target.closest('[data-edit]');
@@ -4691,6 +5325,7 @@ $('#v-scenes').addEventListener('click', e => {
   if (seg) {
     const row = seg.closest('.fx'), key = row.dataset.key, [n, pr] = compiled(P.scenes[editState][key]);
     const p = Object.assign({}, pr, { [seg.dataset.p]: seg.dataset.v });
+    if (seg.dataset.p === 'source') { p.min = 'auto'; p.max = 'auto'; setSpec(key, LS.formatSpec(n, p)); renderScenes(); return; }
     setSpec(key, LS.formatSpec(n, p));
     $$(`button[data-p="${seg.dataset.p}"]`, row).forEach(b => b.classList.toggle('sel', b === seg));
     $('.spec', row).textContent = P.scenes[editState][key]; $('[data-prev]', row).dataset.prev = P.scenes[editState][key];
@@ -4698,9 +5333,11 @@ $('#v-scenes').addEventListener('click', e => {
   }
   const act = e.target.closest('[data-act]'); if (!act) return;
   const a = act.dataset.act;
-  if (a === 'sim') { previewState(editState); return; }
+  if (a === 'sim') { if (isCustom(editState)) previewCustom(editState); else previewState(editState); return; }
+  if (a === 'editcustom') { openSceneDlg(editState); return; }
+  if (a === 'delcustom') { deleteCustomAsk(editState); return; }
   if (a === 'create') {
-    if (!Object.keys(P.scenes).length) for (const s of UI_STATES) P.scenes[s] = { all: normSpec(LS.DEFAULT_SCENES[s]) };
+    if (!hasStateScenes()) for (const s of UI_STATES) P.scenes[s] = { all: normSpec(LS.DEFAULT_SCENES[s]) };
     if (!P.scenes[editState]) { const r = LS.resolveScene(editState, effScenes()); P.scenes[editState] = r ? Object.assign({}, P.scenes[r]) : { all: normSpec(LS.DEFAULT_SCENES[editState]) }; }
   } else if (a === 'defaults') P.scenes[editState] = { all: normSpec(LS.DEFAULT_SCENES[editState]) };
   else if (a === 'remove') delete P.scenes[editState];
@@ -4711,9 +5348,28 @@ $('#v-scenes').addEventListener('change', e => {
   const el = e.target, row = el.closest('.fx'); if (!row) return;
   const key = row.dataset.key;
   if (el.matches('input[type=checkbox][data-p]')) { paramEdit(row, el.dataset.p, el.checked ? 1 : 0); if (el.dataset.p === 'gradient') renderScenes(); }
+  else if (el.matches('input[data-free]')) {  // a typed value source: <object>.<field>
+    const v = el.value.trim().replace(/\s+/g, ' ');
+    if (!v) return;
+    if (!LS.SOURCE_RE.test(v)) { el.classList.add('invalid'); toast(cm('srcBad', 'Source: object.field, e.g. temperature_sensor chamber.temperature', 'Kaynak: nesne.alan, ör. temperature_sensor chamber.temperature'), 'warn'); return; }
+    const [n, pr] = compiled(P.scenes[editState][key]);
+    setSpec(key, LS.formatSpec(n, Object.assign({}, pr, { source: v, min: 'auto', max: 'auto' }))); renderScenes();
+  } else if (el.matches('input[type=number][data-p]')) {  // min / max: empty = automatic
+    const raw = el.value.trim(), v = raw === '' ? 'auto' : Number(raw);
+    if (v !== 'auto' && !isFinite(v)) return;
+    paramEdit(row, el.dataset.p, v);
+  }
 });
 $('#v-scenes').addEventListener('input', e => {
-  const el = e.target, row = el.closest('.fx'); if (!row || !el.dataset.p || el.type === 'checkbox') return;
+  const el = e.target, row = el.closest('.fx');
+  if (row && el.type === 'color' && el.dataset.stop !== undefined) {  // one colour of the scale
+    const key = row.dataset.key, [n, pr] = compiled(P.scenes[editState][key]), st = pr.colors.split(',');
+    st[+el.dataset.stop] = el.value.slice(1).toLowerCase();
+    const w = el.closest('.swatch'); w.querySelector('i').style.background = el.value; w.querySelector('span').textContent = st[+el.dataset.stop];
+    paramEdit(row, 'colors', st.join(','));
+    return;
+  }
+  if (!row || !el.dataset.p || el.type === 'checkbox' || el.type === 'text' || el.type === 'number') return;
   if (el.type === 'color') {
     const hex = el.value.slice(1).toLowerCase();
     const s = el.closest('.swatch'); s.querySelector('i').style.background = el.value; s.querySelector('span').textContent = hex;
@@ -4819,6 +5475,7 @@ function klipBox() {  // banner content: text + Restart firmware (not while star
 }
 function renderKlip() {
   const down = !klipReady() || Klip.busy, b = $('#klipBanner');
+  if (down && Party.on) partyStop();
   document.body.classList.toggle('kdown', down);
   if (down && typeof lightOpen !== 'undefined' && lightOpen) { lightOpen = null; $('#lpop').hidden = true; }  // no light changes while Klipper is down
   if (b) { b.hidden = !down; if (down) { b.innerHTML = klipBox(); b.classList.toggle('start', Klip.state === 'startup' || Klip.busy); } }
@@ -4831,7 +5488,7 @@ function renderKlip() {
 async function readKlipper() {
   let st = 'ready', msg = '';
   try { const j = await Preview.req('/printer/info'); st = (j && j.result && j.result.state) || 'ready'; msg = (j && j.result && j.result.state_message) || ''; }
-  catch (e) { if (e.net || e.status === 404) return false; st = 'startup'; }  // Moonraker answers but Klippy is not connected yet; 404 = no Moonraker
+  catch (e) { if (e.net || e.status === 404) return false; st = 'startup'; }  // 404: no Moonraker at all (static host)  // Moonraker answers but Klippy is not connected yet
   const was = Klip.state;
   Klip.state = st; Klip.msg = st === 'ready' ? '' : msg;
   renderKlip();
@@ -4875,6 +5532,8 @@ const Preview = {
       case 'scene': return `LIGHTSPEED_SCENE STATE=${a.state} STRIP=${a.strip} EFFECT="${a.effect ?? ''}"`;
       case 'strip': return `LIGHTSPEED_STRIP STRIP=${a.strip} BRIGHTNESS=${fmtNum(a.brightness)}`;
       case 'brightness': return `LIGHTSPEED_BRIGHTNESS VALUE=${fmtNum(a.value)}`;
+      case 'scene_on': return `LIGHTSPEED_SCENE_ON NAME=${a.name}${a.hold ? ` HOLD=${fmtNum(a.hold)}` : ''}`;
+      case 'scene_off': return `LIGHTSPEED_SCENE_OFF NAME=${a.name}`;
     }
     return '';
   },
@@ -4916,6 +5575,7 @@ function renderLive() {
     const strips = st.strips || {};
     stat = `<div class="kv">${[[t.st_state, st.state ?? '?'], [t.st_enabled, st.enabled ? t.on : t.off], [t.st_bright, st.brightness ?? '?'], [t.st_version, st.version ?? '?']].map(([a, b]) => `<div><small>${esc(a)}</small><b>${esc(b)}</b></div>`).join('')}</div>
       ${st.override ? `<div class="note warn">${esc(t.st_override)}: ${esc(JSON.stringify(st.override))}</div>` : ''}
+      ${Array.isArray(st.custom_scenes) && st.custom_scenes.length ? `<div class="note">${esc(cm('stScenes', 'Custom scenes on', 'Açık özel sahneler'))}: <span class="mono">${esc((st.scenes_active || []).join(', ') || '—')}</span>${Array.isArray(st.compat) && st.compat.length ? ` · ${esc(st.compat.join(', '))}` : ''}</div>` : ''}
       <table><thead><tr><th>${esc(t.name)}</th><th>${esc(t.output)}</th><th>${esc(t.effect)}</th><th>fps</th><th>${esc(t.errors)}</th></tr></thead><tbody>
       ${Object.keys(strips).map(n => { const s = strips[n] || {}; return `<tr><td><b>${esc(n)}</b></td><td class="mono">${esc(s.output ?? '')}</td><td class="mono">${esc(s.effect ?? '')}</td><td>${esc(s.fps ?? '')}</td><td class="${s.errors ? 'bad' : ''}">${esc(s.errors ? (Array.isArray(s.errors) ? s.errors.join('; ') : s.errors) : '')}${s.disabled ? ' (' + T().disabled + (s.last_error ? ': ' + esc(s.last_error) : '') + ')' : ''}</td></tr>`; }).join('')}</tbody></table>`;
   }
@@ -4969,8 +5629,9 @@ function syncedProject() {
 function restartSig(p) {
   const q = JSON.parse(JSON.stringify(p));
   q.scenes = {}; q.brightness = 0; q.model = 'voron24'; q.size = [100, 100, 100];
+  // custom scenes, triggers, priorities, holds and groups stay: they need a restart (their lines do not)
   for (const x of q.strips) { x.brightness = 1; x.place = ['top_front']; x.spacing = 0; x.color = 'ffffff'; if (x.type === 'esp_bridge' || x.type === 'pin') x.count = 1; }
-  return cfgText(q);
+  return cfgText(q) + '\n' + JSON.stringify(p.prio || {});
 }
 function changeKind() {  // '' in sync, 'live' (runtime commands + upload), 'restart' (Save & apply)
   if (!isUnsaved()) return '';
@@ -4981,7 +5642,8 @@ function liveCommands(old, nw) {
   const c = [];
   if (old.brightness !== nw.brightness) c.push({ action: 'brightness', value: nw.brightness });
   for (const x of nw.strips) { const o = old.strips.find(y => y.name === x.name); if (o && (o.brightness ?? 1) !== (x.brightness ?? 1)) c.push({ action: 'strip', strip: x.name, brightness: x.brightness ?? 1 }); }
-  for (const st of UI_STATES) {
+  const both = (nw.customs || []).map(c => c.name).filter(n => (old.customs || []).some(c => c.name === n));
+  for (const st of UI_STATES.concat(both)) {
     const a = old.scenes[st] || {}, b = nw.scenes[st] || {};
     for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) if (a[k] !== b[k]) c.push({ action: 'scene', state: st, strip: k, effect: b[k] ?? '' });
   }
@@ -5059,7 +5721,7 @@ async function liveConnect(auto, o = {}) {
       Preview.on = UI.prevOn !== false;
       if (!o.keep) await syncFromPrinter();
     }
-  } catch (err) { if (err.status && err.status !== 404) Live.reach = true; if (!auto) liveMsg(err.message, 'bad'); }  // 404: no Moonraker here (e.g. the online demo)
+  } catch (err) { if (err.status && err.status !== 404) Live.reach = true; if (!auto) liveMsg(err.message, 'bad'); }
   if (Live.status || Live.reach) await readKlipper(); else { Klip.state = 'ready'; Klip.msg = ''; }
   Live.busy = false;
   rerender(); renderLights(); renderBadge(); renderKlip();
@@ -5072,6 +5734,8 @@ function followPrinter() {
   const st = Live.status; if (!st || SIM.timer) return;
   const s = st.auto_state || st.state;
   if (UI_STATES.includes(s) && s !== SIM.state) setSimState(s, false);
+  const on = (st.scenes_active || []).join(',');
+  if (on !== followPrinter.on) { followPrinter.on = on; renderChips(); }
 }
 const polling = () => !!(Live.status || Live.reach);
 function schedulePoll() {
@@ -5122,7 +5786,7 @@ function applyBox(where) {
   const t = T(), u = isUnsaved();
   if (where === 'live') return `<div data-sa>${saHtml()}</div>`;
   return `<div class="applyBox hi" data-unsaved${u ? '' : ' hidden'}>
-    <div class="row"><button type="button" class="primary" data-act="apply"${SA.busy ? ' disabled' : ''}>${esc(t.apply)}</button><span class="unsaved">${esc(t.unsaved)}</span></div>
+    <div class="row"><button type="button" class="primary" data-act="apply"${SA.busy ? ' disabled' : ''}>${esc(t.apply)}</button><button type="button" data-act="revert" title="${esc(t.revertHint)}">${esc(t.revert)}</button><span class="unsaved">${esc(t.unsaved)}</span></div>
     <p class="lead" style="margin:0">${esc(t.applyCfgLead + ' ' + t.applyLead)}</p></div>
     <p class="note ok" data-saved${u ? ' hidden' : ''}>${esc(t.cfgUpToDate)}</p>
     <div data-sa>${saHtml()}</div>`;
@@ -5206,13 +5870,14 @@ async function restoreBackup() {
   } catch (e) { saFail(e); SA.canRestore = true; }
   finally { SA.busy = false; renderSA(); renderBadge(); }
 }
+$('#fabUndo').addEventListener('click', revertToPrinter);
 $('#fab').addEventListener('click', () => {
   if ($('#fab').dataset.mode === 'download') { downloadCfg(); return; }
   showTab('settings', 'live'); saveApply();  // the steps are shown in Settings > Live
 });
 $('#pane').addEventListener('click', e => {
-  const a = e.target.closest('[data-act=apply], [data-act=restore]'); if (!a) return;
-  if (a.dataset.act === 'apply') saveApply(); else restoreBackup();
+  const a = e.target.closest('[data-act=apply], [data-act=restore], [data-act=revert]'); if (!a) return;
+  if (a.dataset.act === 'apply') saveApply(); else if (a.dataset.act === 'revert') revertToPrinter(); else restoreBackup();
 });
 
 
@@ -5341,7 +6006,12 @@ document.addEventListener('pointerdown', e => { if (lightOpen && !e.target.close
 // ------------------------------------------------------------------ wiring + start
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
 $('#subtabs').addEventListener('click', e => { const b = e.target.closest('[data-sub]'); if (b) showTab('settings', b.dataset.sub); });
-$('#chips').addEventListener('click', e => { const b = e.target.closest('[data-state]'); if (b && !document.body.classList.contains('kdown')) previewState(b.dataset.state); });
+$('#chips').addEventListener('click', e => {
+  if (e.target.closest('[data-addscene]')) { openSceneDlg(null); return; }
+  if (document.body.classList.contains('kdown')) return;
+  const c = e.target.closest('[data-custom]'); if (c) { previewCustom(c.dataset.custom); return; }
+  const b = e.target.closest('[data-state]'); if (b) previewState(b.dataset.state);
+});
 // ---- language menu (globe button)
 function renderLangMenu() {
   const m = $('#langMenu');
@@ -5388,6 +6058,9 @@ $('#themeBtn').addEventListener('click', () => { UI.theme = UI.theme === 'light'
 $('#resetView').addEventListener('click', resetView);
 $('#panelsBtn').addEventListener('click', () => { UI.panels = UI.panels === false; saveUI(); applyPanels(); });
 $('#simBar').addEventListener('click', e => { if (e.target.closest('#simX')) stopSim(); });
+$('#partyBtn').addEventListener('click', () => { if (Party.on) partyStop(); else partyStart(); });
+addEventListener('pagehide', () => partyStop());
+document.addEventListener('visibilitychange', () => { if (document.hidden) partyStop(); });
 // desktop layout: the window itself never scrolls (a scrollIntoView could still move it)
 addEventListener('scroll', () => { if (innerWidth > 900 && (scrollX || scrollY)) scrollTo(0, 0); });
 function applyTheme() { document.documentElement.dataset.theme = UI.theme === 'light' ? 'light' : 'dark'; }

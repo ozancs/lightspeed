@@ -72,12 +72,19 @@ cd lightspeed
 ./install.sh
 ```
 
-The installer links the module into Klipper, links the page into Mainsail/Fluidd and creates `~/printer_data/config/lightspeed.cfg` from the example when you have none. It does not edit `printer.cfg` and restarts nothing.
+The installer links the module into Klipper, links the page into Mainsail/Fluidd and creates `~/printer_data/config/lightspeed.cfg` from the example when you have none. It does not edit `printer.cfg` unless you answer yes to the `led_effect` migration below, and it restarts nothing.
 
 Then:
 
 1. Add `[include lightspeed.cfg]` to `printer.cfg`.
-2. If you used `led_effect` before, remove its `[led_effect ...]` sections and its include. Two plugins must not drive the same strip. Automatic migration from `led_effect` is planned for the next version.
+2. If you used `led_effect` before, the installer finds its `[led_effect ...]` sections, shows what it would change and asks `Migrate now? [y/N]`. You can also run the migration yourself:
+
+   ```bash
+   python3 tools/migrate_led_effect.py --dry-run   # show the result, change nothing
+   python3 tools/migrate_led_effect.py --apply     # switch over
+   ```
+
+   Each led_effect becomes a Lightspeed scene with the same name, so `SET_LED_EFFECT` and `STOP_LED_EFFECTS` in your macros keep working. `--apply` comments out the `[led_effect]` sections, adds `[include lightspeed.cfg]` (so you can skip step 1) and backs up every file it changes. If the new config would not load, it puts every file back. The installer can then remove the `led_effect` Klipper link and its `moonraker.conf` entry. It asks before each step.
 3. Restart Klipper when the printer is idle.
 4. Open `http://<your-printer>/lightspeed/lightspeed.html`, design your strips and press **Save & apply**.
 

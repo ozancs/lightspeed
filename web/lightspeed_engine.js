@@ -6,7 +6,7 @@
 (function (root) {
   'use strict';
 
-  const VERSION = '0.1.3';
+  const VERSION = '0.2.0';
 
   const STATES = ['shutdown', 'error', 'homing', 'probing', 'paused', 'heating',
     'printing', 'complete', 'idle'];
@@ -27,8 +27,8 @@
     scan: { color: 'ff0000', color2: '000000', period: 2.0, size: 2 },
     twinkle: { color: 'ffffff', color2: '000000', period: 1.2, density: 0.3 },
     fire: {},
-    progress: { color: 'ffffff', color2: 'ff0000', source: 'progress', gradient: 0 },
-    heat: { color: 'ff3000', color2: '0030ff' },
+    progress: { color: 'ffffff', color2: 'ff0000', source: 'progress', gradient: 0, min: 'auto', max: 'auto', colors: '' },
+    heat: { color: 'ff3000', color2: '0030ff', source: 'heat', min: 'auto', max: 'auto', colors: '' },
     follow: { color: 'ffffff', color2: '000000', axis: 'x', size: 1.5 },
   };
   const COMMON_PARAMS = { reverse: 0 };
@@ -47,9 +47,23 @@
 
   const PARAM_TYPES = {
     color: 'color', color2: 'color', gradient: 'bool', period: 'float', size: 'float',
-    density: 'float', source: ['progress', 'heat'], axis: ['x', 'y', 'z'],
-    reverse: 'bool',
+    density: 'float', source: 'source', axis: ['x', 'y', 'z'],
+    reverse: 'bool', min: 'number', max: 'number', colors: 'colors',
   };
+
+  const SOURCE_RE = /^[A-Za-z0-9_]+( [A-Za-z0-9_-]+)?(\.[A-Za-z0-9_]+)+$/;
+  const REF_RE = /^[A-Za-z0-9_]+( [A-Za-z0-9_-]+)?(\.[A-Za-z0-9_]+)*$/;
+
+  const BUILTIN_PRIORITY = {
+    shutdown: 100, error: 100, homing: 80, probing: 80,
+    heating: 20, printing: 20, paused: 20, complete: 20, idle: 0,
+  };
+  const DEFAULT_PRIORITY = 50;
+  const COMMAND_PRIORITY = 90;
+  const TRIGGERS = ['command', 'macro', 'print_cancelled', 'extruding', 'retracting', 'condition'];
+  const TRIGGER_OPS = ['>=', '<=', '==', '!=', '>', '<'];
+  const CANCEL_HOLD = 30.0;
+  const MOTION_SPEED = 0.5;
 
   class SpecError extends Error {}
 
@@ -84,7 +98,14 @@
       throw new SpecError(`unknown effect '${name}' (one of ${Object.keys(EFFECTS).sort().join(', ')})`);
     }
     const params = Object.assign({}, EFFECTS[name], COMMON_PARAMS);
+    const tokens = [];
     for (const p of parts.slice(1)) {
+      // 'source=temperature_sensor chamber.temperature': the second word belongs to source
+      if (p.indexOf('=') < 0 && tokens.length && tokens[tokens.length - 1].toLowerCase().startsWith('source=')
+        && tokens[tokens.length - 1].indexOf(' ') < 0) { tokens[tokens.length - 1] += ' ' + p; continue; }
+      tokens.push(p);
+    }
+    for (const p of tokens) {
       const eq = p.indexOf('=');
       if (eq < 0) throw new SpecError(`'${p}' should be key=value`);
       const k = p.slice(0, eq).toLowerCase();
@@ -100,6 +121,19 @@
         params[k] = f;
       } else if (t === 'bool') {
         params[k] = ['1', 'true', 'yes', 'on'].includes(v.toLowerCase()) ? 1 : 0;
+      } else if (t === 'number') {
+        if (v.toLowerCase() === 'auto') params[k] = 'auto';
+        else {
+          const f = Number(v);
+          if (v === '' || !isFinite(f)) throw new SpecError(`${k} must be a number, got '${v}'`);
+          params[k] = f;
+        }
+      } else if (t === 'colors') {
+        params[k] = v.split(',').filter(x => x.trim()).map(x => colorHex(parseColor(x))).join(',');
+      } else if (t === 'source') {
+        if (['progress', 'heat'].includes(v.toLowerCase())) params[k] = v.toLowerCase();
+        else if (SOURCE_RE.test(v)) params[k] = v;
+        else throw new SpecError(`source must be progress, heat or <object>.<field>, got '${v}'`);
       } else {
         if (!t.includes(v.toLowerCase())) throw new SpecError(`${k} must be one of ${t.join(', ')}`);
         params[k] = v.toLowerCase();
@@ -163,6 +197,64 @@
   function period(p, def) {
     const v = ('period' in p) ? p.period : def;
     return v > 0.05 ? v : 0.05;
+  }
+
+  function num(x) {
+    if (typeof x === 'boolean') return x ? 1.0 : 0.0;
+    if (typeof x === 'number' && isFinite(x)) return x;
+    return null;
+  }
+
+  function defaultRange(src) {
+    if (src === 'progress' || src === 'heat') return [0.0, 1.0];
+    const parts = src.split('.'), obj = parts[0], field = parts[parts.length - 1];
+    if (field === 'temperature' || field === 'target') {
+      if (obj.startsWith('extruder')) return [20.0, 300.0];
+      if (obj === 'heater_bed') return [20.0, 120.0];
+      return [20.0, 80.0];
+    }
+    if (field === 'live_extruder_velocity') return [0.0, 10.0];
+    return [0.0, 1.0];
+  }
+
+  function sourceRange(p, ctx) {
+    const src = ('source' in p) ? p.source : 'progress';
+    const r = (ctx.ranges && ctx.ranges[src]) || defaultRange(src);
+    const lo = (p.min === undefined || p.min === 'auto') ? r[0] : p.min;
+    const hi = (p.max === undefined || p.max === 'auto') ? r[1] : p.max;
+    return [Number(lo), Number(hi)];
+  }
+
+  function sourceValue(p, ctx) {
+    const src = ('source' in p) ? p.source : 'progress';
+    let raw;
+    if (src === 'progress' || src === 'heat') raw = num((src in ctx) ? ctx[src] : 0.0);
+    else raw = num(ctx.vars ? ctx.vars[src] : undefined);
+    if (raw === null) return 0.0;
+    const [lo, hi] = sourceRange(p, ctx);
+    if (hi === lo) return raw >= hi ? 1.0 : 0.0;
+    return Math.max(0.0, Math.min(1.0, (raw - lo) / (hi - lo)));
+  }
+
+  function stops(p) {
+    if (!p.colors) return null;
+    return p.colors.split(',').map(parseColor);
+  }
+
+  function gradientAt(st, v) {
+    if (st.length === 1) return st[0];
+    const x = Math.max(0.0, Math.min(1.0, v)) * (st.length - 1);
+    const i = Math.floor(x);
+    if (i >= st.length - 1) return st[st.length - 1];
+    return mix(st[i], st[i + 1], x - i);
+  }
+
+  function valueColor(name, p, ctx) {
+    const v = sourceValue(p, ctx), st = stops(p);
+    if (st !== null) return gradientAt(st, v);
+    if (name === 'heat') return mix(parseColor(p.color2), parseColor(p.color), v);
+    if (p.gradient) return mix(parseColor(p.color), parseColor(p.color2), v);
+    return parseColor(p.color);
   }
 
   const fill = (n, c) => { const o = new Array(n); for (let i = 0; i < n; i++) o[i] = c; return o; };
@@ -240,10 +332,17 @@
     },
     progress: (n, ctx, p) => {
       const off = [0.0, 0.0, 0.0], a = parseColor(p.color);
-      let v = p.source === 'heat' ? ctx.heat : ctx.progress;
-      v = Math.max(0.0, Math.min(1.0, v));
+      const v = sourceValue(p, ctx);
       const lit = v * n;
       const o = [];
+      const st = stops(p);
+      if (st !== null) {
+        for (let i = 0; i < n; i++) {
+          const pos = (n === 1 || p.gradient) ? v : i / (n - 1);
+          o.push(mix(off, gradientAt(st, pos), lit - i));
+        }
+        return o;
+      }
       if (!p.gradient) {
         for (let i = 0; i < n; i++) o.push(mix(off, a, lit - i));
         return o;
@@ -255,8 +354,7 @@
       }
       return o;
     },
-    heat: (n, ctx, p) => fill(n, mix(parseColor(p.color2), parseColor(p.color),
-      Math.max(0.0, Math.min(1.0, ctx.heat)))),
+    heat: (n, ctx, p) => fill(n, valueColor('heat', p, ctx)),
     follow: (n, ctx, p) => {
       const a = parseColor(p.color2), b = parseColor(p.color);
       const axis = { x: 0, y: 1, z: 2 }[p.axis];
@@ -307,6 +405,69 @@
     return (state in scenes) ? state : null;
   }
 
+  // ------------------------------------------------------ custom scenes
+
+  function parseTrigger(text) {
+    const s = String(text).split(/\s+/).filter(Boolean).join(' ');
+    const low = s.toLowerCase();
+    if (['command', 'print_cancelled', 'extruding', 'retracting'].includes(low)) return [low, null];
+    if (low.startsWith('macro ') || low === 'macro') {
+      const name = s.slice(5).trim().toUpperCase();
+      if (!/^[A-Z0-9_]+$/.test(name)) throw new SpecError(`trigger 'macro <NAME>' needs a G-code command name, got '${s}'`);
+      return ['macro', name];
+    }
+    const m = s.match(/^(.+?) ?(>=|<=|==|!=|>|<) ?(-?[0-9]*\.?[0-9]+)$/);
+    if (m && REF_RE.test(m[1])) return ['condition', [m[1], m[2], Number(m[3])]];
+    throw new SpecError(`unknown trigger '${s}' (command, macro <NAME>, print_cancelled, extruding, retracting or <object>.<field> <op> <number>)`);
+  }
+
+  function formatTrigger(kind, arg) {
+    if (kind === 'macro') return 'macro ' + arg;
+    if (kind === 'condition') return `${arg[0]} ${arg[1]} ${String(Math.round(arg[2] * 1000) / 1000)}`;
+    return kind;
+  }
+
+  function compare(value, op, number) {
+    switch (op) {
+      case '>': return value > number;
+      case '>=': return value >= number;
+      case '<': return value < number;
+      case '<=': return value <= number;
+      case '==': return value === number;
+    }
+    return value !== number;
+  }
+
+  // strips [[name, count]], groups [[name, [members]]], candidates [[scene, priority, since, {key: spec}]]
+  // -> {strip: [scene, key, spec, offset, total]} (same rules as plan_strips in the Python engine)
+  function planStrips(strips, groups, candidates) {
+    const counts = {};
+    for (const [n, c] of strips) counts[n] = c;
+    const order = candidates.slice().sort((a, b) => (b[1] - a[1]) || (b[2] - a[2]));
+    const out = {};
+    for (const [name, count] of strips) {
+      let hit = null;
+      for (const [scene, , , items] of order) {
+        if (Object.prototype.hasOwnProperty.call(items, name)) hit = [scene, name, items[name], 0, count];
+        else {
+          for (const [g, members] of groups) {
+            if (Object.prototype.hasOwnProperty.call(items, g) && members.includes(name)) {
+              const k = members.indexOf(name);
+              let off = 0, total = 0;
+              members.forEach((m, j) => { const c = counts[m] || 0; if (j < k) off += c; total += c; });
+              hit = [scene, g, items[g], off, total];
+              break;
+            }
+          }
+          if (hit === null && Object.prototype.hasOwnProperty.call(items, 'all')) hit = [scene, 'all', items.all, 0, count];
+        }
+        if (hit !== null) break;
+      }
+      out[name] = hit || [null, null, null, 0, count];
+    }
+    return out;
+  }
+
   const US_PER_BYTE = 10.0;
   const MCU_BUDGET = 0.03;
   const MCU_FPS_CAP = 25.0;
@@ -322,6 +483,8 @@
     SpecError, parseColor, colorHex, parseSpec, formatSpec, toByte, mix, hash01, hsv,
     render, toBytes, crossfade, resolveScene, mcuFps,
     US_PER_BYTE, MCU_BUDGET, MCU_FPS_CAP, NET_FPS,
+    SOURCE_RE, REF_RE, BUILTIN_PRIORITY, DEFAULT_PRIORITY, COMMAND_PRIORITY, TRIGGERS, TRIGGER_OPS, CANCEL_HOLD, MOTION_SPEED,
+    defaultRange, sourceRange, sourceValue, gradientAt, valueColor, parseTrigger, formatTrigger, compare, planStrips,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Lightspeed = api;
