@@ -3900,11 +3900,12 @@ function espBar(f, p) {  // the node draws its bar in one colour: the value's co
   return f.map(px => { const m = Math.max(...px) > 0.001 ? 1 : 0; return [c[0] * m, c[1] * m, c[2] * m]; });
 }
 // ---- party frames on the page: many colours at once, on the beat (sparkles, rainbow waves, halves that swap)
-const PARTY_MODES = ['wave', 'sparkle', 'halves', 'quarters', 'strobe', 'bounce', 'blocks', 'sparkle'];
+const PARTY_MODES = ['wave', 'sparkle', 'halves', 'quarters', 'strobe', 'bounce', 'blocks', 'fx', 'fx', 'fx', 'fx'];
 const pHash = (i, j) => { const x = Math.sin(i * 12.9898 + j * 78.233) * 43758.5453; return x - Math.floor(x); };
 function partyBeat() { return Party.ac ? Math.max(0, (Party.ac.currentTime - Party.t0) * PARTY_BPM / 60) : SIM.t * PARTY_BPM / 60; }
 function partyFrame(s, n) {
   const mode = Party.modes[s.name] || 'wave', B = partyBeat(), b = Math.floor(B), ph = B - b, seed = Party.seed[s.name] || 0;
+  if (mode === 'fx' && Party.specs[s.name]) { const [nm, pr] = compiled(Party.specs[s.name]); return LS.render(nm, pr, n, ctxNow(SIM.t)); }
   const hue = h => LS.hsv(((h % 1) + 1) % 1, 1, 1), dim = c => c.map(x => x * 0.04);
   const out = new Array(n);
   for (let i = 0; i < n; i++) {
@@ -4358,17 +4359,20 @@ function renderPartyBtn() {
   b.innerHTML = ICON.party; b.title = l; b.setAttribute('aria-label', l); b.setAttribute('aria-pressed', Party.on ? 'true' : 'false');
 }
 function partyColor() { const c = LS.hsv(Math.random(), 1, 1); return LS.colorHex(c); }
-function partySpec(s) {  // one lively effect for this strip, periods on the beat
+function partySpec(s) {  // one lively effect for this strip, fast and on the beat, bright random colours
   const beat = 60 / PARTY_BPM, a = partyColor(), b = partyColor(), r = arr => arr[Math.floor(Math.random() * arr.length)];
   const f = (n, p) => LS.formatSpec(n, Object.assign({}, LS.EFFECTS[n], LS.COMMON_PARAMS, p));
-  if (s.type === 'pin') return pinPwm(s) ? r([f('blink', { period: Math.max(0.25, beat) }), f('breathe', { period: beat * 2 })]) : f('blink', { period: Math.max(1, beat * 4) });
-  if (s.type === 'esp_bridge') return r([f('rainbow', { period: beat * 4 }), f('blink', { color: a, color2: b, period: beat }), f('chase', { color: a }), f('solid', { color: a }), f('breathe', { color: a, period: beat })]);
+  const rev = Math.random() < 0.5 ? 1 : 0;
+  if (s.type === 'pin') return pinPwm(s) ? r([f('blink', { period: Math.max(0.25, beat / 2) }), f('blink', { period: Math.max(0.25, beat) }), f('breathe', { period: beat })]) : f('blink', { period: Math.max(1, beat * 2) });
+  if (s.type === 'esp_bridge') return r([f('rainbow', { period: beat * 2 }), f('blink', { color: a, color2: b, period: beat }), f('blink', { color: a, color2: '000000', period: beat / 2 }), f('chase', { color: a }), f('breathe', { color: a, period: beat }), f('fire', {})]);
   return r([
-    f('rainbow', { period: beat * 2 }), f('rainbow', { period: beat, reverse: 1 }),
-    f('chase', { color: a, color2: '000000', period: beat * 2, size: 2 }), f('comet', { color: a, color2: '000000', period: beat }),
+    f('rainbow', { period: beat * 2, reverse: rev }), f('rainbow', { period: beat / 2, reverse: rev }),
+    f('chase', { color: a, color2: b, period: beat, size: 1 + Math.floor(Math.random() * 3), reverse: rev }),
+    f('comet', { color: a, color2: '000000', period: beat / 2, reverse: rev }), f('comet', { color: a, color2: b, period: beat, reverse: rev }),
+    f('scan', { color: a, color2: '000000', period: beat, size: 2 }), f('scan', { color: a, color2: b, period: beat / 2, size: 3 }),
+    f('twinkle', { color: a, color2: '000000', period: beat / 2, density: 0.7 }), f('twinkle', { color: a, color2: b, period: beat / 4, density: 0.5 }),
     f('blink', { color: a, color2: '000000', period: beat / 2 }), f('blink', { color: a, color2: b, period: beat }),
-    f('twinkle', { color: a, color2: '000000', period: beat, density: 0.55 }), f('scan', { color: a, color2: '000000', period: beat * 2, size: 2 }),
-    f('breathe', { color: a, color2: '000000', period: beat }),
+    f('breathe', { color: a, color2: b, period: beat }), f('fire', {}),
   ]);
 }
 function partyShuffle() {
@@ -4388,7 +4392,7 @@ function partyStart() {
   partyShuffle();
   try { partyMusic(); } catch (e) { Party.ac = null; }
   partyScene(true);
-  if (!Party.ac) Party.fx = setInterval(partyShuffle, 3000);  // no audio: change every 3 s
+  if (!Party.ac) Party.fx = setInterval(partyShuffle, 1500);  // no audio: change every 1.5 s
 }
 // mirror balls hanging round the printer, spinning, with coloured light spots sweeping the room
 function partyScene(on) {
@@ -4486,8 +4490,8 @@ function partyMusic() {
     if (Party.ac !== ac) return;
     while (Party.next < ac.currentTime + 0.12) {
       const t = Party.next, st = Party.step % 16, bar = Math.floor(Party.step / 16) % 2;
-      if (st === 0) {  // a bar starts: new lights every 1-2 bars, on the downbeat
-        if (--Party.bars <= 0) { Party.bars = 1 + Math.floor(Math.random() * 2); clearTimeout(Party.shuf); Party.shuf = setTimeout(partyShuffle, Math.max(0, (t - ac.currentTime) * 1000)); }
+      if (st % 4 === 0) {  // a beat: new lights every 2-4 beats, on the beat
+        if (--Party.bars <= 0) { Party.bars = 2 + Math.floor(Math.random() * 3); clearTimeout(Party.shuf); Party.shuf = setTimeout(partyShuffle, Math.max(0, (t - ac.currentTime) * 1000)); }
       }
       if (st % 4 === 0) kick(t);
       if (st % 4 === 2) noise(t, 0.16, 'highpass', 7000, 0.7, 0.28);
