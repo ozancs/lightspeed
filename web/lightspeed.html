@@ -4831,7 +4831,7 @@ function renderKlip() {
 async function readKlipper() {
   let st = 'ready', msg = '';
   try { const j = await Preview.req('/printer/info'); st = (j && j.result && j.result.state) || 'ready'; msg = (j && j.result && j.result.state_message) || ''; }
-  catch (e) { if (e.net) return false; st = 'startup'; }  // Moonraker answers but Klippy is not connected yet
+  catch (e) { if (e.net || e.status === 404) return false; st = 'startup'; }  // Moonraker answers but Klippy is not connected yet; 404 = no Moonraker
   const was = Klip.state;
   Klip.state = st; Klip.msg = st === 'ready' ? '' : msg;
   renderKlip();
@@ -5059,7 +5059,7 @@ async function liveConnect(auto, o = {}) {
       Preview.on = UI.prevOn !== false;
       if (!o.keep) await syncFromPrinter();
     }
-  } catch (err) { if (err.status) Live.reach = true; if (!auto) liveMsg(err.message, 'bad'); }
+  } catch (err) { if (err.status && err.status !== 404) Live.reach = true; if (!auto) liveMsg(err.message, 'bad'); }  // 404: no Moonraker here (e.g. the online demo)
   if (Live.status || Live.reach) await readKlipper(); else { Klip.state = 'ready'; Klip.msg = ''; }
   Live.busy = false;
   rerender(); renderLights(); renderBadge(); renderKlip();
