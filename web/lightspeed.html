@@ -94,7 +94,22 @@ input[type=range]::-moz-range-thumb { width:12px; height:12px; border-radius:50%
 #brand { font:800 19px/1 var(--head); letter-spacing:-.01em; display:flex; align-items:center; gap:10px; white-space:nowrap; }
 #brand .logo { width:34px; height:34px; margin:-6px -4px -6px -6px; flex:none; display:block; }
 #brand small { font:500 12px/1 var(--font); color:var(--dim); }
-#chips { display:flex; gap:4px; flex-wrap:wrap; }
+#brand .word { font:800 20px/1 var(--head); letter-spacing:-.02em; }
+#brand .word em { font-style:normal; }
+#chips:empty { display:none !important; }
+#top #chips { margin-left:14px; }  /* favourite scenes, a little apart from the logo */
+.scpick { display:grid; grid-template-columns:repeat(auto-fill,minmax(122px,1fr)); gap:6px; margin-bottom:18px; }
+.sctile { display:flex; align-items:center; gap:8px; text-align:left; height:34px; padding:0 10px; border-radius:9px; background:var(--raised); border:1px solid var(--rule); box-shadow:none; min-width:0; }
+.sctile i { flex:none; width:8px; height:8px; border-radius:50%; background:var(--c); box-shadow:0 0 6px color-mix(in srgb,var(--c) 70%,transparent); }
+.sctile b { flex:1; min-width:0; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sctile { cursor:pointer; }
+.sctile .fav { flex:none; width:24px; height:24px; margin-right:-6px; padding:0; border:0; background:none; box-shadow:none; color:var(--dim); font-size:15px; line-height:1; border-radius:6px; }
+.sctile .fav:hover { color:var(--text); background:var(--sig-tint); }
+.sctile .fav.on { color:var(--sig); }
+.sctile.dim b { color:var(--dim); }
+.sctile.sel { border-color:var(--sig); background:var(--sig-tint); }
+.sctile.sel b { color:var(--text); }
+.sctile.add { border-style:dashed; background:none; color:var(--dim); } .sctile.add small { display:none; }
 @media (min-width:901px) {  /* one header row: the chips scroll sideways when the window is narrow */
   #top { flex-wrap:nowrap; }
   #chips { flex:0 1 auto; min-width:0; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
@@ -103,7 +118,7 @@ input[type=range]::-moz-range-thumb { width:12px; height:12px; border-radius:50%
   #brand { flex:none; }
 }
 @media (max-width:1560px) { #brand small { display:none; } }
-@media (max-width:1500px) { #hudLoad .t { display:none; } #brand > span { display:none; } }  /* narrower: logo only, MCU value without its label */
+@media (max-width:1500px) { #hudLoad .t { display:none; } }  /* narrower: logo only, MCU value without its label */
 .chip { min-height:30px; padding:3px 10px 2px; border-radius:999px; font-size:13px; color:var(--dim); background:transparent; box-shadow:none; }
 .chip::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--c,var(--dim)); flex:none; box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 25%,transparent); }
 .chip.sel { color:var(--text); border-color:var(--sig); background:var(--sig-tint); }
@@ -216,6 +231,7 @@ input[type=range]::-moz-range-thumb { width:12px; height:12px; border-radius:50%
 /* quick light buttons on the 3D view (the stage is always dark) */
 #lights { position:absolute; top:12px; left:50%; transform:translateX(-50%); display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:calc(100% - 300px); z-index:3; }
 #lights.fit { transform:none; max-width:none; }
+#lights { display:none !important; }  /* lights are set on the model: click an LED for its settings, double-click to switch it off */
 #lights .lb { display:inline-flex; align-items:center; gap:8px; min-height:32px; padding:4px 11px 4px 8px; border:1px solid #3a3f47; border-radius:999px; background:#1e2126cc; color:#ecebe7; font:600 13px var(--font); cursor:pointer; backdrop-filter:blur(4px); }
 #lights .lb:hover, #lights .lb.open { border-color:var(--sig); }
 #lights .lb i { width:12px; height:12px; border-radius:50%; background:#000; box-shadow:0 0 0 1px #fff3, 0 0 9px var(--c,transparent); }
@@ -576,7 +592,7 @@ dialog p { color:var(--dim); margin:0 0 16px; }
 </head>
 <body>
 <header id="top">
-  <div id="brand"><img class="logo" src="logo.svg" alt="" aria-hidden="true"><span>Lightspeed</span><small data-t="tagline"></small></div>
+  <div id="brand"><img class="logo" src="logo.svg" alt="" aria-hidden="true"><span class="word">Light<em>speed</em></span><small data-t="tagline"></small></div>
   <div id="chips" role="group"></div>
   <div id="topRight">
     <button id="prnBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="prnMenu"></button>
@@ -4398,6 +4414,13 @@ function bindPointer(cv) {
     const h = pickAt(e.clientX, e.clientY);
     if (h) selectStrip(h[0], -1, true); else { selStrip = -1; selLed = -1; renderSel(); if (curTab === 'strips') renderStrips(); }
   });
+  cv.addEventListener('dblclick', e => {
+    const h = pickAt(e.clientX, e.clientY); if (!h) return;
+    const s = P.strips[h[0]]; if (!s) return;
+    const off = Preview.overrides[s.name] === 'off';
+    setManual(s.name, off ? null : 'off');
+    toast(off ? cm('ledAuto', `${s.name}: back to automatic`, `${s.name}: otomatiğe döndü`, s.name) : cm('ledOff', `${s.name}: off (double-click again to turn it back on)`, `${s.name}: kapalı (açmak için yine çift tıkla)`, s.name));
+  });
   cv.addEventListener('pointermove', e => { G.hover = [e.clientX, e.clientY]; });
   cv.addEventListener('pointerleave', () => { G.hover = null; $('#tip').style.display = 'none'; cv.style.cursor = ''; });
 }
@@ -4477,7 +4500,7 @@ function loop() {
 }
 // ------------------------------------------------------------------ persistence
 const KEY_P = 'lightspeed.project', KEY_UI = 'lightspeed.ui';
-const UI = { lang: null, theme: 'dark', tab: 'strips', sub: 'printer', addr: '', prevSec: 10, prevHold: false, panels: true, toolhead: 'rx', printers: [], scan: null };  // toolhead + panels: page only
+const UI = { lang: null, theme: 'dark', tab: 'strips', sub: 'printer', addr: '', prevSec: 10, prevHold: false, panels: true, toolhead: 'rx', printers: [], scan: null, favs: ['idle', 'heating', 'printing', 'error'] };  // toolhead + panels: page only
 let saveTimer = 0;
 function saveProject() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { saveTimer = 0; try { localStorage.setItem(KEY_P, JSON.stringify(P)); } catch (e) { /* storage off */ } }, 250); }
 // a reload right after an edit must not lose it to the save delay
@@ -4828,11 +4851,14 @@ function downloadCfg() {
   const l = document.createElement('a'); l.href = url; l.download = 'lightspeed.cfg'; document.body.appendChild(l); l.click(); l.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
-function renderChips() {
+const FAV_MAX = 6;
+$('#v-scenes').addEventListener('keydown', e => { const t = e.target.closest && e.target.closest('.sctile[data-pick]'); if (t && e.target === t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.click(); } });
+function renderChips() {  // favourite scenes in the top bar (starred in the Scenes tab); a click plays it
   const act = simActive();
-  $('#chips').innerHTML = UI_STATES.map(s => `<button type="button" class="chip${s === SIM.state ? ' sel' : ''}" style="--c:${STATE_COL[s]}" data-state="${s}">${esc(T().states[s])}</button>`).join('')
-    + P.customs.map(c => `<button type="button" class="chip cust${c.name in act ? ' sel' : ''}" style="--c:${customCol(c.name)}" data-custom="${esc(c.name)}" title="${esc(trigText(c))}">${esc(c.name)}</button>`).join('')
-    + `<button type="button" class="chip add" data-addscene title="${esc(cm('scNew', 'New scene', 'Yeni sahne'))}" aria-label="${esc(cm('scNew', 'New scene', 'Yeni sahne'))}">${ICON.plus}</button>`;
+  UI.favs = (UI.favs || []).filter(x => UI_STATES.includes(x) || P.customs.some(c => c.name === x)).slice(0, FAV_MAX);
+  $('#chips').innerHTML = UI.favs.map(x => UI_STATES.includes(x)
+    ? `<button type="button" class="chip${x === SIM.state ? ' sel' : ''}" style="--c:${STATE_COL[x]}" data-state="${x}">${esc(T().states[x])}</button>`
+    : (c => `<button type="button" class="chip cust${c.name in act ? ' sel' : ''}" style="--c:${customCol(c.name)}" data-custom="${esc(c.name)}" title="${esc(trigText(c))}">${esc(c.name)}</button>`)(P.customs.find(c => c.name === x))).join('');
   if (!klipReady()) renderKlip();
 }
 function renderHud() {
@@ -5427,7 +5453,14 @@ function renderScenes() {
   else if (!sc) body = `<div class="note">${t.fallsBack(esc(t.states[st]), resolved ? esc(t.states[resolved]) : '')}</div><div class="row"><button type="button" class="primary" data-act="create">${esc(t.createScene)}</button><button type="button" data-act="defaults">${esc(t.useDefaults)}</button></div>`;
   else body = rows() +
     `<div class="sclinks"><button type="button" class="linkbtn" data-act="defaults">${esc(cmOr('useDefScene', 'Use default scene', 'Varsayılan sahneyi kullan', t.useDefaults))}</button><button type="button" class="linkbtn bad" data-act="remove">${esc(cmOr('rmScene', 'Remove this scene', 'Bu sahneyi kaldır', t.removeScene))}</button></div>`;
-  $('#v-scenes').innerHTML = `<div class="sec"><div class="schd"><span class="sdot" style="--c:${sceneCol(st)}"></span><h2>${esc(sceneLabel(st))}</h2><small>${esc(cm('scWhat', 'what each strip shows', 'her şeridin gösterdiği'))}</small>${info(t.sc_lead)}
+  const pick = UI_STATES.map(x => [x, false]).concat(P.customs.map(c => [c.name, true])).map(([x, cu]) => {
+    const own = P.scenes[x], n = own ? Object.keys(own).length : 0;
+    const sub = cu ? trigName(trigKind((P.customs.find(c => c.name === x) || {}).trigger || ''))
+      : own ? String(n) : '–';
+    const fav = (UI.favs || []).includes(x), ft = fav ? cm('favOff', 'Remove from the top bar', 'Üst çubuktan kaldır') : cm('favOn', 'Add to the top bar (plays with one click)', 'Üst çubuğa ekle (tek tıkla oynar)');
+    return `<div class="sctile${x === st ? ' sel' : ''}${own || cu ? '' : ' dim'}" data-pick="${esc(x)}" role="button" tabindex="0" style="--c:${sceneCol(x)}" title="${esc(sub)}"><i></i><b>${esc(sceneLabel(x))}</b><button type="button" class="fav${fav ? ' on' : ''}" data-fav="${esc(x)}" aria-pressed="${fav}" title="${esc(ft)}" aria-label="${esc(ft)}">${fav ? '★' : '☆'}</button></div>`;
+  }).join('') + `<button type="button" class="sctile add" data-addscene><b>＋ ${esc(cm('scNew', 'New scene', 'Yeni sahne'))}</b><small>${esc(cm('scNewSub', 'on a trigger', 'tetikleyiciyle'))}</small></button>`;
+  $('#v-scenes').innerHTML = `<div class="scpick">${pick}</div><div class="sec"><div class="schd"><span class="sdot" style="--c:${sceneCol(st)}"></span><h2>${esc(sceneLabel(st))}</h2><small>${esc(cm('scWhat', 'what each strip shows', 'her şeridin gösterdiği'))}</small>${info(t.sc_lead)}
     <button type="button" data-act="sim">${ICON.play}${esc(t.testState)}</button></div>
     ${body}</div>`;
   $$('#v-scenes input[type=range]').forEach(setRangeFill);
@@ -5587,6 +5620,16 @@ function setSpec(key, spec) {
   if (spec !== null) Preview.effect(key, spec);
 }
 $('#v-scenes').addEventListener('click', e => {
+  const fv = e.target.closest('[data-fav]');
+  if (fv) {  // star: the scene goes to / leaves the top bar (at most 6 there)
+    const x = fv.dataset.fav, f = (UI.favs || []).slice(), i = f.indexOf(x);
+    if (i >= 0) f.splice(i, 1);
+    else if (f.length >= FAV_MAX) { toast(cm('favMax', `At most ${FAV_MAX} favourites in the top bar.`, `Üst çubukta en fazla ${FAV_MAX} favori olur.`, FAV_MAX), 'warn'); return; }
+    else f.push(x);
+    UI.favs = f; saveUI(); renderChips(); renderScenes(); return;
+  }
+  const pk = e.target.closest('[data-pick]'); if (pk) { editState = pk.dataset.pick; renderScenes(); return; }
+  if (e.target.closest('#v-scenes [data-addscene]')) { openSceneDlg(null); return; }
   if (e.target.closest('[data-addscene]')) { openSceneDlg(null); return; }
   const sb = e.target.closest('[data-stopadd], [data-stopdel], [data-stopclear]');
   if (sb) {
