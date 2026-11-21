@@ -15,6 +15,9 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import json
+import os
+import subprocess
+import sys
 import logging
 import math
 import re
@@ -954,6 +957,7 @@ class Lightspeed(object):
         self.groups = []          # [(name, [strip names])]
         self.compat = []          # SET_LED_EFFECT / STOP_LED_EFFECTS if ours
         self.led_effect = []      # [led_effect ...] sections still loaded (they fight us for the LEDs)
+        self.migrate = {'state': 'idle', 'ok': None, 'output': '', 'removed': []}
         self.ranges = {}          # value source -> (lo, hi) from max_temp
         self._src_ref = {}        # value source -> (object, fields) | False
         self._stc = {}            # status objects read in this tick
@@ -1001,6 +1005,7 @@ class Lightspeed(object):
             webhooks.register_endpoint('lightspeed/cmd', self._web_cmd)
             # other printers on the LAN with Lightspeed (background scan)
             webhooks.register_endpoint('lightspeed/scan', self._web_scan)
+            webhooks.register_endpoint('lightspeed/migrate', self._web_migrate)
         self.printer.register_event_handler('klippy:ready', self._ready)
         self.printer.register_event_handler('klippy:shutdown', self._shut)
         self.printer.register_event_handler('klippy:disconnect',
@@ -1999,6 +2004,60 @@ class Lightspeed(object):
             logging.exception("lightspeed: web command failed")
             raise web_request.error("Lightspeed: %s" % (e,))
         web_request.send({'ok': True})
+
+    # ------------------------------------------------- led_effect migration from the page
+    def _migrate_run(self, tool, cfgdir):
+        # runs in a thread: the same tool the installer runs (backups, roll-back on any error)
+        res = {'state': 'done', 'ok': False, 'output': '', 'removed': []}
+        try:
+            py = sys.executable or 'python3'
+            r = subprocess.run([py, tool, '--config', cfgdir, '--apply'], stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, timeout=180)
+            out = r.stdout.decode('utf-8', 'replace')
+            res['ok'] = r.returncode == 0
+            res['output'] = out[-4000:]
+            if res['ok']:
+                # the old plugin's link in Klipper's extras: Lightspeed answers SET_LED_EFFECT itself now
+                extras = os.path.dirname(os.path.abspath(__file__))
+                link = os.path.join(extras, 'led_effect.py')
+                if os.path.islink(link):
+                    os.remove(link)
+                    res['removed'].append(link)
+        except Exception as e:
+            logging.exception("lightspeed: led_effect migration failed")
+            res['output'] = str(e)
+        self.migrate = res
+
+    def _web_migrate(self, web_request):
+        """POST /printer/lightspeed/migrate {start: 1}: move led_effect into Lightspeed on this printer
+        (only while idle); start: 0 reads the state. Klipper needs a restart afterwards."""
+        try:
+            start = _truthy(web_request.get('start', True))
+            if start and self.migrate.get('state') != 'running':
+                ps = self.printer.lookup_object('print_stats', None)
+                st = ''
+                if ps is not None:
+                    try:
+                        st = str(ps.get_status(self.reactor.monotonic()).get('state', ''))
+                    except Exception:
+                        st = ''
+                if st in ('printing', 'paused'):
+                    raise web_request.error("Lightspeed: not while a print is running")
+                tool = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tools',
+                                    'migrate_led_effect.py')
+                cfg = self.printer.get_start_args().get('config_file', '')
+                if not os.path.isfile(tool) or not cfg:
+                    raise web_request.error("Lightspeed: migration tool or config not found")
+                self.migrate = {'state': 'running', 'ok': None, 'output': '', 'removed': []}
+                t = threading.Thread(target=self._migrate_run, args=(tool, os.path.dirname(cfg)))
+                t.daemon = True
+                t.start()
+            web_request.send(dict(self.migrate))
+        except Exception as e:
+            if hasattr(e, 'status_code') or type(e).__name__ == 'WebRequestError':
+                raise
+            logging.exception("lightspeed: migrate request failed")
+            raise web_request.error("Lightspeed: %s" % (e,))
 
     def _web_scan(self, web_request):
         """POST /printer/lightspeed/scan {start: 1, refresh: 0} - returns at

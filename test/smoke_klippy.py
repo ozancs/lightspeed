@@ -550,6 +550,11 @@ def main():
           'runtime strip brightness')
     ep = p.objects['webhooks'].endpoints.get('lightspeed/cmd')
     check(ep is not None, 'web endpoint registered')
+    mig = p.objects['webhooks'].endpoints.get('lightspeed/migrate')
+    wr_m = WebRequest({'start': 0})
+    mig(wr_m)
+    check(mig is not None and wr_m.result and wr_m.result.get('state') == 'idle',
+          'migrate endpoint registered, reads its state without starting')
     n_out = len(g.out)
     wr = WebRequest({'action': 'batch', 'actions': [
         {'action': 'state', 'state': 'paused', 'hold': 2},

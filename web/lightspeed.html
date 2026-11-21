@@ -274,6 +274,8 @@ input[type=range]::-moz-range-thumb { width:12px; height:12px; border-radius:50%
 #selInfo .hint { color:#a8acb4; font-size:12px; text-shadow:0 1px 2px #000; }
 .lenote { display:grid; gap:2px; max-width:420px; padding:8px 12px; border-radius:10px; background:color-mix(in srgb,var(--warn) 14%,#1e2126ee); border:1px solid color-mix(in srgb,var(--warn) 55%,transparent); color:#ecebe7; font-size:12.5px; line-height:1.4; }
 .lenote b { color:var(--warn); font-size:13px; }
+.lenote .row { margin-top:6px; } .lenote .err { color:var(--bad); }
+#hud .lenote { pointer-events:auto; }
 #selHalo { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
 #haloTint { stroke:var(--sig); stroke-opacity:.12; }
 #haloEdge { fill:var(--sig); opacity:.9; }
@@ -4826,10 +4828,31 @@ function renderLeNote() {
   const el = $('#leNote'); if (!el) return;
   const n = (Live.status && Array.isArray(Live.status.led_effect)) ? Live.status.led_effect : [];
   el.hidden = !n.length; if (!n.length) return;
-  el.innerHTML = `<b>${esc(cm('leOnT', 'led_effect is still active', 'led_effect hâlâ açık'))}</b><span>${esc(cm('leOnB',
-    `${n.length} effect(s) fight Lightspeed for the same LEDs. On the printer run ~/lightspeed/install.sh again (it moves them over, with backups), then restart Klipper.`,
-    `${n.length} efekt aynı LED'ler için Lightspeed ile çakışıyor. Yazıcıda ~/lightspeed/install.sh'ı yeniden çalıştırın (efektleri yedekli taşır), sonra Klipper'ı yeniden başlatın.`, n.length))}</span>`;
+  if (LeMig.done) {  // moved: only the restart is left
+    el.innerHTML = `<b>${esc(cm('leDoneT', 'led_effect moved to Lightspeed', 'led_effect Lightspeed\'e taşındı'))}</b><span>${esc(cm('leDoneB', 'Restart Klipper to finish. Your old files are backed up next to them.', 'Bitirmek için Klipper\'ı yeniden başlatın. Eski dosyalar yanlarında yedekli.'))}</span><div class="row"><button type="button" class="primary small" data-act="krestart">${esc(T().k_restart)}</button></div>`;
+    return;
+  }
+  el.innerHTML = `<b>${esc(cm('leOnT', 'led_effect is still active', 'led_effect hâlâ açık'))}</b><span>${esc(cm('leOnB2',
+    `${n.length} effect(s) fight Lightspeed for the same LEDs.`, `${n.length} efekt aynı LED'ler için Lightspeed ile çakışıyor.`, n.length))}</span><div class="row"><button type="button" class="primary small" data-act="lemigrate"${LeMig.busy ? ' disabled' : ''}>${esc(LeMig.busy ? cm('leBusy', 'Moving…', 'Taşınıyor…') : cm('leGo', 'Turn led_effect off and move it here', 'led_effect\'i kapat ve buraya taşı'))}</button></div>${LeMig.err ? `<span class="err">${esc(LeMig.err)}</span>` : ''}`;
 }
+const LeMig = { busy: false, done: false, err: '' };
+async function leMigrate() {
+  if (LeMig.busy) return;
+  if (!await confirmDlg(cm('leQT', 'Move led_effect to Lightspeed?', 'led_effect Lightspeed\'e taşınsın mı?'), cm('leQ', 'led_effect sections are commented out (files backed up first) and become Lightspeed scenes with the same names; your macros keep working. Klipper restarts afterwards.', 'led_effect bölümleri yorum satırı yapılır (dosyalar önce yedeklenir) ve aynı adlı Lightspeed sahnelerine dönüşür; makrolarınız çalışmaya devam eder. Sonra Klipper yeniden başlatılır.'), cm('leGoShort', 'Move it', 'Taşı'))) return;
+  LeMig.busy = true; LeMig.err = ''; renderLeNote();
+  try {
+    let r = await Preview.req('/printer/lightspeed/migrate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start: 1 }) });
+    for (let i = 0; i < 120 && r.result && r.result.state === 'running'; i++) {
+      await new Promise(ok => setTimeout(ok, 1000));
+      r = await Preview.req('/printer/lightspeed/migrate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start: 0 }) });
+    }
+    const res = r.result || {};
+    if (res.ok) { LeMig.done = true; toast(cm('leDone', 'Moved. Restart Klipper to finish.', 'Taşındı. Bitirmek için Klipper\'ı yeniden başlatın.')); await klipRestart(); }
+    else LeMig.err = (String(res.output || '').trim().split('\n').slice(-3).join(' ') || cm('leFail', 'The move stopped; nothing was changed.', 'Taşıma durdu; hiçbir şey değişmedi.'));
+  } catch (e) { LeMig.err = e.message; }
+  LeMig.busy = false; renderLeNote();
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-act=lemigrate]')) leMigrate(); });
 function renderBadge() {
   renderLeNote();
   const b = $('#errBadge');
