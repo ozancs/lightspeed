@@ -90,6 +90,15 @@ Then:
 
 A Mainsail or Fluidd update removes the page link; run `./install.sh` again after one.
 
+### Uninstall
+
+```bash
+cd ~/lightspeed
+./uninstall.sh
+```
+
+It removes the module and page links, asks before commenting out `[include lightspeed.cfg]` in `printer.cfg` and the `[update_manager lightspeed]` section in `moonraker.conf` (both backed up first), and leaves your `lightspeed.cfg` and this folder for you to delete. Restart Klipper afterwards.
+
 ### Updates from Mainsail / Fluidd
 
 Add this to `moonraker.conf`:
