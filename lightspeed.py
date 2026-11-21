@@ -2056,6 +2056,16 @@ class Lightspeed(object):
         except self.ActionError as e:
             raise gcmd.error("Lightspeed: %s" % (e,))
 
+    def _compat_scene(self, name):
+        # an led_effect name -> the migrated scene: the same name, the name
+        # with Lightspeed's name rules applied, or that + '_fx' (a name that
+        # is also a printer state, e.g. 'heating', is migrated as heating_fx)
+        clean = re.sub(r'[^a-z0-9_]', '_', name)
+        for cand in (name, clean, name + '_fx', clean + '_fx'):
+            if cand in self.custom:
+                return cand
+        return None
+
     def cmd_SET_LED_EFFECT(self, gcmd):
         # led_effect compatible: EFFECT=<scene> [STOP=1]; FADETIME, REPLACE,
         # RESTART, LEDS... are accepted and ignored. Never an error: a
@@ -2065,6 +2075,7 @@ class Lightspeed(object):
             stop = int(float(gcmd.get('STOP', '0') or 0))
         except (TypeError, ValueError):
             stop = 0
+        name = self._compat_scene(name) or name
         if name not in self.custom:
             gcmd.respond_info("Lightspeed: no scene '%s' for SET_LED_EFFECT "
                               "(custom scenes: %s)"
@@ -2077,6 +2088,8 @@ class Lightspeed(object):
 
     def cmd_STOP_LED_EFFECTS(self, gcmd):
         name = str(gcmd.get('EFFECT', '') or '').strip().lower()
+        if name:
+            name = self._compat_scene(name) or name
         if name and name not in self.custom:
             gcmd.respond_info("Lightspeed: no scene '%s' for STOP_LED_EFFECTS"
                               % (name,))

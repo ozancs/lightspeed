@@ -784,14 +784,15 @@ def expect_odd(cp, out, d):
           'odd: template default used (period=4)')
     check(cp.has_section('lightspeed scene idle_fx'),
           'odd: led_effect named "idle" becomes scene idle_fx')
-    check('FIX BY HAND' in out and 'EFFECT=idle_fx' in out and
+    check('FIX BY HAND' in out and 'EFFECT=idle_fx' not in out and
           "printer['led_effect Logo_Idle']" in out,
-          'odd: renamed scene and printer[led_effect] use are listed')
+          'odd: printer[led_effect] use is listed; idle -> idle_fx needs no '
+          'macro change (Lightspeed finds it)')
     check('started in: [gcode_macro LIGHTS_CHECK]' in out.split('idle_fx')[1],
           'odd: call inside a Jinja one-liner is found')
     check("starts led_effect 'ghost', which gets no scene" in out and
-          '(lower case)' in out, 'odd: calls without a scene and case-only '
-          'renames are listed')
+          '(lower case)' not in out, 'odd: calls without a scene are listed; '
+          'case-only renames are not (Lightspeed matches case-blind)')
     check(scene_key(cp, 'knob')[1] == 'solid',
           'odd: analogpin effect kept as a solid scene')
     txt = open(os.path.join(d, 'lightspeed.cfg'), encoding='utf-8').read()

@@ -3,13 +3,13 @@
 #  - links lightspeed.py and lightspeed_engine.py into Klipper's extras
 #  - hides the links from Klipper's own git status
 #  - links the page folder (web/) into ~/mainsail and ~/fluidd as lightspeed/
-#  - finds [led_effect] sections and offers to move them to Lightspeed
-#    (tools/migrate_led_effect.py; asks first, default no)
-#  - finds a klipper-led_effect install and offers to remove its Klipper link
-#    and its moonraker.conf entry (asks first, default no)
+#  - finds [led_effect] sections and moves them to Lightspeed
+#    (tools/migrate_led_effect.py; automatic, with backups and roll-back; LIGHTSPEED_NO_MIGRATE=1 skips it)
+#  - finds a klipper-led_effect install and removes its Klipper link
+#    and its moonraker.conf entry once the migration succeeded
 #  - creates ~/printer_data/config/lightspeed.cfg from config/lightspeed.example.cfg
 #    when there is none yet
-# Without a "y" answer it does not edit printer.cfg or moonraker.conf, and it
+# Apart from that migration it does not edit printer.cfg or moonraker.conf, and it
 # never restarts anything: it prints what to do.
 # Run it again at any time; it only changes what is missing.
 set -e
@@ -69,26 +69,33 @@ if [ -n "$PY" ] && [ -f "$CONFIG/printer.cfg" ]; then
     "$PY" "$MIGRATE" --config "$CONFIG" --detect >/dev/null 2>&1 || CODE=$?
     if [ "$CODE" = 0 ]; then
         LED_EFFECT_ACTIVE=1
+        NSEC="$(grep -rhs --include='*.cfg' -c '^\[led_effect ' "$CONFIG" | awk '{s+=$1} END {print s+0}')"
+        NFILE="$(grep -rls --include='*.cfg' '^\[led_effect ' "$CONFIG" | wc -l | tr -d ' ')"
+        NMAC="$(grep -rhs --include='*.cfg' -cE '^[[:space:]]*(SET_LED_EFFECT|STOP_LED_EFFECTS)' "$CONFIG" | awk '{s+=$1} END {print s+0}')"
         echo
-        echo "Your config has [led_effect] sections. The migration would do this:"
-        echo
-        "$PY" "$MIGRATE" --config "$CONFIG" --dry-run || true
-        echo
-        if ! "$PY" "$MIGRATE" --can-apply; then
-            echo "This Lightspeed version cannot run the migrated scenes yet: update it, then run:"
+        echo "== Found an led_effect setup =="
+        echo "  $NSEC [led_effect] section(s) in $NFILE file(s), and $NMAC SET_LED_EFFECT / STOP_LED_EFFECTS line(s) in your macros."
+        if [ "${LIGHTSPEED_NO_MIGRATE:-0}" = 1 ]; then
+            echo "  LIGHTSPEED_NO_MIGRATE=1: leaving it alone. Migrate later with: python3 $MIGRATE --apply"
+        elif ! "$PY" "$MIGRATE" --can-apply; then
+            echo "  This Lightspeed version cannot run the migrated scenes yet: update it, then run:"
             echo "  python3 $MIGRATE --apply"
-        elif ask "Migrate now?"; then
+        else
+            echo "  Moving it into Lightspeed now:"
+            echo "   - every effect becomes a Lightspeed scene with the same name, so your macros keep working unchanged"
+            echo "   - the [led_effect] sections are commented out, every changed file is backed up first (*.lightspeed-backup-*)"
+            echo "   - if anything does not check out afterwards, all files are put back as they were"
+            echo
             if "$PY" "$MIGRATE" --config "$CONFIG" --apply; then
                 CODE=0
                 "$PY" "$MIGRATE" --config "$CONFIG" --detect >/dev/null 2>&1 || CODE=$?
                 if [ "$CODE" = 1 ]; then LED_EFFECT_ACTIVE=0; fi
+                echo
+                echo "  Migrated. Check the strips and scenes on the page after the Klipper restart."
+                echo "  To undo: put back the *.lightspeed-backup-* files next to your configs."
             else
-                echo "Migration failed: nothing was changed."
+                echo "  Migration stopped: nothing was changed. Details: python3 $MIGRATE --dry-run"
             fi
-        else
-            echo "Not migrated. Do it later with:"
-            echo "  python3 $MIGRATE --dry-run"
-            echo "  python3 $MIGRATE --apply"
         fi
     elif [ "$CODE" = 1 ]; then
         LED_EFFECT_ACTIVE=0
@@ -111,12 +118,8 @@ if [ -e "$LE_LINK" ] || [ -L "$LE_LINK" ] || [ -d "$LE_DIR" ]; then
         echo "  Keep it for now: your config still has [led_effect] sections (or could not be checked)."
     else
         if [ -e "$LE_LINK" ] || [ -L "$LE_LINK" ]; then
-            if ask "Remove led_effect.py from Klipper's extras (Lightspeed answers SET_LED_EFFECT itself)?"; then
-                rm -f "$LE_LINK"
-                echo "  Removed $LE_LINK"
-            else
-                echo "  Kept. Remove it later with: rm $LE_LINK"
-            fi
+            rm -f "$LE_LINK"
+            echo "  Removed $LE_LINK (Lightspeed answers SET_LED_EFFECT itself now)"
         fi
         ENTRY=""
         if [ -n "$PY" ]; then
@@ -125,11 +128,7 @@ if [ -e "$LE_LINK" ] || [ -L "$LE_LINK" ] || [ -d "$LE_DIR" ]; then
         if [ -n "$ENTRY" ]; then
             echo "  $MOON has this led_effect update entry:"
             echo "$ENTRY" | sed 's/^/    /'
-            if ask "Comment it out in moonraker.conf (backed up first)?"; then
-                "$PY" "$MIGRATE" --moonraker "$MOON" --apply || echo "  Could not edit $MOON."
-            else
-                echo "  Remove those lines from moonraker.conf by hand, then restart Moonraker."
-            fi
+            "$PY" "$MIGRATE" --moonraker "$MOON" --apply && echo "  Commented it out (moonraker.conf backed up first)." || echo "  Could not edit $MOON: remove those lines by hand, then restart Moonraker."
         fi
         if [ -d "$LE_DIR" ]; then
             echo "  The folder is not used any more; delete it when you like: rm -rf $LE_DIR"

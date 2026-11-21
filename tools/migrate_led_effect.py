@@ -849,12 +849,11 @@ class Migration(object):
                 name = unique(want + '_fx', used)
             else:
                 used.add(want)
-            if name == eff['name'].lower() and name != eff['name'] and                     eff['name'].lower() in self.calls:
-                self.manual.append(
-                    "led_effect '%s' is scene '%s' (lower case): check that "
-                    "SET_LED_EFFECT EFFECT=%s still finds it, or write "
-                    "EFFECT=%s" % (eff['name'], name, eff['name'], name))
-            if name != eff['name'].lower():
+            # Lightspeed finds a scene from SET_LED_EFFECT EFFECT=<old name>
+            # case-blind, with its name rules applied and with '_fx' added,
+            # so only other renames (a clash between two cleaned names) need
+            # the macros changed
+            if name not in (want, want + '_fx'):
                 self.manual.append(
                     "led_effect '%s' is called scene '%s' (Lightspeed name "
                     "rules): change SET_LED_EFFECT EFFECT=%s in your macros "
