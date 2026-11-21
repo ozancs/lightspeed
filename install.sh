@@ -48,17 +48,6 @@ for root in "$HOME/mainsail" "$HOME/fluidd" ${WEB_ROOT:+"$WEB_ROOT"}; do
     fi
 done
 
-# Ask a yes/no question; default no, and no without a terminal
-ask() {
-    ANSWER=""
-    if [ -t 0 ]; then
-        read -r -p "$1 [y/N] " ANSWER || ANSWER=""
-    else
-        echo "$1 [y/N] -> no (not interactive)"
-    fi
-    case "$ANSWER" in [yY]*) return 0 ;; *) return 1 ;; esac
-}
-
 # --- led_effect -> Lightspeed ---------------------------------------------
 MIGRATE="$REPO/tools/migrate_led_effect.py"
 PY="$(command -v python3 || true)"
