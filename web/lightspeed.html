@@ -272,6 +272,8 @@ input[type=range]::-moz-range-thumb { width:12px; height:12px; border-radius:50%
 #selInfo .pill { pointer-events:auto; background:#1e2126e6; color:#ecebe7; border:1px solid #3a3f47; border-left:3px solid var(--sig); border-radius:8px; padding:6px 12px 5px; font-size:13px; }
 #selInfo .pill b { font-weight:700; }
 #selInfo .hint { color:#a8acb4; font-size:12px; text-shadow:0 1px 2px #000; }
+.lenote { display:grid; gap:2px; max-width:420px; padding:8px 12px; border-radius:10px; background:color-mix(in srgb,var(--warn) 14%,#1e2126ee); border:1px solid color-mix(in srgb,var(--warn) 55%,transparent); color:#ecebe7; font-size:12.5px; line-height:1.4; }
+.lenote b { color:var(--warn); font-size:13px; }
 #selHalo { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
 #haloTint { stroke:var(--sig); stroke-opacity:.12; }
 #haloEdge { fill:var(--sig); opacity:.9; }
@@ -607,7 +609,7 @@ dialog p { color:var(--dim); margin:0 0 16px; }
   <section id="stage">
     <canvas id="gl"></canvas>
     <svg id="selHalo" aria-hidden="true"><defs><mask id="haloMask" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%"><rect width="100%" height="100%" fill="black"/><path id="haloOut" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round"/><path id="haloIn" fill="none" stroke="black" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><path id="haloTint" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect id="haloEdge" width="100%" height="100%" mask="url(#haloMask)"/></svg>
-    <div id="hud"><div class="st"><i></i><span id="hudState"></span></div><div id="simBar" hidden></div><div id="modelNote" hidden></div><div class="bars" id="hudBars"></div></div>
+    <div id="hud"><div class="st"><i></i><span id="hudState"></span></div><div id="simBar" hidden></div><div id="leNote" class="lenote" hidden></div><div id="modelNote" hidden></div><div class="bars" id="hudBars"></div></div>
     <div id="stageTools"><button id="panelsBtn" class="small" type="button"></button><button id="resetView" class="small" type="button"></button></div>
     <div id="lights"></div>
     <div id="klipBanner" role="alert" hidden></div>
@@ -4819,7 +4821,17 @@ function renderStatic() {
   $('#subtabs').innerHTML = SUBS.map(k => `<button type="button" data-sub="${k}" class="${k === curSub ? 'sel' : ''}">${esc(T().tabs[k])}${k === 'live' ? '<span class="dot" data-unsaved-dot hidden></span>' : ''}</button>`).join('');
   renderChips(); renderHud(); renderSel(); renderBadge(); renderSyncBar(); layoutLights();
 }
+// led_effect still loaded next to Lightspeed: both write the same LEDs. Say it where it shows, with the fix.
+function renderLeNote() {
+  const el = $('#leNote'); if (!el) return;
+  const n = (Live.status && Array.isArray(Live.status.led_effect)) ? Live.status.led_effect : [];
+  el.hidden = !n.length; if (!n.length) return;
+  el.innerHTML = `<b>${esc(cm('leOnT', 'led_effect is still active', 'led_effect hâlâ açık'))}</b><span>${esc(cm('leOnB',
+    `${n.length} effect(s) fight Lightspeed for the same LEDs. On the printer run ~/lightspeed/install.sh again (it moves them over, with backups), then restart Klipper.`,
+    `${n.length} efekt aynı LED'ler için Lightspeed ile çakışıyor. Yazıcıda ~/lightspeed/install.sh'ı yeniden çalıştırın (efektleri yedekli taşır), sonra Klipper'ı yeniden başlatın.`, n.length))}</span>`;
+}
 function renderBadge() {
+  renderLeNote();
   const b = $('#errBadge');
   if (b) { const n = allErrors(); b.hidden = !n; b.textContent = n; }
   // unsaved-to-printer indicators

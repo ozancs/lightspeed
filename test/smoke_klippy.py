@@ -976,6 +976,9 @@ def scenes_main():
     ls2 = p2.objects['lightspeed']
     check(ls2.compat == [] and 'STOP_LED_EFFECTS' not in g2.handlers,
           'not registered when a led_effect object exists')
+    st2 = ls2.get_status(REACTOR.t)
+    check(st2.get('led_effect') == ['fancy'] and any('led_effect is still active' in m for m in g2.out),
+          'led_effect still loaded: named in status and in the console')
     # bad configs
     for bad, why in (('[lightspeed scene x1]\ntrigger: sometimes\n',
                       'bad trigger'),

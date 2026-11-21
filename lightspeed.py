@@ -953,6 +953,7 @@ class Lightspeed(object):
         self.custom = {}          # name -> CustomScene (config order)
         self.groups = []          # [(name, [strip names])]
         self.compat = []          # SET_LED_EFFECT / STOP_LED_EFFECTS if ours
+        self.led_effect = []      # [led_effect ...] sections still loaded (they fight us for the LEDs)
         self.ranges = {}          # value source -> (lo, hi) from max_temp
         self._src_ref = {}        # value source -> (object, fields) | False
         self._stc = {}            # status objects read in this tick
@@ -1198,6 +1199,40 @@ class Lightspeed(object):
                        for k in objs)
         return False
 
+    def _led_effect_names(self):
+        p = self.printer
+        names = []
+        try:
+            lo = getattr(p, 'lookup_objects', None)
+            if lo is not None:
+                names = [n for n, _ in lo('led_effect')]
+        except Exception:
+            names = []
+        if not names:
+            objs = getattr(p, 'objects', None)
+            if isinstance(objs, dict):
+                names = [k for k in objs if k.startswith('led_effect ')]
+        return sorted(n.split(None, 1)[1] if ' ' in n else n for n in names)
+
+    def _warn_led_effect(self):
+        # led_effect and Lightspeed both writing the same chains flicker and
+        # fight: say so once at start-up, in the console and on the page
+        self.led_effect = self._led_effect_names()
+        if not self.led_effect:
+            return
+        msg = ("Lightspeed: led_effect is still active (%d effect%s: %s). It "
+               "drives the same LEDs and fights Lightspeed. Run "
+               "~/lightspeed/install.sh again to move them over (backups "
+               "kept), or comment out the [led_effect ...] sections / their "
+               "[include], then restart Klipper."
+               % (len(self.led_effect), '' if len(self.led_effect) == 1 else 's',
+                  ', '.join(self.led_effect[:6]) + (' ...' if len(self.led_effect) > 6 else '')))
+        logging.warning(msg)
+        try:
+            self.gcode.respond_info(msg)
+        except Exception:
+            pass
+
     def _register_compat(self):
         """Without a led_effect module, its two commands switch Lightspeed
         scenes, so existing macros keep working unchanged."""
@@ -1218,6 +1253,7 @@ class Lightspeed(object):
 
     def _ready(self):
         self.shutdown = False
+        self._warn_led_effect()
         self._wrap_guarded_commands()
         self._wrap_scene_macros()
         if self.timer is None:
@@ -1783,6 +1819,7 @@ class Lightspeed(object):
             'groups': dict((g, list(m)) for g, m in self.groups),
             'ranges': dict((k, list(v)) for k, v in self.ranges.items()),
             'compat': list(self.compat),
+            'led_effect': list(self.led_effect),
         }
 
     # ------------------------------------------------------------ gcode
