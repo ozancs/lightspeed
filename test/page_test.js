@@ -70,6 +70,25 @@ check(loads[4].leds === 72 && loads[4].bytes === 288 && loads[4].fps === LS.mcuF
     && FAKE['#v-load'].innerHTML.includes('48 bytes per frame'), 'load card uses live full-chain metadata');
 delete FAKE['#v-load'];
 
+const cfgInput = { value: '' };
+FAKE['#v-config'] = { innerHTML: '', querySelector: key => key === '#cfgIn' ? cfgInput : null };
+const configViews = vm.runInContext(`(() => {
+  const previous = { status: Live.status, cfgFile: Live.cfgFile };
+  try {
+    Live.status = { version:'0.2.1' };
+    return ['read', 'missing', null].map(state => {
+      Live.cfgFile = state;
+      renderConfig();
+      return $('#v-config').innerHTML;
+    });
+  } finally { Object.assign(Live, previous); }
+})()`, ctx);
+check(configViews[0].includes('class="cfgTools"><summary>') && configViews[0].includes('<p data-saved>') &&
+    !configViews[0].includes('Put this file'), 'installed config shows status and collapsed file tools');
+check(configViews[1].includes('data-unsaved>') && configViews.slice(1).every(view => view.includes('<p data-saved hidden>')),
+    'missing or unread config cannot claim to be up to date');
+delete FAKE['#v-config'];
+
 // a project with every new thing
 const p = T.defaultProject();
 p.strips = [
@@ -189,8 +208,33 @@ check(sc1.includes('class="connDet">') && sc1.includes('aria-expanded="true"'), 
 const FV = { innerHTML: '', querySelectorAll: () => [] };
 FAKE['#v-scenes'] = FV; T.setEdit('idle'); T.setTab('scenes'); T.renderScenes();
 const sh = FV.innerHTML, iAll = sh.indexOf('data-key="all"'), iLeft = sh.indexOf('data-key="left"');
-check(iAll > iLeft && iLeft > 0 && sh.includes('class="fx allq"') && sh.includes('data-act="defaults"') && sh.includes('data-act="remove"') && sh.includes('data-act="sim"')
-  && /data-key="right"[\s\S]*?class="params"/.test(sh) && !sh.includes('Editing'), 'scenes: one card per strip, "All other strips" as the last quiet line, links, Test');
+check(iAll === -1 && iLeft > 0 && !sh.includes('class="spec raw"') && sh.includes('data-act="defaults"') && sh.includes('data-act="remove"') && sh.includes('data-act="sim"')
+  && /data-key="right"[\s\S]*?class="params"/.test(sh), 'scenes: strip controls, no wildcard card or raw effect strings');
+const compact = vm.runInContext(`(() => {
+  const previous = editState, oldObjects = Live.objects, original = P.scenes.idle, originalGroups = P.groups;
+  P.scenes.idle = { all:'breathe color=110022 period=3', bar:'chase color=123456 period=2' };
+  editState = 'idle';
+  try {
+    const inherited = sceneEffect(P.scenes.idle, 'left'), whole = sceneEffect(P.scenes.idle, 'nozzle');
+    const markup = fxRow('left', P.scenes.idle, 'left'), controls = paramControls(whole, false, false);
+    paramEdit({ dataset: { key: 'left' } }, 'period', 2.05);
+    const [kind, edited] = compiled(P.scenes.idle.left);
+    setSpec('left', null);
+    Live.objects = ['gcode_macro _NOZZLE_COOL_WAIT'];
+    P.groups = [{ name:'first_group', strips:['left'] }, ...P.groups];
+    P.scenes.idle.first_group = 'fire';
+    const firstGroup = sceneEffect(P.scenes.idle, 'left');
+    P.groups = originalGroups;
+    return [kind === 'chase' && edited.period === 2.05 && edited.color === '123456',
+      sceneEffect(P.scenes.idle, 'left') === inherited && sceneEffect(P.scenes.idle, 'right') === inherited
+        && P.scenes.idle.all === whole && !('left' in P.scenes.idle),
+      markup.includes('data-fxclear') && controls.includes('type="number" data-p="period"')
+        && controls.includes('data-step-dir="-1"') && !controls.includes('data-p="reverse"'),
+      macroNames(['BED_MESH_CALIBRATE']).includes('_NOZZLE_COOL_WAIT') && macroNames().includes('G28'),
+      firstGroup === 'fire' && sceneEffect(P.scenes.idle, 'left') === inherited];
+  } finally { P.scenes.idle = original; P.groups = originalGroups; editState = previous; Live.objects = oldObjects; }
+})()`, ctx);
+check(compact.every(Boolean), 'scene editing: inherited group/wildcard effects, per-strip period and reset, compact steppers, command completions ' + compact);
 T.setEdit('cancelled'); T.renderScenes();
 check(FV.innerHTML.includes('data-act="editcustom"') && FV.innerHTML.includes('data-act="delcustom"') && FV.innerHTML.includes('class="trigBox"'), 'scenes: custom scene keeps its trigger line with Edit / Delete');
 delete FAKE['#v-scenes'];

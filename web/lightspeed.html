@@ -272,10 +272,6 @@ input[type=range]::-moz-range-thumb { width:12px; height:12px; border-radius:50%
 #selInfo .pill { pointer-events:auto; background:#1e2126e6; color:#ecebe7; border:1px solid #3a3f47; border-left:3px solid var(--sig); border-radius:8px; padding:6px 12px 5px; font-size:13px; }
 #selInfo .pill b { font-weight:700; }
 #selInfo .hint { color:#a8acb4; font-size:12px; text-shadow:0 1px 2px #000; }
-.lenote { display:grid; gap:2px; max-width:420px; padding:8px 12px; border-radius:10px; background:color-mix(in srgb,var(--warn) 14%,#1e2126ee); border:1px solid color-mix(in srgb,var(--warn) 55%,transparent); color:#ecebe7; font-size:12.5px; line-height:1.4; }
-.lenote b { color:var(--warn); font-size:13px; }
-.lenote .row { margin-top:6px; } .lenote .err { color:var(--bad); }
-#hud .lenote { pointer-events:auto; }
 #selHalo { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
 #haloTint { stroke:var(--sig); stroke-opacity:.12; }
 #haloEdge { fill:var(--sig); opacity:.9; }
@@ -317,16 +313,16 @@ body.fab-on #pane { padding-bottom:84px; }
 .pgrp button small { min-width:15px; height:15px; border-radius:8px; background:var(--sig-fill); color:var(--on-sig); font:700 10px/15px var(--font); text-align:center; padding:0 3px; flex:none; }
 .cslider { min-height:34px; display:grid; grid-template-columns:minmax(0,1fr) 72px; gap:10px; align-items:center; }
 .cslider input[type=number] { text-align:right; }
-.mini { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:2px; width:84px; flex:none; align-items:center; }
-.mini i { aspect-ratio:1; border-radius:50%; background:#000; box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 14%,transparent); }
+.mini { display:inline-grid; grid-template-columns:repeat(12,7px); gap:2px; flex:none; align-items:center; }
+.mini i { width:7px; height:7px; border-radius:50%; background-color:currentColor; border:1px solid color-mix(in srgb,var(--text) 27%,var(--well)); }
 .fxbtn { width:100%; justify-content:flex-start; gap:8px; padding:5px 8px 4px 10px; min-height:34px; background:var(--well); border-radius:9px; font-weight:500; }
 .fxbtn .nm { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; text-align:left; }
 .fxbtn .nm.unset { color:var(--dim); }
-.fxbtn svg.chev { width:14px; height:14px; color:var(--dim); }
+.fxbtn > svg { width:14px; height:14px; color:var(--dim); }
 #fxPop { position:fixed; z-index:30; margin:0; padding:4px; list-style:none; background:var(--sheet); border:1px solid var(--rule); border-radius:10px; box-shadow:0 12px 32px rgba(0,0,0,.35); overflow:auto; overscroll-behavior:contain; }
 #fxPop[hidden] { display:none; }
 #fxPop li { display:flex; align-items:center; gap:12px; min-height:34px; padding:4px 10px; border-radius:7px; cursor:pointer; font-size:13.5px; }
-#fxPop li span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#fxPop li > span:not(.mini) { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #fxPop li.unset span { color:var(--dim); }
 #fxPop li:hover, #fxPop li.act { background:var(--sig-tint); }
 #fxPop li[aria-selected=true] { box-shadow:inset 3px 0 0 var(--sig); }
@@ -401,18 +397,41 @@ p.lead { margin:6px 0 0; color:var(--dim); font-size:13px; max-width:62ch; }
 .phd { display:flex; align-items:center; gap:10px; min-width:0; }
 .phd > button { margin-left:auto; }
 .phd .sub2 { font-size:12.5px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-.info { display:inline-grid; place-items:center; width:15px; height:15px; border-radius:50%; border:1px solid var(--mute); color:var(--mute); font:700 10px/1 var(--font); cursor:help; flex:none; user-select:none; }
-.info:hover, .info:focus-visible { color:var(--text); border-color:var(--text); }
+.helpBtn { display:inline-grid; place-items:center; width:17px; height:17px; min-height:0; padding:0; margin-inline-start:5px; border:1px solid var(--mute); border-radius:50%; color:var(--dim); background:transparent; font:700 11px/1 var(--font); box-shadow:none; cursor:help; vertical-align:middle; flex:none; }
+.helpBtn:hover, .helpBtn:focus-visible { color:var(--text); border-color:var(--sig); }
+#fieldHelp { position:fixed; z-index:120; inline-size:max-content; max-inline-size:min(330px,calc(100vw - 24px)); padding:9px 12px; border:1px solid var(--mute); border-radius:8px; background:var(--sheet); color:var(--text); box-shadow:0 3px 14px #0003; font:400 12.5px/1.45 var(--font); white-space:pre-line; pointer-events:none; }
+.stepField { display:inline-flex; align-items:stretch; width:6.6rem; max-width:100%; min-width:0; height:32px; border:1px solid color-mix(in srgb,var(--dim) 28%,var(--rule)); border-radius:7px; background:var(--well); overflow:hidden; vertical-align:middle; }
+.stepField:focus-within { border-color:var(--sig); }
+.stepField .stepArrows { flex:0 0 23px; display:grid; grid-template-rows:1fr 1fr; border-right:1px solid var(--rule); background:var(--raised); }
+.stepField .stepArrows button { display:grid; place-items:center; width:100%; min-height:0; padding:0; border:0; border-radius:0; background:transparent; color:var(--dim); box-shadow:none; touch-action:manipulation; }
+.stepField .stepArrows button + button { border-top:1px solid var(--rule); }
+.stepField .stepArrows button:hover { color:var(--sig); background:var(--sig-tint); }
+.stepArrows svg { width:11px; height:8px; }
+.stepField input[type=number] { flex:1 1 0; min-width:0; max-width:100%; width:100%; height:100%; padding:0 7px; border:0; border-radius:0; appearance:textfield; background:transparent; }
+.stepField input::-webkit-inner-spin-button,.stepField input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+.stepField input:focus-visible { outline:0; }
+@media(pointer:coarse) { .stepField { height:44px; } .stepField .stepArrows { flex-basis:32px; } }
+.cfgTools { border-block-start:1px solid var(--rule); padding-block:9px 1px; }
+.cfgTools > summary { cursor:pointer; color:var(--dim); font-weight:600; font-size:13px; }
+.cfgTools > summary:hover,.cfgTools[open] > summary { color:var(--text); }
+.cfgTools[open] > summary { margin-bottom:10px; }
+.cfgTools > .row { margin-top:8px; }
+.cfgTools > .cfg { margin:10px 0; }
+.cfgImportLabel { display:block; color:var(--dim); margin:8px 0 5px; }
+#v-config #leNote .err { display:block; color:var(--bad); margin-top:5px; }
+#v-config [data-saved] { margin:0; display:flex; align-items:center; gap:8px; color:var(--dim); font-size:13px; }
+#v-config [data-saved]::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--ok); }
+.pform .slider { max-width:245px; }
 .linkbtn { background:none; border:0; box-shadow:none; min-height:0; padding:2px 0; font-weight:500; font-size:13px; color:var(--dim); gap:5px; }
 .linkbtn:hover:not(:disabled) { background:none; color:var(--text); text-decoration:underline; text-underline-offset:3px; }
 .linkbtn.bad { color:var(--bad); }
 .linkbtn.bad:hover:not(:disabled) { color:var(--bad); }
 .linkbtn svg { width:12px; height:12px; }
-.strip { border:1px solid var(--rule); border-radius:12px; background:var(--raised); }
-.strip.open, .strip.sel { border-color:color-mix(in srgb,var(--sig) 55%,var(--rule)); }
+.strip { border:1px solid color-mix(in srgb,var(--text) 23%,var(--rule)); border-radius:12px; background:var(--raised); }
+.strip.open, .strip.sel { border-color:color-mix(in srgb,var(--sig) 70%,var(--rule)); }
 .strip > header { display:grid; grid-template-columns:56px minmax(0,1fr) auto; align-items:center; gap:12px; padding:11px 14px; cursor:pointer; }
 .strip > header .dotrow { display:flex; flex-wrap:wrap; gap:3px; width:56px; min-height:8px; }
-.strip > header .dotrow i { width:8px; height:8px; border-radius:50%; box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 14%,transparent), 0 0 5px currentColor; }
+.strip > header .dotrow i { width:8px; height:8px; border-radius:50%; background-color:currentColor; border:1px solid color-mix(in srgb,var(--text) 27%,var(--well)); }
 .strip > header .nm { display:flex; flex-direction:column; min-width:0; line-height:1.3; }
 .strip > header .nm b { font-size:14.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .strip > header .meta { color:var(--dim); font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -422,7 +441,7 @@ p.lead { margin:6px 0 0; color:var(--dim); font-size:13px; max-width:62ch; }
 .strip header input.nameIn.invalid { border-color:var(--bad); }
 .tagout { font:600 11px var(--mono); color:var(--dim); background:var(--s3); border-radius:6px; padding:3px 7px; white-space:nowrap; }
 .strip .body { display:none; border-top:1px solid var(--rule); padding:14px; }
-.strip.open .body { display:flex; flex-direction:column; gap:16px; }
+.strip.open .body { display:flex; flex-direction:column; gap:12px; }
 .strip .body .err { margin-top:0; }
 .strip select, .strip input[type=text], .strip input[type=number] { background-color:var(--well); border-radius:9px; }
 .q { display:flex; flex-direction:column; gap:8px; min-width:0; }
@@ -434,37 +453,56 @@ p.lead { margin:6px 0 0; color:var(--dim); font-size:13px; max-width:62ch; }
 .connRow svg { width:14px; height:14px; color:var(--dim); transition:transform .15s; }
 .connRow[aria-expanded=true] svg { transform:rotate(180deg); }
 .connDet { display:flex; flex-direction:column; gap:10px; padding:2px 0 0; }
-.nums { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
-.num { display:flex; flex-direction:column; gap:1px; background:var(--well); border:1px solid var(--rule); border-radius:9px; padding:7px 10px 4px; min-width:0; }
-.num small { order:0; font-size:11.5px; color:var(--mute); }
-.num output { order:1; font:600 15px/22px var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.strip .num input[type=number] { order:1; font:600 15px var(--mono); background:transparent; border:0; border-radius:4px; padding:0; min-height:0; height:22px; width:100%; }
-.num input[type=range] { order:2; height:14px; }
-.num input[type=range]::-webkit-slider-thumb { width:12px; height:12px; border-width:2px; margin-top:-4.5px; }
-.num input[type=range]::-webkit-slider-runnable-track { height:4px; }
-.num.invalid { border-color:var(--bad); }
+.strip .nums { display:grid; grid-template-columns:minmax(0,8rem) minmax(0,9rem) minmax(0,11rem); gap:8px 12px; align-items:end; }
+.strip .num, .strip .hwField { display:grid; gap:4px; min-width:0; align-content:start; }
+.strip .ctrlLabel { display:flex; align-items:center; gap:5px; min-width:0; font-size:12px; line-height:1.25; color:var(--dim); }
+.strip .num input[type=number] { min-width:0; width:100%; }
+.strip .briCtl { display:flex; align-items:center; gap:5px; height:32px; }
+.strip .briCtl input { flex:1; min-width:30px; max-width:7rem; }
+.strip .briCtl output { min-width:4ch; text-align:right; font:600 12px var(--mono); }
+.strip .hwFields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-width:34rem; gap:8px 12px; }
+.strip .hwFields input:not([type=checkbox]), .strip .hwFields select { width:100%; min-width:0; }
+.strip .typeSeg button { flex:0 1 auto; padding-inline:9px; }
+.strip .modeSeg { display:flex; flex-wrap:wrap; }
+.strip .modeSeg button { padding-inline:9px; }
+.strip .placeRow { width:auto; max-width:100%; justify-self:start; }
+.strip .q > .placeRow { align-self:flex-start; }
+#v-strips .phd > [data-help] { margin-left:0; }
+.strip .placeRow svg { flex:none; margin-left:auto; }
+.strip .tagout { display:inline-flex; align-items:center; gap:5px; }
+.strip button.tagout { min-height:28px; box-shadow:none; border-color:transparent; }
+.strip .tagout svg { width:12px; height:12px; }
+.strip.open .tagout svg { transform:rotate(180deg); }
 .pcolRow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .pcolRow > span { font-size:12.5px; color:var(--dim); }
-.sfoot { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.strip .sfoot { display:flex; justify-content:flex-end; }
 .pnote { font-size:12.5px; color:var(--dim); }
 .strip .body { container-type:inline-size; }
 @container (max-width:470px) { .places { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-@container (max-width:330px) { .places, .nums { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@container (max-width:350px) {
+  .strip .nums { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .strip .num:last-child { grid-column:1/-1; }
+  .strip .num:last-child .briCtl { max-width:11rem; }
+}
+@container (max-width:330px) { .strip .places { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
 /* scenes */
 .stateRow { display:flex; gap:4px; flex-wrap:wrap; }
 .schd { display:flex; align-items:center; gap:10px; min-width:0; }
 .schd .sdot { width:8px; height:8px; border-radius:50%; background:var(--c); box-shadow:0 0 8px var(--c); flex:none; }
 .schd small { color:var(--dim); font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-.schd > button { margin-left:auto; }
-.fx { border:1px solid var(--rule); border-radius:12px; background:var(--raised); display:flex; flex-direction:column; }
+.schd > [data-act=sim] { margin-left:auto; }
+.fx { border:1px solid color-mix(in srgb,var(--text) 23%,var(--raised)); border-radius:12px; background:var(--raised); display:flex; flex-direction:column; }
 .fx.on { border-color:color-mix(in srgb,var(--sig) 55%,var(--rule)); }
 .fx > .head { display:grid; grid-template-columns:minmax(0,1fr) minmax(140px,190px); gap:12px; align-items:center; padding:10px 14px; }
 .fx > .head .who { display:flex; flex-direction:column; line-height:1.3; min-width:0; }
 .fx > .head .who b { font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.fx > .head .who small { color:var(--dim); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fx .fxactions { display:flex; justify-content:flex-end; align-items:center; min-width:0; gap:4px; }
+.fx .fxclear { flex:none; width:26px; min-height:28px; padding:4px; background:transparent; border:0; box-shadow:none; color:var(--dim); }
+.fx .fxclear:hover { color:var(--text); }
+.fx .fxclear[hidden] { display:none; }
 .fx .preview { margin:0 14px 12px; height:5px; border-radius:3px; border:0; outline:1px solid color-mix(in srgb,var(--text) 10%,transparent); }
-.fx .params { border-top:1px solid var(--rule); padding:10px 14px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.fx .params { border-top:1px solid var(--rule); padding:8px 12px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
 .pc { display:inline-flex; align-items:center; gap:8px; background:var(--well); border:1px solid var(--rule); border-radius:8px; padding:3px 9px; min-height:32px; font-size:12.5px; color:var(--dim); max-width:100%; min-width:0; }
 .pc > label { white-space:nowrap; }
 .pc.wide { flex-basis:100%; flex-wrap:wrap; padding:6px 9px; }
@@ -482,21 +520,21 @@ p.lead { margin:6px 0 0; color:var(--dim); font-size:13px; max-width:62ch; }
 .fx .params .swatch { min-height:32px; padding:3px 9px 3px 4px; border-radius:8px; background:var(--well); }
 .fx .params .swatch i { width:20px; height:20px; }
 .fx .arr { color:var(--dim); font-size:12.5px; }
-.fx .spec { display:none; }  /* the config text of a scene line lives in the Config tab */
-.fx.allq { border:0; background:none; }
-.fx.allq > .head { display:flex; justify-content:space-between; padding:4px 2px; font-size:13px; color:var(--dim); }
-.fx.allq > .head .who { display:block; }
-.fx.allq > .head .who b { color:var(--text); font-weight:700; }
-.fx.allq .preview { display:none; }
-.fx.allq .params { border:0; padding:2px 2px 6px; }
-.sctip { margin:0; font-size:12.5px; color:var(--dim); }
+.fx .fxcolor { font:600 12px var(--font); gap:5px; }
+.fx .fxcolor:focus-within { outline:2px solid var(--sig); outline-offset:1px; }
+.fx .period { gap:5px; padding:0 4px 0 7px; }
+.fx .period .stepField { width:75px; }
+#scHold { width:6ch; }
+#scDlg .fld > .stepField { width:96px; }
+.fx .period input { width:5ch; min-width:0; }
+.fx .sourcePicker { display:flex; gap:8px; align-items:center; min-width:0; }
+.fx .sourcePicker input { width:18em; max-width:100%; }
+#scDlg .sceneLabel { color:var(--dim); display:inline-flex; align-items:center; gap:4px; font-size:13px; }
+#scDlg .sceneLabel label { cursor:pointer; }
 .sclinks { display:flex; gap:16px; flex-wrap:wrap; }
-.loadWhy { border:1px solid var(--rule); border-radius:10px; background:var(--raised); padding:10px 14px; font-size:13px; }
-.loadWhy b { display:block; margin-bottom:4px; }
-.loadWhy ul { margin:0; padding-left:18px; color:var(--dim); }
-.loadWhy li + li { margin-top:3px; }
 .preview { height:10px; border-radius:5px; display:flex; overflow:hidden; border:1px solid var(--rule); }
-.preview i { flex:1; }
+.preview i { flex:1; background-color:currentColor; }
+.uniform-leds > i { color:inherit !important; }
 /* settings > printer */
 .pform { grid-template-columns:120px minmax(0,1fr); gap:12px 14px; }
 .pform > label { padding-top:0; align-self:center; display:flex; align-items:center; gap:6px; }
@@ -611,7 +649,7 @@ dialog p { color:var(--dim); margin:0 0 16px; }
   <section id="stage">
     <canvas id="gl"></canvas>
     <svg id="selHalo" aria-hidden="true"><defs><mask id="haloMask" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%"><rect width="100%" height="100%" fill="black"/><path id="haloOut" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round"/><path id="haloIn" fill="none" stroke="black" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><path id="haloTint" fill="none" stroke-linecap="round" stroke-linejoin="round"/><rect id="haloEdge" width="100%" height="100%" mask="url(#haloMask)"/></svg>
-    <div id="hud"><div class="st"><i></i><span id="hudState"></span></div><div id="simBar" hidden></div><div id="leNote" class="lenote" hidden></div><div id="modelNote" hidden></div><div class="bars" id="hudBars"></div></div>
+    <div id="hud"><div class="st"><i></i><span id="hudState"></span></div><div id="simBar" hidden></div><div id="modelNote" hidden></div><div class="bars" id="hudBars"></div></div>
     <div id="stageTools"><button id="panelsBtn" class="small" type="button"></button><button id="resetView" class="small" type="button"></button></div>
     <div id="lights"></div>
     <div id="klipBanner" role="alert" hidden></div>
@@ -639,6 +677,7 @@ dialog p { color:var(--dim); margin:0 0 16px; }
 <dialog id="scDlg" aria-labelledby="scDlgT"></dialog>
 <dialog id="dlg"><h3 id="dlgTitle"></h3><p id="dlgText"></p><p id="dlgWho" class="prFor" hidden></p><div class="row" style="justify-content:flex-end"><button id="dlgNo" type="button"></button><button id="dlgYes" class="primary" type="button"></button></div></dialog>
 <div id="toast" role="status"></div>
+<div id="fieldHelp" role="tooltip" hidden></div>
 <div id="fabBar" hidden><button id="fabUndo" type="button"></button><button id="fab" type="button"></button></div>
 <ul id="fxPop" role="listbox" hidden></ul>
 <ul id="langMenu" role="menu" hidden></ul>
@@ -647,7 +686,7 @@ dialog p { color:var(--dim); margin:0 0 16px; }
 <script src="third_party/OrbitControls.js?v=2"></script>
 <script src="third_party/GLTFLoader.js"></script>
 <script src="third_party/meshopt_decoder.js"></script>
-<script src="lightspeed_engine.js?v=0.2.1"></script>
+<script src="lightspeed_engine.js?v=0.2.2"></script>
 <script>
 'use strict';
 const LS = window.Lightspeed;
@@ -4513,7 +4552,8 @@ function loop() {
     G.renderer.render(G.scene, G.camera);
     drawHalo();
   } else if (G.ok) G.renderer.clear();
-  if ((hudTick += dt) > 0.15) { hudTick = 0; renderHudBars(); paintLightDots(); renderSimBar(); if (curTab === 'scenes') paintPreviews(); }
+  paintVisiblePreviews();
+  if ((hudTick += dt) > 0.15) { hudTick = 0; renderHudBars(); paintLightDots(); renderSimBar(); }
 }
 // ------------------------------------------------------------------ persistence
 const KEY_P = 'lightspeed.project', KEY_UI = 'lightspeed.ui';
@@ -4539,6 +4579,55 @@ function changed(o = {}) {
 }
 
 // ------------------------------------------------------------------ small UI helpers
+function helpTip(label, text) {
+  if (!text) return '';
+  return `<button type="button" class="helpBtn" data-help="${esc(text)}" aria-label="${esc(label)}" aria-description="${esc(text)}">?</button>`;
+}
+function stepField(inputHtml) {
+  const arrow = (n, name) => `<button type="button" tabindex="-1" data-step-dir="${n}" aria-label="${esc(name)}"><svg viewBox="0 0 12 8" aria-hidden="true"><path d="${n > 0 ? 'm2 6 4-4 4 4' : 'm2 2 4 4 4-4'}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+  return `<span class="stepField"><span class="stepArrows">${arrow(1, cm('increase','Increase','Artır'))}${arrow(-1, cm('decrease','Decrease','Azalt'))}</span>${inputHtml}</span>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-step-dir]');
+  if (!b) return;
+  const field = b.closest('.stepField').querySelector('input');
+  if (field.disabled || field.readOnly) return;
+  const previous = field.value;
+  if (b.dataset.stepDir === '1') field.stepUp(); else field.stepDown();
+  if (field.value !== previous) {
+    field.dispatchEvent(new Event('input', { bubbles:true }));
+    field.dispatchEvent(new Event('change', { bubbles:true }));
+  }
+});
+const fieldHelpBox = $('#fieldHelp');
+let helpOwner = null, helpPinned = false;
+function hideHelp() {
+  if (!helpOwner) return;
+  fieldHelpBox.hidden = true;
+  helpOwner.removeAttribute('aria-describedby'); helpOwner = null; helpPinned = false;
+}
+function showHelp(b) {
+  if (helpOwner !== b) hideHelp();
+  const tip = fieldHelpBox, parent = b.closest('dialog[open]') || document.body;
+  if (tip.parentNode !== parent) parent.appendChild(tip);
+  tip.textContent = b.dataset.help; tip.hidden = false;
+  const r = b.getBoundingClientRect(), box = tip.getBoundingClientRect();
+  tip.style.left = clamp(r.left, 8, innerWidth - box.width - 8) + 'px';
+  tip.style.top = (r.bottom + box.height + 12 <= innerHeight ? r.bottom + 6 : Math.max(8, r.top - box.height - 6)) + 'px';
+  b.setAttribute('aria-describedby', tip.id); helpOwner = b;
+}
+document.addEventListener('pointerover', e => { const b = e.target.closest('.helpBtn'); if (b && !helpPinned && e.pointerType !== 'touch') showHelp(b); });
+document.addEventListener('pointerout', e => { if (helpOwner && !helpPinned && helpOwner.contains(e.target) && !helpOwner.contains(e.relatedTarget) && document.activeElement !== helpOwner) hideHelp(); });
+document.addEventListener('focusin', e => { const b = e.target.closest('.helpBtn'); if (b) showHelp(b); else hideHelp(); });
+document.addEventListener('focusout', e => { if (e.target === helpOwner) hideHelp(); });
+document.addEventListener('click', e => {
+  const b = e.target.closest('.helpBtn');
+  if (!b || (helpPinned && b === helpOwner)) { hideHelp(); return; }
+  showHelp(b); helpPinned = true;
+});
+document.addEventListener('keydown', e => { if (helpOwner && e.key === 'Escape') { e.preventDefault(); hideHelp(); } });
+document.addEventListener('scroll', hideHelp, true);
+addEventListener('resize', hideHelp);
 const ICON = {
   play: '<svg viewBox="0 0 16 16"><path d="M4 2.8v10.4L13 8z" fill="currentColor"/></svg>',
   stop: '<svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx="1.5" fill="currentColor"/></svg>',
@@ -4731,28 +4820,49 @@ function partyMusic() {
 // ---- custom scene dialog: name, trigger, priority, hold (the effect lines are edited in the Scenes tab)
 const SD = { edit: null, kind: 'print_cancelled', prioTouched: false };
 const DLG_KINDS = ['print_cancelled', 'macro', 'extruding', 'retracting', 'condition', 'command'];
+function macroNames(extra = []) {
+  const macros = (Live.objects || []).filter(s => s.startsWith('gcode_macro ')).map(s => s.slice(12));
+  const triggers = P.customs.filter(c => /^macro /i.test(c.trigger)).map(c => c.trigger.slice(6));
+  return [...new Set([...macros, ...extra, ...triggers, ...(P.guard || []), 'G28', 'G29', 'M104', 'M109',
+    'M140', 'M190', 'PAUSE', 'RESUME', 'CANCEL_PRINT'].map(s => s.toUpperCase()).filter(s => /^[A-Z0-9_]+$/.test(s)))].sort();
+}
+const suggestions = values => values.map(v => `<option value="${esc(v)}"></option>`).join('');
+async function loadMacroNames(list) {
+  if (!Live.status || !list) return;
+  try {
+    const reply = await Preview.req('/printer/gcode/help');
+    if (list.isConnected) list.innerHTML = suggestions(macroNames(Object.keys(reply.result || {})));
+  } catch (_) { /* Object-list macros and the local suggestions remain available. */ }
+}
+function triggerHelp(k) {
+  if (k === 'macro') return cm('scMacroH', 'The scene runs while the macro or G-code command runs, plus its hold time.', 'Sahne, makro veya G-code komutu çalışırken ve ardından bekletme süresince açık kalır.');
+  if (k === 'command') return cm('scCmdH', 'Use LIGHTSPEED_SCENE_ON NAME=<name> and LIGHTSPEED_SCENE_OFF NAME=<name> in your macro.', 'Makroda LIGHTSPEED_SCENE_ON NAME=<ad> ile açın, LIGHTSPEED_SCENE_OFF NAME=<ad> ile kapatın.');
+  if (k === 'print_cancelled') return cm('scCancelH', 'After a print is cancelled, the default hold is 30 seconds.', 'Baskı iptalinden sonra varsayılan bekletme süresi 30 saniyedir.');
+  if (k === 'condition') return cm('scConditionHint', 'Compare a numeric printer field with a threshold.', 'Yazıcıdan gelen sayısal değeri eşikle karşılaştırır.');
+  return cm('scMotionH', 'Uses live extruder speed above 0.5 mm/s in the selected direction.', 'Seçilen yönde 0,5 mm/sn üzerindeki ekstrüder hızını kullanır.');
+}
 function openSceneDlg(name) {
   const t = T(), c = name ? P.customs.find(x => x.name === name) : null;
   let k = 'print_cancelled', a = null;
   if (c) { try { [k, a] = LS.parseTrigger(c.trigger); } catch (e) { k = 'command'; } }
   SD.edit = c ? c.name : null; SD.kind = k; SD.prioTouched = !!c;
   const ref = k === 'condition' ? a[0] : 'heater_bed.temperature', op = k === 'condition' ? a[1] : '>', num = k === 'condition' ? fmtNum(a[2]) : '60';
-  const quick = sourceOptions().filter(o => o[0].includes('.')).map(o => o[0].replace(/^display_status/, 'print_stats')).concat(['print_stats.progress']);
+  const refs = sourceOptions().map(o => o[0]).filter(s => s.includes('.')).concat('print_stats.progress');
   const prio = c ? c.priority : LS.DEFAULT_PRIORITY;
+  const triggerLabel = cm('scTrigger', 'Trigger', 'Tetikleyici');
+  const priorityLabel = cm('scPrio', 'Priority', 'Öncelik'), holdLabel = cm('scHold', 'Hold (s)', 'Bekletme (sn)');
+  const labelHelp = (id, title, hint) => `<span class="sceneLabel"><label for="${id}">${esc(title)}</label>${helpTip(title, hint)}</span>`;
   const d = $('#scDlg');
   d.innerHTML = `<h3 id="scDlgT">${esc(c ? cm('scEditT', 'Edit scene', 'Sahneyi düzenle') : cm('scNew', 'New scene', 'Yeni sahne'))}</h3>
     <div class="form">
-      <label for="scName">${esc(t.name)}</label><div class="fld"><input type="text" id="scName" value="${esc(c ? c.name : '')}" spellcheck="false" autocomplete="off" placeholder="cancelled"><span class="hint" id="scNameH">${esc(cm('scNameHint', 'lowercase letters, digits and _', 'küçük harf, rakam ve _'))}</span></div>
-      <label>${esc(cm('scTrigger', 'Trigger', 'Tetikleyici'))}</label><div class="fld"><div class="pick" id="scKinds">${DLG_KINDS.map(x => `<button type="button" data-kind="${x}" class="${x === k ? 'sel' : ''}">${esc(trigName(x))}</button>`).join('')}</div>
-        <div class="fld" data-for="macro"><input type="text" id="scMacro" value="${esc(k === 'macro' ? a : '')}" placeholder="CLEAN_NOZZLE" spellcheck="false" aria-label="${esc(cm('scMacroL', 'Macro name', 'Makro adı'))}"><span class="hint">${esc(cm('scMacroH', 'The scene is on while this macro or G-code command runs (plus hold).', 'Bu makro ya da G-code komutu çalışırken sahne açıktır (artı bekletme).'))}</span></div>
-        <div class="fld" data-for="condition"><input type="text" id="scRef" value="${esc(ref)}" placeholder="object.field" spellcheck="false" aria-label="object.field">
-          <div class="pick">${quick.map(q => `<button type="button" data-ref="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+      ${labelHelp('scName', t.name, cm('scNameHint', 'lowercase letters, digits and _', 'küçük harf, rakam ve _'))}<div class="fld"><input type="text" id="scName" value="${esc(c ? c.name : '')}" spellcheck="false" autocomplete="off" placeholder="cancelled"></div>
+      <span class="sceneLabel">${esc(triggerLabel)}<span id="scTriggerHelp"></span></span><div class="fld"><div class="pick" id="scKinds">${DLG_KINDS.map(x => `<button type="button" data-kind="${x}" class="${x === k ? 'sel' : ''}">${esc(trigName(x))}</button>`).join('')}</div>
+        <div class="fld" data-for="macro"><input type="text" id="scMacro" list="scMacroNames" value="${esc(k === 'macro' ? a : '')}" placeholder="CLEAN_NOZZLE" spellcheck="false" autocomplete="off" aria-label="${esc(cm('scMacroL', 'Macro name', 'Makro adı'))}"><datalist id="scMacroNames">${suggestions(macroNames())}</datalist></div>
+        <div class="fld" data-for="condition"><input type="text" id="scRef" list="scFieldNames" value="${esc(ref)}" placeholder="object.field" autocomplete="off" spellcheck="false" aria-label="object.field"><datalist id="scFieldNames">${suggestions(refs)}</datalist>
           <div class="row"><div class="seg" id="scOps">${LS.TRIGGER_OPS.slice().sort((x, y) => '><=!'.indexOf(x[0]) - '><=!'.indexOf(y[0]) || x.length - y.length).map(o => `<button type="button" data-op="${o}" class="${o === op ? 'sel' : ''}">${esc(o)}</button>`).join('')}</div><input type="number" id="scNum" value="${esc(num)}" step="any" style="width:100px" aria-label="${esc(cm('scNumL', 'Value', 'Değer'))}"></div></div>
-        <span class="hint" data-for="command">${esc(cm('scCmdH', 'Switched on from a macro: SET_LED_EFFECT EFFECT=<name> or LIGHTSPEED_SCENE_ON NAME=<name>; off: STOP_LED_EFFECTS or LIGHTSPEED_SCENE_OFF.', 'Bir makrodan açılır: SET_LED_EFFECT EFFECT=<ad> ya da LIGHTSPEED_SCENE_ON NAME=<ad>; kapatma: STOP_LED_EFFECTS ya da LIGHTSPEED_SCENE_OFF.'))}</span>
-        <span class="hint" data-for="print_cancelled">${esc(cm('scCancelH', 'Shown when a print is cancelled, for the hold time (30 s if empty).', 'Baskı iptal edilince bekletme süresi boyunca gösterilir (boşsa 30 sn).'))}</span>
-        <span class="hint" data-for="extruding retracting">${esc(cm('scMotionH', 'From the live extruder speed (more than 0.5 mm/s forwards / backwards).', 'Anlık ekstruder hızından (ileri / geri 0.5 mm/sn üstü).'))}</span></div>
-      <label for="scPri">${esc(cm('scPrio', 'Priority', 'Öncelik'))}</label><div class="fld"><div class="slider"><input type="range" id="scPri" min="0" max="100" step="1" value="${clamp(prio, 0, 100)}"><output>${prio}</output></div><span class="hint">${esc(cm('scPrioH', 'Higher wins on a strip. States: idle 0 · heating / printing / paused / complete 20 · homing / probing 80 · error / shutdown 100.', 'Bir şeritte yüksek olan kazanır. Durumlar: boşta 0 · ısınma / baskı / duraklama / tamamlandı 20 · sıfırlama / prob 80 · hata / kapanma 100.'))}</span></div>
-      <label for="scHold">${esc(cm('scHold', 'Hold (s)', 'Bekletme (sn)'))}</label><div class="fld"><input type="number" id="scHold" min="0" step="0.5" value="${c && c.hold !== null ? fmtNum(c.hold) : ''}" placeholder="—" style="width:100px"><span class="hint">${esc(cm('scHoldH', 'Keeps the scene on this long after its trigger ends.', 'Tetikleyici bittikten sonra sahneyi bu kadar açık tutar.'))}</span></div>
+        </div>
+      ${labelHelp('scPri', priorityLabel, cm('scPrioH', 'Higher priorities take precedence on a strip. Idle 0 · heating / printing / paused / complete 20 · homing / probing 80 · error / shutdown 100.', 'Bir şeritte yüksek öncelik kazanır. Boşta 0 · ısınma / baskı / duraklama / tamamlandı 20 · sıfırlama / prob 80 · hata / kapanma 100.'))}<div class="fld"><div class="slider"><input type="range" id="scPri" min="0" max="100" step="1" value="${clamp(prio, 0, 100)}"><output>${prio}</output></div></div>
+      ${labelHelp('scHold', holdLabel, cm('scHoldH', 'Keeps the scene on this long after its trigger ends.', 'Tetikleyici bittikten sonra sahneyi bu kadar açık tutar.'))}<div class="fld">${stepField(`<input type="number" id="scHold" min="0" step="0.5" value="${c && c.hold !== null ? fmtNum(c.hold) : ''}" placeholder="—">`)}</div>
     </div>
     <div class="note bad" id="scErr" hidden></div>
     <div class="row" style="margin-top:12px">${c ? `<button type="button" class="danger" id="scDel">${esc(cm('scDelete', 'Delete scene', 'Sahneyi sil'))}</button>` : ''}<span class="grow"></span><button type="button" id="scNo">${esc(t.cancel)}</button><button type="button" class="primary" id="scYes">${esc(c ? cm('scSave', 'Save', 'Kaydet') : cm('scCreate', 'Create', 'Oluştur'))}</button></div>`;
@@ -4760,9 +4870,11 @@ function openSceneDlg(name) {
   setRangeFill($('#scPri'));
   d.showModal();
   $('#scName').focus();
+  loadMacroNames($('#scMacroNames'));
 }
 function sdKind(k) {
   SD.kind = k;
+  $('#scTriggerHelp').innerHTML = helpTip(trigName(k), triggerHelp(k));
   $$('#scKinds [data-kind]').forEach(b => b.classList.toggle('sel', b.dataset.kind === k));
   $$('#scDlg [data-for]').forEach(el => { el.hidden = !el.dataset.for.split(' ').includes(k); });
   if (!SD.prioTouched) { const p = k === 'command' ? LS.COMMAND_PRIORITY : LS.DEFAULT_PRIORITY, r = $('#scPri'); r.value = p; setRangeFill(r); r.nextElementSibling.textContent = p; }
@@ -4802,7 +4914,6 @@ async function deleteCustomAsk(name) {
 $('#scDlg').addEventListener('click', e => {
   const kb = e.target.closest('[data-kind]'); if (kb) { sdKind(kb.dataset.kind); return; }
   const ob = e.target.closest('[data-op]'); if (ob) { $$('#scOps [data-op]').forEach(b => b.classList.toggle('sel', b === ob)); return; }
-  const rb = e.target.closest('[data-ref]'); if (rb) { $('#scRef').value = rb.dataset.ref; return; }
   if (e.target.closest('#scNo')) $('#scDlg').close();
   else if (e.target.closest('#scYes')) sdSave();
   else if (e.target.closest('#scDel')) { const n = SD.edit; $('#scDlg').close(); deleteCustomAsk(n); }
@@ -4811,9 +4922,9 @@ $('#scDlg').addEventListener('input', e => {
   if (e.target.id === 'scPri') { SD.prioTouched = true; setRangeFill(e.target); e.target.nextElementSibling.textContent = e.target.value; }
   if (e.target.id === 'scName') { const ok = !e.target.value || NAME_RE.test(e.target.value.trim()); e.target.classList.toggle('invalid', !ok); }
 });
-$('#scDlg').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); sdSave(); } });
+$('#scDlg').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT' && !e.target.list) { e.preventDefault(); sdSave(); } });
 const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? ' selected' : ''}>${esc(label)}</option>`;
-const swatch = (k, hex, title) => `<label class="swatch"${title ? ` title="${esc(title)}"` : ''}><i style="background:#${hex}"></i><span>${hex}</span><input type="color" data-p="${k}" value="#${hex}"${title ? ` aria-label="${esc(title)}"` : ''}></label>`;
+const swatch = (k, hex, title) => `<label class="swatch fxcolor"><i style="background:#${hex}"></i><span>${esc(title)}</span><input type="color" data-p="${k}" value="#${hex}" aria-label="${esc(title)}"></label>`;
 const sw = (attr, on, label = '') => `<label class="switch"><input type="checkbox" ${attr}${on ? ' checked' : ''}><span class="knob"></span>${label ? `<span>${esc(label)}</span>` : ''}</label>`;
 function setRangeFill(r) { const a = +r.min, b = +r.max; r.style.setProperty('--p', ((r.value - a) / (b - a) * 100) + '%'); }
 const hexRgb = h => [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
@@ -4839,14 +4950,14 @@ function renderStatic() {
 // led_effect still loaded next to Lightspeed: both write the same LEDs. Say it where it shows, with the fix.
 function renderLeNote() {
   const el = $('#leNote'); if (!el) return;
-  const n = (Live.status && Array.isArray(Live.status.led_effect)) ? Live.status.led_effect : [];
-  el.hidden = !n.length; if (!n.length) return;
+  const legacyCount = Math.max(Live.status?.led_effect?.length || 0, Live.ledEffect || 0);
+  el.hidden = !legacyCount && !LeMig.busy;
+  if (el.hidden) return;
   if (LeMig.done) {  // moved: only the restart is left
     el.innerHTML = `<b>${esc(cm('leDoneT', 'led_effect moved to Lightspeed', 'led_effect Lightspeed\'e taşındı'))}</b><span>${esc(cm('leDoneB', 'Restart Klipper to finish. Your old files are backed up next to them.', 'Bitirmek için Klipper\'ı yeniden başlatın. Eski dosyalar yanlarında yedekli.'))}</span><div class="row"><button type="button" class="primary small" data-act="krestart">${esc(T().k_restart)}</button></div>`;
     return;
   }
-  el.innerHTML = `<b>${esc(cm('leOnT', 'led_effect is still active', 'led_effect hâlâ açık'))}</b><span>${esc(cm('leOnB2',
-    `${n.length} effect(s) fight Lightspeed for the same LEDs.`, `${n.length} efekt aynı LED'ler için Lightspeed ile çakışıyor.`, n.length))}</span><div class="row"><button type="button" class="primary small" data-act="lemigrate"${LeMig.busy ? ' disabled' : ''}>${esc(LeMig.busy ? cm('leBusy', 'Moving…', 'Taşınıyor…') : cm('leGo', 'Turn led_effect off and move it here', 'led_effect\'i kapat ve buraya taşı'))}</button></div>${LeMig.err ? `<span class="err">${esc(LeMig.err)}</span>` : ''}`;
+  el.innerHTML = `<div class="row"><button type="button" class="small" data-act="lemigrate"${LeMig.busy ? ' disabled' : ''}>${esc(LeMig.busy ? cm('leBusy', 'Moving…', 'Taşınıyor…') : cm('migrateLegacy', 'Migrate led_effect', 'led_effect sahnelerini taşı'))}</button>${helpTip('led_effect', cm('leOnB2', `${legacyCount} effect(s) use the same LEDs.`, `${legacyCount} efekt aynı LED’leri kullanıyor.`, legacyCount))}</div>${LeMig.err ? `<span class="err">${esc(LeMig.err)}</span>` : ''}`;
 }
 const LeMig = { busy: false, done: false, err: '' };
 async function leMigrate() {
@@ -4881,8 +4992,8 @@ function renderBadge() {
   const u = isUnsaved(), d = $('#setDot');
   if (d) { d.hidden = !(u || Sync.pending); d.title = T().unsaved; }
   $$('[data-unsaved-dot]').forEach(el => { el.hidden = !u; });
-  $$('[data-unsaved]').forEach(el => { el.hidden = !u; });
-  $$('[data-saved]').forEach(el => { el.hidden = u; });
+  $$('[data-unsaved]').forEach(el => { el.hidden = !u && Live.cfgFile !== 'missing'; });
+  $$('[data-saved]').forEach(el => { el.hidden = u || Live.cfgFile !== 'read' || !!Sync.pending || SA.keepBackup || AS.failed; });
   renderFab(u);
 }
 // floating button while the page differs from the printer: Save & apply when connected, else Download
@@ -4951,7 +5062,7 @@ function renderSel() {
   if (selStrip >= 0 && P.strips[selStrip]) {
     const s = P.strips[selStrip];
     el.innerHTML = `<span class="pill">${selLed >= 0 ? T().ledOf(selLed + 1, s.count, s.name) : T().stripSel(s.name)}</span>`;
-  } else el.innerHTML = `<span class="hint">${esc(T().selHint)}</span>`;
+  } else el.innerHTML = '';
 }
 function selectStrip(si, k, fromView) {
   selStrip = si; selLed = k ?? -1;
@@ -4994,10 +5105,9 @@ function renderPrinter() {
   const note = cm('pViewNote', 'Only the 3D drawing', 'Yalnızca 3B çizim') + (CAD_CREDIT[P.model] ? ' · ' + t.cadModel + ': ' + CAD_CREDIT[P.model] : '');
   $('#v-printer').innerHTML = `
   <div class="sec"><div class="form pform">
-      <label for="pModel">${esc(cmOr('pModelL', 'Printer model', 'Yazıcı modeli', t.model))}</label><select id="pModel">${MODELS.map(m => opt(m, t.models[m], m === P.model)).join('')}</select>
-      ${CAD_FILES[P.model] ? `<label for="pTh">${esc(t.toolhead)}</label><select id="pTh" title="${esc(t.toolheadHint)}">${TOOLHEADS.map(k => opt(k, t.toolheads[k], k === thKey())).join('')}</select>` : ''}
+      <label for="pModel">${esc(cmOr('pModelL', 'Printer model', 'Yazıcı modeli', t.model))}${helpTip(t.model, t.p_viewLead + ' ' + note)}</label><select id="pModel">${MODELS.map(m => opt(m, t.models[m], m === P.model)).join('')}</select>
+      ${CAD_FILES[P.model] ? `<label for="pTh">${esc(t.toolhead)}${helpTip(t.toolhead, t.toolheadHint)}</label><select id="pTh">${TOOLHEADS.map(k => opt(k, t.toolheads[k], k === thKey())).join('')}</select>` : ''}
       <label>${esc(cmOr('pSizeL', 'Build volume', 'Baskı hacmi', t.size))}</label><div class="in3">${['X', 'Y', 'Z'].map((a, i) => `<label class="axin"><small>${a}</small><input type="number" min="60" max="1000" step="1" data-size="${i}" value="${P.size[i]}" aria-label="${a} (mm)"></label>`).join('')}</div>
-      <span></span><span class="pnote">${esc(note)} ${info(t.p_viewLead + ' ' + t.toolheadHint)}</span>
     </div></div>
   <div class="sec"><div class="form pform">
       <label for="pBright">${esc(t.brightness)}${info(t.brightnessHint)}</label><div class="slider"><input type="range" id="pBright" min="0" max="1" step="0.01" value="${P.brightness}"><output id="pBrightV">${Math.round(P.brightness * 100)}%</output></div>
@@ -5053,16 +5163,17 @@ function placeShort(p) {  // the word inside its group; other languages show the
     door_top: ['Top', 'Üst'], door_left: ['Left', 'Sol'], door_right: ['Right', 'Sağ'], toolhead_logo: ['Logo', 'Logo'], nozzle: ['Nozzle', 'Nozül'],
     bed_skirt: ['Skirt', 'Çevre'], under_bed: ['Under', 'Alt'], x_gantry: ['X gantry', 'X kirişi'], frame_bottom: ['Bottom', 'Alt'] }[p] || [p, p])[tr ? 1 : 0];
 }
-const info = txt => `<span class="info" tabindex="0" role="img" title="${esc(txt)}" aria-label="${esc(txt)}">i</span>`;
+const info = txt => helpTip(cm('help', 'Help', 'Yardım'), txt);
 const CHEV = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>';
 // "Connected to": one line (output, chain / address, LEDs, where the section comes from); the controls open under it
 const connOpen = new WeakSet();
+const placesOpen = new WeakSet();
 const HW_ERRS = ['chain', 'mcu', 'pin', 'clock', 'hwcount', 'range', 'ip', 'start', 'prefix'];
 function connSummary(s) {
   const key = hwKey(s), h = key ? P.hw[key] : null;
   let target = '', range = '', src = '';
   if (key) {
-    target = s.chain; if (isMcuType(s.type)) range = 'LED ' + ledsRange(s);
+    target = s.chain; if (isMcuType(s.type) && !s.wholeChain) range = 'LED ' + ledsRange(s);
     src = h ? cm('srcNew', 'new in lightspeed.cfg', `lightspeed.cfg'de yeni`) : cm('srcCfg', 'from printer.cfg', `printer.cfg'den`);
   } else if (s.type === 'wled') { target = s.ip; src = cm('srcNet', 'network', 'ağ'); }
   else { target = s.prefix; src = cm('srcNet', 'network', 'ağ'); }
@@ -5103,18 +5214,20 @@ async function adoptPrinterLeds() {
   toast(cm('adopted', `Found in your printer config and added: ${added.join(', ')}. Place them, then Save & apply.`, `Yazıcı config'inde bulundu ve eklendi: ${added.join(', ')}. Yerlerini seçip Kaydet ve uygula.`, added.join(', ')));
 }
 function printerNames(prefix) { return Live.objects ? Live.objects.filter(o => o.startsWith(prefix + ' ')).map(o => o.slice(prefix.length + 1)) : null; }
-function pickSelect(k, cur, names, extra = []) {
+function pickSelect(k, cur, names, extra = [], id = '') {
   const all = []; for (const n of names.concat(extra)) if (!all.includes(n)) all.push(n);
   let o = all.map(n => opt(n, n, n === cur)).join('');
   if (cur && !all.includes(cur)) o = opt(cur, `${cur} (${T().notOnPrinter})`, true) + o;
   if (!cur) o = opt('', '-', true) + o;
-  return `<select data-k="${k}">${o}</select>`;
+  return `<select id="${id}" data-k="${k}">${o}</select>`;
 }
 function stripCard(s, i) {
   const t = T(), er = stripErrors(s, i), open = openStrips.has(i) || i === selStrip;
-  const fld = (k, html, hint = '') => `<div class="fld">${html}${hint ? `<span class="hint">${hint}</span>` : ''}<div class="err" data-e="${k}"${er[k] ? '' : ' hidden'}>${esc(er[k] || '')}</div></div>`;
-  const inp = (k, v, ph = '') => `<input type="text" data-k="${k}" value="${esc(v)}" class="${er[errKey(k)] ? 'invalid' : ''}" placeholder="${esc(ph)}" spellcheck="false" autocomplete="off">`;
-  const num = (k, v, a, b) => `<input type="number" data-k="${k}" min="${a}" max="${b}" step="1" value="${v}" class="${er[errKey(k)] ? 'invalid' : ''}">`;
+  const id = k => `strip-${i}-${k.replace('.', '-')}`;
+  const label = (k, name, hint = '') => `<div class="ctrlLabel"><label for="${id(k)}">${esc(name)}</label>${hint ? helpTip(name, hint) : ''}</div>`;
+  const field = (k, name, ctl, hint = '') => `<div class="hwField">${label(k, name, hint)}${ctl}<div class="err" data-e="${errKey(k)}"${er[errKey(k)] ? '' : ' hidden'}>${esc(er[errKey(k)] || '')}</div></div>`;
+  const inp = (k, v, ph = '') => `<input id="${id(k)}" type="text" data-k="${k}" value="${esc(v)}" class="${er[errKey(k)] ? 'invalid' : ''}" placeholder="${esc(ph)}" spellcheck="false" autocomplete="off">`;
+  const num = (k, v, a, b, step = 1) => stepField(`<input id="${id(k)}" type="number" data-k="${k}" min="${a}" max="${b}" step="${step}" value="${v}" class="${er[errKey(k)] ? 'invalid' : ''}">`);
   const key = hwKey(s), h = key ? P.hw[key] : null, mcuT = isMcuType(s.type);
   let hw = '';
   if (key) {
@@ -5124,58 +5237,63 @@ function stripCard(s, i) {
     if (!h) {
       const names = printerNames(kind);
       const made = Object.keys(P.hw).filter(k2 => k2.startsWith(s.type + ' ')).map(k2 => k2.slice(s.type.length + 1));
-      const ctl = names ? pickSelect('chain', s.chain, names, made) : inp('chain', s.chain, pinT ? 'case_light' : 'hotend_rgb');
-      rows += `<label title="${esc(t.existingHint(kind))}">${esc(pinT ? t.pinName : t.chain)}</label>${fld('chain', ctl)}`;
+      const ctl = names ? pickSelect('chain', s.chain, names, made, id('chain')) : inp('chain', s.chain, pinT ? 'case_light' : 'hotend_rgb');
+      rows += field('chain', pinT ? t.pinName : t.chain, ctl, t.existingHint(kind));
     } else {
       const sharers = P.strips.filter((o, j) => j !== i && hwKey(o) === key).map(o => o.name);
       const mcus = Live.objects ? Live.objects.filter(o => /^mcu \S+$/.test(o)).map(o => o.slice(4)) : null;
       let mctl;
       if (mcus) {
         const all = mcus.slice(); if (h.mcu && !all.includes(h.mcu)) all.unshift(h.mcu);
-        mctl = `<select data-k="hw.mcu">${opt('', t.mcuMain, !h.mcu)}${all.map(m => opt(m, m + (mcus.includes(m) ? '' : ` (${t.notOnPrinter})`), m === h.mcu)).join('')}</select>`;
+        mctl = `<select id="${id('hw.mcu')}" data-k="hw.mcu">${opt('', t.mcuMain, !h.mcu)}${all.map(m => opt(m, m + (mcus.includes(m) ? '' : ` (${t.notOnPrinter})`), m === h.mcu)).join('')}</select>`;
       } else mctl = inp('hw.mcu', h.mcu, 'EBBCan');
-      rows += `<label title="${esc(t.newHint(sect))}">${esc(pinT ? t.pinOutName : t.chainName)}</label>${fld('chain', inp('chain', s.chain, pinT ? 'case_light' : 'case_rgb'), sharers.length ? esc(t.sharedHw(sharers.join(', '))) : '')}
-        <label title="${esc(t.mcuHint(h.mcu))}">${esc(t.mcu)}</label>${fld('mcu', mctl)}`;
-      if (s.type === 'dotstar') rows += `<label>${esc(t.dataPin)}</label>${fld('pin', inp('hw.pin', h.pin, 'PA7'))}<label>${esc(t.clockPin)}</label>${fld('clock', inp('hw.clock', h.clock, 'PA5'))}`;
-      else rows += `<label>${esc(t.pinF)}</label>${fld('pin', inp('hw.pin', h.pin, pinT ? 'PE5' : 'PD3'))}`;
-      if (pinT) rows += `<label>${esc(t.pwm)}</label><div>${sw('data-k="hw.pwm"', h.pwm)}</div>`;
+      const shared = sharers.length ? ' ' + t.sharedHw(sharers.join(', ')) : '';
+      rows += field('chain', pinT ? t.pinOutName : t.chainName, inp('chain', s.chain, pinT ? 'case_light' : 'case_rgb'), t.newHint(sect) + shared);
+      rows += field('hw.mcu', t.mcu, mctl, t.mcuHint(h.mcu));
+      rows += field('hw.pin', s.type === 'dotstar' ? t.dataPin : t.pinF, inp('hw.pin', h.pin, s.type === 'dotstar' ? 'PA7' : pinT ? 'PE5' : 'PD3'));
+      if (s.type === 'dotstar') rows += field('hw.clock', t.clockPin, inp('hw.clock', h.clock, 'PA5'));
+      if (pinT) rows += field('hw.pwm', t.pwm, sw(`id="${id('hw.pwm')}" data-k="hw.pwm"`, h.pwm));
       else {
-        rows += `<label>${esc(t.chainCount)}</label>${fld('hwcount', num('hw.count', h.count, 1, 500))}`;
-        if (s.type === 'neopixel') { const ords = COLOR_ORDERS.includes(h.order) ? COLOR_ORDERS : [h.order].concat(COLOR_ORDERS); rows += `<label>${esc(t.colorOrder)}</label><select data-k="hw.order">${ords.map(o => opt(o, o, o === h.order)).join('')}</select>`; }
+        rows += field('hw.count', t.chainCount, num('hw.count', h.count, 1, 500));
+        if (s.type === 'neopixel') {
+          const ords = COLOR_ORDERS.includes(h.order) ? COLOR_ORDERS : [h.order].concat(COLOR_ORDERS);
+          rows += field('hw.order', t.colorOrder, `<select id="${id('hw.order')}" data-k="hw.order">${ords.map(o => opt(o, o, o === h.order)).join('')}</select>`);
+        }
       }
     }
-    if (mcuT) rows += `<label title="${esc(t.ledsHint)}">${esc(t.leds)}</label>${fld('range', `<input type="text" data-k="range" value="${esc(ledsRange(s))}" class="${er.range ? 'invalid' : ''}" spellcheck="false" placeholder="${esc(cm('wholeChain', 'Entire chain', 'Zincirin tamamı'))}">`)}`;
-    hw = `${modes}<div class="form">${rows}</div>`;
+    if (mcuT) rows += field('range', t.leds, inp('range', ledsRange(s), cm('wholeChain', 'Entire chain', 'Zincirin tamamı')), t.ledsHint);
+    hw = `${modes}<div class="hwFields">${rows}</div>`;
   } else if (s.type === 'wled') {
-    hw = `<div class="form"><label>${esc(t.ip)}</label>${fld('ip', inp('ip', s.ip, '192.168.1.60'))}
-      <label>${esc(t.start)}</label>${fld('start', num('start', s.start, 0, 9999))}</div>`;
+    hw = `<div class="hwFields">${field('ip', t.ip, inp('ip', s.ip, '192.168.1.60'))}${field('start', t.start, num('start', s.start, 0, 9999))}</div>`;
   } else {
-    hw = `<div class="form"><label>${esc(t.prefix)}</label>${fld('prefix', inp('prefix', s.prefix, 'led'))}</div>`;
+    hw = `<div class="hwFields">${field('prefix', t.prefix, inp('prefix', s.prefix, 'led'))}</div>`;
   }
   const connShow = connOpen.has(s) || HW_ERRS.some(k => er[k]);
-  const conn = `<div class="q"><span class="qlab">${esc(cm('connTo', 'Connected to', 'Bağlı olduğu yer'))}${info(t.outputs[s.type] + ' · ' + (key ? (h ? t.newHint(hwSection(key)) : t.existingHint(hwSection(key).split(' ')[0])) : s.type === 'wled' ? t.wledNote : t.espNote))}</span>
+  const connLabel = cm('connTo', 'Connected to', 'Bağlı olduğu yer');
+  const conn = `<div class="q"><span class="qlab">${esc(connLabel)}${helpTip(connLabel, t.outputs[s.type] + ' · ' + (key ? (h ? t.newHint(hwSection(key)) : t.existingHint(hwSection(key).split(' ')[0])) : s.type === 'wled' ? t.wledNote : t.espNote))}</span>
       <button type="button" class="connRow" data-act="conn" data-conn aria-expanded="${connShow}">${connSummary(s)}</button>
       <div class="connDet"${connShow ? '' : ' hidden'}>
         <div class="typeSeg">${OUTPUTS.map(o => `<button type="button" data-type="${o}" class="${o === s.type ? 'sel' : ''}" title="${esc(t.outputs[o])}">${esc(t.outShort[o])}</button>`).join('')}</div>
         ${hw}</div></div>`;
-  const places = `<div class="q"><span class="qlab">${esc(cmOr('whereOn', 'Where on the printer', 'Yazıcıda nerede', t.placesLbl))}${info(t.placeHint)}</span>
-      <div class="places">${PLACE_GROUPS.map(([g, ps]) => `<div class="pgrp"><b>${esc(placeGroupName(g))}</b>${ps.map(p => { const k = s.place.indexOf(p); return `<button type="button" data-place="${p}" class="${k >= 0 ? 'on' : ''}" aria-pressed="${k >= 0}" title="${esc(t.places[p])}">${k >= 0 && s.place.length > 1 ? `<small>${k + 1}</small>` : ''}${esc(placeShort(p))}</button>`; }).join('')}</div>`).join('')}</div></div>`;
+  const placeLabel = cmOr('whereOn', 'Where on the printer', 'Yazıcıda nerede', t.placesLbl), showPlaces = placesOpen.has(s);
+  const places = `<div class="q"><span class="qlab">${esc(placeLabel)}${helpTip(placeLabel, t.placeHint)}</span>
+      <button type="button" class="connRow placeRow" data-act="places" aria-expanded="${showPlaces}" aria-controls="${id('places')}"><span>${esc(placeNames(s))}</span>${CHEV}</button>
+      <div class="places" id="${id('places')}"${showPlaces ? '' : ' hidden'}>${PLACE_GROUPS.map(([g, ps]) => `<div class="pgrp"><b>${esc(placeGroupName(g))}</b>${ps.map(p => { const k = s.place.indexOf(p); return `<button type="button" data-place="${p}" class="${k >= 0 ? 'on' : ''}" aria-pressed="${k >= 0}" title="${esc(t.places[p])}">${k >= 0 && s.place.length > 1 ? `<small>${k + 1}</small>` : ''}${esc(placeShort(p))}</button>`; }).join('')}</div>`).join('')}</div></div>`;
   const bri = s.brightness ?? 1;
-  const leds = `<div class="q"><span class="qlab">${esc(cmOr('ledsBlk', 'LEDs', `LED'ler`, t.ledsN))}${info((mcuT ? t.countHintMcu + ' ' : '') + t.spacingHint)}</span>
-      <div class="nums">
-        <label class="num${er.count ? ' invalid' : ''}"><small>${esc(cmOr('nCount', 'Count', 'Adet', t.count))}</small>${num('count', s.count, 1, 500)}<input type="range" data-k="count" min="1" max="200" step="1" value="${Math.min(200, s.count)}" aria-label="${esc(t.count)}"></label>
-        <label class="num"><small>${esc(cmOr('nSpacing', 'Spacing', 'Aralık', t.spacing))}</small><input type="range" data-k="spacing" min="0" max="60" step="0.5" value="${Math.min(60, s.spacing || 0)}" aria-label="${esc(t.spacing)}"><output>${s.spacing > 0 ? fmtNum(s.spacing) + ' mm' : esc(t.spread)}</output></label>
-        <label class="num"><small>${esc(cmOr('nBright', 'Brightness', 'Parlaklık', t.stripBri))}</small><input type="range" data-k="brightness" min="0" max="1" step="0.01" value="${bri}" aria-label="${esc(t.stripBri)}"><output>${Math.round(bri * 100)}%</output></label>
+  const leds = `<div class="q"><div class="nums">
+        <div class="num">${label('count', t.count, mcuT ? t.countHintMcu : '')}${num('count', s.count, 1, 500)}</div>
+        <div class="num">${label('spacing', cmOr('nSpacing', 'Spacing', 'Aralık', t.spacing) + ' (mm)', t.spacingHint)}${num('spacing', s.spacing || 0, 0, 200, 0.5)}</div>
+        <div class="num">${label('brightness', cmOr('nBright', 'Brightness', 'Parlaklık', t.stripBri))}<div class="briCtl"><input id="${id('brightness')}" type="range" data-k="brightness" min="0" max="1" step="0.01" value="${bri}"><output for="${id('brightness')}">${Math.round(bri * 100)}%</output></div></div>
       </div><div class="err" data-e="count"${er.count ? '' : ' hidden'}>${esc(er.count || '')}</div>
       ${s.type === 'pin' ? `<div class="pcolRow"><span>${esc(t.lightColor)}</span><label class="swatch"><i style="background:#${s.color}"></i><span>${s.color}</span><input type="color" data-k="color" value="#${s.color}"></label><div class="presets">${PIN_COLORS.map(c => `<button type="button" data-pcol="${c}" style="--c:#${c}" class="${c === s.color ? 'on' : ''}" title="#${c}" aria-label="#${c}"></button>`).join('')}</div></div>` : ''}</div>`;
   const ledNote = i === selStrip && selLed >= 0 ? `<div class="note ok">${t.ledOf(selLed + 1, s.count, s.name)}</div>` : '';
   const pinActions = s.type === 'pin' ? `<div class="q"><span class="qlab">${esc(cm('manual', 'Manual', 'Elle'))}</span><div class="typeSeg">${[['solid', cm('lpOn', 'On', 'Aç')], ['off', cm('lpOff', 'Off', 'Kapat')], ['', cm('lpAuto', 'Auto', 'Otomatik')]].map(([mode, label]) => `<button type="button" data-pin-mode="${mode}" aria-pressed="${(Preview.overrides[s.name] || '') === mode}" class="${(Preview.overrides[s.name] || '') === mode ? 'sel' : ''}">${esc(label)}</button>`).join('')}</div></div>` : '';
   const nameCtl = open ? `<input type="text" class="nameIn${er.name ? ' invalid' : ''}" data-k="name" value="${esc(s.name)}" spellcheck="false" autocomplete="off" aria-label="${esc(t.name)}" title="${esc(cm('renameHint', 'Click to rename', 'Yeniden adlandırmak için tıklayın'))}">` : `<b>${esc(s.name || '?')}</b>`;
   return `<div class="strip${open ? ' open' : ''}${i === selStrip ? ' sel' : ''}" data-i="${i}">
-    <header data-act="toggle" aria-expanded="${open}"><span class="dotrow" data-dots="${i}"></span><div class="nm">${nameCtl}<span class="meta">${esc(stripMeta(s))}</span></div><span class="tagout" title="${esc(t.outputs[s.type] || s.type)}">${esc(OUT_TAG[s.type] || s.type)}</span></header>
-    <div class="body"><div class="err" data-e="name"${er.name ? '' : ' hidden'}>${esc(er.name || '')}</div>${ledNote}
-      ${pinActions}${conn}${places}${leds}
-      <div class="sfoot"><span class="pnote">${esc(cm('liveModel', 'Shown on the model as you edit', 'Düzenledikçe modelde görünür'))}</span><button type="button" class="linkbtn bad" data-act="remove">${esc(cmOr('rmStrip', 'Remove strip', 'Şeridi kaldır', t.removeStrip))}</button></div>
+    <header data-act="toggle"><span class="dotrow" data-dots="${i}"></span><div class="nm">${nameCtl}<span class="meta">${esc(stripMeta(s))}</span></div><button type="button" class="tagout" data-act="toggle" aria-expanded="${open}" aria-controls="${id('body')}" aria-label="${esc(s.name + ' · ' + t.outputs[s.type])}"><span>${esc(OUT_TAG[s.type] || s.type)}</span>${CHEV}</button></header>
+    <div class="body" id="${id('body')}"><div class="err" data-e="name"${er.name ? '' : ' hidden'}>${esc(er.name || '')}</div>${ledNote}
+      ${leds}${pinActions}${conn}${places}
+      <div class="sfoot"><button type="button" class="linkbtn bad" data-act="remove">${esc(cmOr('rmStrip', 'Remove strip', 'Şeridi kaldır', t.removeStrip))}</button></div>
     </div></div>`;
 }
 let stripsRendering = false;
@@ -5188,7 +5306,7 @@ function renderStrips() {
 function renderStripsNow() {
   const t = T();
   const tot = P.strips.reduce((a, s) => a + s.count, 0);
-  $('#v-strips').innerHTML = `<div class="sec"><div class="phd"><h2>${esc(t.s_title)}</h2><span class="sub2">${esc(cm('nStrips', `${P.strips.length} strip${P.strips.length === 1 ? '' : 's'}`, `${P.strips.length} şerit`, P.strips.length))} · ${esc(nLeds(tot))}</span>${info(t.s_lead)}
+  $('#v-strips').innerHTML = `<div class="sec"><div class="phd"><h2>${esc(t.s_title)}</h2>${helpTip(t.s_title, t.s_lead)}<span class="sub2">${esc(nLeds(tot))}</span>
     <button type="button" data-act="add">${ICON.plus}${esc(t.addStrip)}</button></div>
     ${P.strips.length ? P.strips.map(stripCard).join('') : `<p class="muted">${esc(t.noStrips)}</p>`}</div>${groupsSec()}`;
   $$('#v-strips input[type=range]').forEach(setRangeFill);
@@ -5197,7 +5315,8 @@ function renderStripsNow() {
 // ---- groups: strips drawn as one (an effect runs across them, in this order)
 function groupsSec() {
   const t = T();
-  return `<div class="sec" id="groupsSec"><div class="phd"><h2>${esc(cm('grpTitle', 'Groups', 'Gruplar'))}</h2><span class="sub2">${esc(cm('grpSub', 'strips drawn as one', 'tek şerit gibi çizilir'))}</span>${info(cm('grpLead', 'Strips drawn as one: a scene line for the group runs its effect across all of them, in this order (also across chains).', 'Tek şerit gibi çizilen şeritler: gruba verilen sahne satırı efekti hepsinin üzerinde bu sırayla yürütür (zincirler arasında da).'))}
+  const title = cm('grpTitle', 'Groups', 'Gruplar');
+  return `<div class="sec" id="groupsSec"><div class="phd"><h2>${esc(title)}</h2>${helpTip(title, cm('grpLead', 'A group runs one effect across its strips in the order you choose.', 'Grup efekti, şeritleri seçtiğiniz sırayla izler.'))}
     <button type="button" data-gact="add"${P.strips.length ? '' : ' disabled'}>${ICON.plus}${esc(cm('grpAdd', 'Add group', 'Grup ekle'))}</button></div>
     ${P.groups.map((g, i) => { const er = groupError(g, i); return `<div class="grp" data-g="${i}"><div class="row"><input type="text" data-gname value="${esc(g.name)}" spellcheck="false" aria-label="${esc(t.name)}" class="${er && !NAME_RE.test(g.name) ? 'invalid' : ''}"><button type="button" class="small danger" data-gact="del">${esc(cm('grpDel', 'Remove group', 'Grubu kaldır'))}</button></div>
       <div class="pick">${g.strips.map((n, k) => `<button type="button" class="sel" data-gm="${esc(n)}" title="${esc(cm('grpOut', 'Take out of the group', 'Gruptan çıkar'))}">${k + 1}. ${esc(n)}<span class="x">×</span></button>`).join('')}${P.strips.filter(s => !g.strips.includes(s.name)).map(s => `<button type="button" data-gm="${esc(s.name)}" title="${esc(cm('grpIn', 'Add at the end', 'Sona ekle'))}">+ ${esc(s.name)}</button>`).join('')}</div>
@@ -5279,7 +5398,8 @@ $('#v-strips').addEventListener('click', async e => {
   if (pb && s) {
     const pl = pb.dataset.place, k = s.place.indexOf(pl);
     if (k >= 0) { if (s.place.length > 1) s.place.splice(k, 1); } else s.place.push(pl);
-    changed({ leds: true }); renderStrips(); return;
+    changed({ leds: true }); renderStrips();
+    $(`.strip[data-i="${i}"] [data-place="${pl}"]`)?.focus(); return;
   }
   const pc = e.target.closest('[data-pcol]');
   if (pc && s) { s.color = pc.dataset.pcol; changed(); renderStrips(); return; }
@@ -5298,6 +5418,12 @@ $('#v-strips').addEventListener('click', async e => {
   }
   const act = e.target.closest('[data-act]'); if (!act) return;
   if (act.dataset.act === 'toggle' && e.target.closest('input.nameIn')) return;
+  if (act.dataset.act === 'places' && s) {
+    const showing = !placesOpen.has(s);
+    if (showing) placesOpen.add(s); else placesOpen.delete(s);
+    act.setAttribute('aria-expanded', String(showing));
+    $('.places', card).hidden = !showing; return;
+  }
   if (act.dataset.act === 'conn' && s) {
     if (connOpen.has(s)) connOpen.delete(s); else connOpen.add(s);
     renderStrips(); return;
@@ -5347,13 +5473,10 @@ $('#v-strips').addEventListener('input', e => {
     const v = Math.round(+el.value);
     if (v >= 1 && v <= 500) {
       s.wholeChain = false; s.count = v; changed({ leds: true }); renderSel();
-      $$('[data-k=count]', card).forEach(o => { if (o !== el) o.value = o.type === 'range' ? Math.min(200, v) : v; if (o.type === 'range') setRangeFill(o); });
-      if (el.type === 'range') setRangeFill(el);
       const r = $('[data-k=range]', card); if (r) { r.value = ledsRange(s); delete r.dataset.badfmt; }
       refreshCardErrors(card, i);
     }
     const er = $('[data-e=count]', card); if (er) { er.hidden = v >= 1 && v <= 500; er.textContent = T().e_count; } el.classList.toggle('invalid', !(v >= 1 && v <= 500));
-    const cell = el.closest('.num'); if (cell) cell.classList.toggle('invalid', !(v >= 1 && v <= 500));
     refreshHead(card, s);
   } else if (k === 'range') {
     const m = el.value.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
@@ -5362,13 +5485,13 @@ $('#v-strips').addEventListener('input', e => {
       delete el.dataset.badfmt; s.wholeChain = !m;
       s.first = m ? +m[1] : 1;
       s.count = m ? (m[2] ? +m[2] : +m[1]) - s.first + 1 : (h?.count || Math.min(500, Live.status?.strips?.[s.name]?.count || s.count));
-      $$('[data-k=count]', card).forEach(o => { o.value = o.type === 'range' ? Math.min(200, s.count) : s.count; if (o.type === 'range') setRangeFill(o); });
+      const count = $('[data-k=count]', card); if (count) count.value = s.count;
       changed({ leds: true }); refreshCardErrors(card, i);
     }
     else { el.dataset.badfmt = '1'; const er = $('[data-e=range]', card); er.hidden = false; er.textContent = T().e_leds; el.classList.add('invalid'); }
     refreshHead(card, s);
   } else if (k === 'start') { s.start = Math.max(0, Math.round(+el.value || 0)); changed(); refreshCardErrors(card, i); }
-  else if (k === 'spacing') { s.spacing = clamp(+el.value, 0, 60); setRangeFill(el); el.nextElementSibling.textContent = s.spacing > 0 ? fmtNum(s.spacing) + ' mm' : T().spread; changed(); }
+  else if (k === 'spacing' && el.value !== '' && el.validity.valid) { s.spacing = el.valueAsNumber; changed({ leds: true }); }
   else if (k === 'brightness') { const v = clamp(+el.value, 0, 1); s.brightness = Math.round(v * 100) / 100; setRangeFill(el); el.nextElementSibling.textContent = Math.round(v * 100) + '%'; changed(); }
   else if (k === 'chain') { setChain(s, el.value.trim()); changed(); refreshCardErrors(card, i); }
   else if (k === 'color') {
@@ -5379,7 +5502,12 @@ $('#v-strips').addEventListener('input', e => {
   }
   else if (k === 'ip' || k === 'prefix') { s[k] = el.value.trim(); changed(); refreshCardErrors(card, i); }
   else if (h && (k === 'hw.mcu' || k === 'hw.pin' || k === 'hw.clock')) {
-    const f = k.slice(3); h[f] = el.value.trim(); if (f === 'mcu') { delete h.cmcu; const hint = el.closest('.fld').querySelector('.hint'); if (hint) hint.textContent = T().mcuHint(h.mcu); }
+    const f = k.slice(3); h[f] = el.value.trim();
+    if (f === 'mcu') {
+      delete h.cmcu;
+      const hint = el.closest('.hwField').querySelector('[data-help]');
+      if (hint) { hint.dataset.help = T().mcuHint(h.mcu); hint.setAttribute('aria-description', hint.dataset.help); }
+    }
     changed(); refreshCardErrors(card, i);
   } else if (h && k === 'hw.count') {
     const raw = el.value.trim(), v = Number(raw), all = o => o.first === 1 && o.count === h.count;
@@ -5390,7 +5518,7 @@ $('#v-strips').addEventListener('input', e => {
       for (const o of P.strips) if (hwKey(o) === hwKey(s) && (all(o) || follow.includes(o.name))) { o.first = 1; o.count = v; }
       h.count = v;
       const r = $('[data-k=range]', card); if (r && !r.dataset.badfmt) r.value = ledsRange(s);
-      $$('[data-k=count]', card).forEach(o => { o.value = o.type === 'range' ? Math.min(200, s.count) : s.count; if (o.type === 'range') setRangeFill(o); });
+      const count = $('[data-k=count]', card); if (count) count.value = s.count;
       changed({ leds: true });
       refreshCardErrors(card, i);
     } else {
@@ -5405,6 +5533,7 @@ $('#v-strips').addEventListener('change', e => {
   else if (h && k === 'hw.mcu' && el.tagName === 'SELECT') { h.mcu = el.value; delete h.cmcu; changed(); renderStrips(); }
   else if (h && k === 'hw.order') { h.order = el.value; changed(); renderStrips(); }
   else if (h && k === 'hw.pwm') { h.pwm = el.checked; changed(); }
+  else if (k === 'spacing' && (el.value === '' || !el.validity.valid)) { el.value = s.spacing; }
   else if (k === 'count' || k === 'range' || k === 'hw.count') renderStrips();
 });
 // chain name typed by hand: its own section stays its own once the name is final
@@ -5412,7 +5541,7 @@ $('#v-strips').addEventListener('focusout', e => { if (e.target.matches('input[d
 
 // ---- Scenes
 let editState = null;
-const PARAM_RANGE = { period: [0.1, 20, 0.1], size: [0, 30, 0.5], density: [0, 1, 0.05] };
+const PARAM_RANGE = { size: [0, 30, 0.5], density: [0, 1, 0.05] };
 // An ESP bridge node renders a few effects itself (solid, pulse, chase, bar, blink) at its own fixed speed and
 // size; blink and rainbow are driven by the printer. Only what reaches the node is offered.
 const ESP_EFFECTS = ['off', 'solid', 'breathe', 'blink', 'chase', 'comet', 'scan', 'twinkle', 'rainbow', 'fire', 'progress', 'heat'];
@@ -5429,11 +5558,10 @@ function sourceOptions() {
 }
 const GRAD5 = '0030ff,ffe000,ff8000,ff0000,a000ff';
 function valueControls(name, params, esp) {
-  const t = T(), src = params.source, opts = sourceOptions(), known = opts.some(o => o[0] === src), objSrc = src !== 'progress' && src !== 'heat';
+  const t = T(), src = params.source, objSrc = src !== 'progress' && src !== 'heat';
   const stops = params.colors ? params.colors.split(',') : [];
   const lbl = (k, en, tr) => `<label>${esc(cm(k, en, tr))}</label>`;
-  let h = `<div class="pc wide">${lbl('pSource', 'Source', 'Kaynak')}<div class="pick">${opts.map(([v, l]) => `<button type="button" data-p="source" data-v="${esc(v)}" class="${v === src ? 'sel' : ''}">${esc(l)}</button>`).join('')}</div>
-    <input type="text" data-p="source" data-free spellcheck="false" placeholder="object.field" value="${known ? '' : esc(src)}" aria-label="${esc(cm('srcOther', 'Other source (object.field)', 'Diğer kaynak (nesne.alan)'))}"></div>`;
+  let h = `<div class="pc wide sourcePicker">${lbl('pSource', 'Source', 'Kaynak')}<input type="text" data-p="source" data-free list="sceneSources" spellcheck="false" autocomplete="off" placeholder="object.field" value="${esc(src)}" aria-label="${esc(cm('pSource', 'Source', 'Kaynak'))}"></div>`;
   if (objSrc) {
     const [lo, hi] = LS.sourceRange(params, ctxNow(SIM.t));
     h += `<span class="pc">${lbl('pRange', 'Range', 'Aralık')}<span class="mm"><input type="number" data-p="min" step="any" placeholder="${fmtNum(lo)}" value="${params.min === 'auto' ? '' : fmtNum(params.min)}" aria-label="min"><span class="muted">–</span><input type="number" data-p="max" step="any" placeholder="${fmtNum(hi)}" value="${params.max === 'auto' ? '' : fmtNum(params.max)}" aria-label="max"></span></span>`;
@@ -5442,7 +5570,7 @@ function valueControls(name, params, esp) {
     <button type="button" class="small" data-stopadd>${ICON.plus}${esc(stops.length ? cm('stopAdd', 'Colour', 'Renk') : cm('stopScale', 'Use a colour scale', 'Renk skalası kullan'))}</button>${stops.length ? `<button type="button" class="small" data-stopclear>${esc(cm('stopClear', 'A / B colours', 'A / B renkleri'))}</button>` : ''}</div></div>`;
   if (!stops.length) {
     h += swatch('color', params.color, t.params.color);
-    if (name === 'heat') h += `<span class="arr">→</span>` + swatch('color2', params.color2, t.params.color2);
+    if (name === 'heat') h += swatch('color2', params.color2, t.params.color2);
   }
   if (name === 'progress') {
     h += `<span class="pc">${sw('data-p="gradient"', !!params.gradient, stops.length ? cm('pByValue', 'Colour by value', 'Değere göre renk') : t.params.gradient)}</span>`;
@@ -5455,43 +5583,43 @@ function valueControls(name, params, esp) {
 function paramControls(spec, pin, esp) {
   const t = T(), [name, params] = compiled(spec);
   if (!pin && (name === 'progress' || name === 'heat')) return valueControls(name, params, esp)
-    + (esp && (params.gradient || params.colors || name === 'heat') ? info(t.espBar) : '');
-  // progress: colour B only matters with the A -> B gradient on; a pin has one fixed colour: period only
+    + (esp && (params.gradient || params.colors || name === 'heat') ? helpTip(t.effects[name], t.espBar) : '');
+  // Only effects with a spatial direction need a reverse control.
+  const direction = ['rainbow', 'chase', 'comet', 'scan', 'follow'].includes(name);
   const keys = pin ? (name === 'blink' || name === 'breathe' ? ['period'] : [])
-    : name === 'progress' ? ['color', 'gradient'].concat(params.gradient ? ['color2'] : [], ['source'], esp ? [] : ['reverse'])
     : esp ? (ESP_KEYS[name] || [])
-    : Object.keys(LS.EFFECTS[name]).concat(['reverse']);
+    : Object.keys(LS.EFFECTS[name]);
+  if (direction && !pin && !esp) keys.splice(keys.includes('period') ? keys.indexOf('period') + 1 : keys.length, 0, 'reverse');
   return keys.map(k => {
     const ty = LS.PARAM_TYPES[k], v = params[k], lb = t.params[k];
-    if (ty === 'color') return (k === 'color2' && keys.includes('color') ? '<span class="arr">→</span>' : '') + swatch(k, v, lb);
+    if (ty === 'color') return swatch(k, v, lb);
+    if (k === 'period') return `<span class="pc period"><label>${esc(lb)}</label>${stepField(`<input type="number" data-p="period" min="0.05" step="0.05" value="${fmtNum(v)}" aria-label="${esc(lb)}">`)}</span>`;
     if (ty === 'float') { const [a, b, st] = PARAM_RANGE[k]; return `<span class="pc"><label>${esc(lb)}</label><input type="range" data-p="${k}" min="${a}" max="${b}" step="${st}" value="${v}" aria-label="${esc(lb)}"><output>${fmtNum(v)}</output></span>`; }
     if (ty === 'bool') return `<span class="pc">${sw(`data-p="${k}"`, !!v, lb)}</span>`;
     return `<span class="pc"><label>${esc(lb)}</label><div class="seg">${ty.map(o => `<button type="button" data-p="${k}" data-v="${o}" class="${o === v ? 'sel' : ''}">${esc(k === 'source' ? t.sources[o] : o.toUpperCase())}</button>`).join('')}</div></span>`;
-  }).join('') + (esp && ['breathe', 'chase', 'comet', 'scan', 'twinkle', 'rainbow', 'fire'].includes(name) ? info(t.espFixed) : '')
-    + (esp && name === 'progress' && params.gradient ? info(t.espBar) : '');
+  }).join('') + (esp && ['breathe', 'chase', 'comet', 'scan', 'twinkle', 'rainbow', 'fire'].includes(name) ? helpTip(t.effects[name], t.espFixed) : '');
 }
-// one card per strip / group: name + places, effect dropdown, preview bar, settings chips; "all" is a quiet line
-function fxRow(key, sc, label, sub) {
-  const t = T(), spec = sc ? sc[key] : undefined, isAll = key === 'all';
-  const fx = spec ? compiled(spec)[0] : '';
-  const inherit = !spec ? (isAll ? 'off' : (sc && sc.all) || 'off') : spec;
+function sceneEffect(sc, key) {
+  if (!sc) return null;
+  if (sc[key]) return sc[key];
+  const group = P.groups.find(g => sc[g.name] && g.strips.includes(key));
+  return (group && sc[group.name]) || sc.all || null;
+}
+function fxRow(key, sc, label) {
+  const t = T(), spec = sceneEffect(sc, key), fx = spec ? compiled(spec)[0] : '';
   const pin = isPinKey(key), pinA = pin ? ` data-pin="${esc(key)}"` : '';
   const fxName = n => pin && n === 'solid' ? t.pinOn : t.effects[n];
   const pc = spec ? paramControls(spec, pin, isEspKey(key)) : '';
-  const tail = `${pc ? `<div class="params">${pc}</div>` : ''}<div class="spec raw">${esc(spec || '')}</div>`;
   const dd = `aria-haspopup="listbox" aria-expanded="false"`;
-  if (isAll) {
-    return `<div class="fx allq" data-key="all"><div class="head"><span class="who">${esc(cm('allOther', 'All other strips', 'Diğer tüm şeritler'))}: <b>${esc(fx ? fxName(fx) : t.stripsOff)}</b></span>
-      <button type="button" class="linkbtn" data-fxbtn ${dd} title="${esc(t.allHint)}">${esc(cm('fxChange', 'change', 'değiştir'))}${CHEV}</button></div>
-      <div class="preview" data-prev="${esc(inherit)}" data-n="30"></div>${tail}</div>`;
-  }
+  const clear = cm('clearFx', 'Clear this override', 'Bu özel efekti kaldır');
   const n = groupByName(key) ? groupByName(key).strips.reduce((a, x) => a + ((stripByName(x) || {}).count || 0), 0) : (P.strips.find(s => s.name === key) || { count: 30 }).count;
   const on = selStrip >= 0 && P.strips[selStrip] && P.strips[selStrip].name === key;
   return `<div class="fx${on ? ' on' : ''}" data-key="${esc(key)}">
-    <div class="head"><div class="who"><b>${esc(label)}</b><small>${esc(sub)}</small></div>
-      <button type="button" class="fxbtn" data-fxbtn ${dd}${fx ? '' : ` title="${esc(t.notSet)}"`}><span class="nm${fx ? '' : ' unset'}">${esc(fx ? fxName(fx) : t.notSetShort)}</span><svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m4 6 4 4 4-4"/></svg></button></div>
-    <div class="preview" data-prev="${esc(inherit)}"${pinA} data-n="${n}"></div>
-    ${tail}
+    <div class="head"><div class="who"><b>${esc(label)}</b></div><div class="fxactions">
+      <button type="button" class="fxclear" data-fxclear title="${esc(clear)}" aria-label="${esc(clear + ' · ' + label)}"${sc?.[key] ? '' : ' hidden'}>${ICON.x}</button>
+      <button type="button" class="fxbtn" data-fxbtn ${dd}><span class="nm${fx ? '' : ' unset'}">${esc(fx ? fxName(fx) : t.notSetShort)}</span>${CHEV}</button></div></div>
+    <div class="preview" data-prev="${esc(spec || 'off')}"${pinA} data-n="${n}"></div>
+    ${pc ? `<div class="params">${pc}</div>` : ''}
   </div>`;
 }
 function trigText(c) {
@@ -5513,15 +5641,13 @@ function renderScenes() {
   if (custom && !P.scenes[st]) P.scenes[st] = {};
   const sc = P.scenes[st];
   const resolved = custom ? null : LS.resolveScene(st, effScenes());
-  const rows = () => P.groups.filter((g, i) => !groupError(g, i)).map(g => fxRow(g.name, sc, g.name, `${cm('grpWord', 'group', 'grup')} · ${g.strips.join(' + ')}`)).join('')
-    + P.strips.map(s => fxRow(s.name, sc, s.name, `${placeNames(s)} · ${nLeds(s.count)}`)).join('')
-    + fxRow('all', sc, t.allStrips, t.allHint)
-    + `<p class="sctip">${esc(cm('scTip', 'Pick an effect for each strip; the model shows it as you edit', 'Her şerit için bir efekt seçin; model düzenledikçe gösterir'))}</p>`;
+  const rows = () => P.groups.filter((g, i) => !groupError(g, i)).map(g => fxRow(g.name, sc, g.name)).join('')
+    + P.strips.map(s => fxRow(s.name, sc, s.name)).join('');
   let body;
   if (custom) {
     const c = P.customs.find(x => x.name === st);
-    body = `<div class="trigBox"><b>${esc(trigName(trigKind(c.trigger)))}</b><span class="meta mono grow">${esc(trigText(c))}</span>
-      <span class="meta">${esc(cm('scPri', `Priority ${c.priority}${c.hold !== null ? ` · hold ${fmtNum(c.hold)} s` : ''}`, `Öncelik ${c.priority}${c.hold !== null ? ` · bekletme ${fmtNum(c.hold)} sn` : ''}`, c.priority, c.hold))}</span>${info(cm('scMeta', `Priority ${c.priority}${c.hold !== null ? ` · hold ${fmtNum(c.hold)} s` : ''} · shown on the strips it names while no higher-priority scene names them`, `Öncelik ${c.priority}${c.hold !== null ? ` · bekletme ${fmtNum(c.hold)} sn` : ''} · daha yüksek öncelikli bir sahne adlandırmadıkça adlandırdığı şeritlerde görünür`, c.priority, c.hold))}
+    const kind = trigKind(c.trigger);
+    body = `<div class="trigBox"><b>${esc(trigName(kind))}</b><span class="meta mono grow">${kind === 'macro' || kind === 'condition' ? esc(trigText(c)) : ''}</span>
       <button type="button" class="linkbtn" data-act="editcustom">${esc(cm('scEdit', 'Edit trigger', 'Tetikleyiciyi düzenle'))}</button><button type="button" class="linkbtn bad" data-act="delcustom">${esc(cm('scDelete', 'Delete scene', 'Sahneyi sil'))}</button></div>` + rows();
   } else if (none) body = `<div class="note warn">${esc(t.noScenesAtAll)}</div><div class="row"><button type="button" class="primary" data-act="create">${esc(t.createScene)}</button></div>`;
   else if (!sc) body = `<div class="note">${t.fallsBack(esc(t.states[st]), resolved ? esc(t.states[resolved]) : '')}</div><div class="row"><button type="button" class="primary" data-act="create">${esc(t.createScene)}</button><button type="button" data-act="defaults">${esc(t.useDefaults)}</button></div>`;
@@ -5533,8 +5659,8 @@ function renderScenes() {
       : own ? String(n) : '–';
     const fav = (UI.favs || []).includes(x), ft = fav ? cm('favOff', 'Remove from the top bar', 'Üst çubuktan kaldır') : cm('favOn', 'Add to the top bar (plays with one click)', 'Üst çubuğa ekle (tek tıkla oynar)');
     return `<div class="sctile${x === st ? ' sel' : ''}${own || cu ? '' : ' dim'}" data-pick="${esc(x)}" role="button" tabindex="0" style="--c:${sceneCol(x)}" title="${esc(sub)}"><i></i><b>${esc(sceneLabel(x))}</b><button type="button" class="fav${fav ? ' on' : ''}" data-fav="${esc(x)}" aria-pressed="${fav}" title="${esc(ft)}" aria-label="${esc(ft)}">${fav ? '★' : '☆'}</button></div>`;
-  }).join('') + `<button type="button" class="sctile add" data-addscene><b>＋ ${esc(cm('scNew', 'New scene', 'Yeni sahne'))}</b><small>${esc(cm('scNewSub', 'on a trigger', 'tetikleyiciyle'))}</small></button>`;
-  $('#v-scenes').innerHTML = `<div class="scpick">${pick}</div><div class="sec"><div class="schd"><span class="sdot" style="--c:${sceneCol(st)}"></span><h2>${esc(sceneLabel(st))}</h2><small>${esc(cm('scWhat', 'what each strip shows', 'her şeridin gösterdiği'))}</small>${info(t.sc_lead)}
+  }).join('') + `<button type="button" class="sctile add" data-addscene><b>＋ ${esc(cm('scNew', 'New scene', 'Yeni sahne'))}</b></button>`;
+  $('#v-scenes').innerHTML = `<datalist id="sceneSources">${sourceOptions().map(([v, label]) => `<option value="${esc(v)}" label="${esc(label)}"></option>`).join('')}</datalist><div class="scpick">${pick}</div><div class="sec"><div class="schd"><span class="sdot" style="--c:${sceneCol(st)}"></span><h2>${esc(sceneLabel(st))}</h2>${helpTip(sceneLabel(st), t.sc_lead)}
     <button type="button" data-act="sim">${ICON.play}${esc(t.testState)}</button></div>
     ${body}</div>`;
   $$('#v-scenes input[type=range]').forEach(setRangeFill);
@@ -5543,13 +5669,13 @@ function renderScenes() {
 // the spec an effect option would give this row: same colours as now, other params at their defaults
 function fxOptionSpec(key, n) {
   const sc = P.scenes[editState] || {};
-  if (!n) return key === 'all' ? 'off' : sc.all || 'off';
-  if (sc[key] && compiled(sc[key])[0] === n) return sc[key];
+  const prev = sceneEffect(sc, key);
+  if (prev && compiled(prev)[0] === n) return prev;
   if (isPinKey(key)) {  // one fixed colour: on = solid, blink / breathe keep only their period
-    if (n === 'blink' || n === 'breathe') { const old = sc[key] ? compiled(sc[key])[1] : {}; return LS.formatSpec(n, Object.assign({}, LS.EFFECTS[n], old.period ? { period: old.period } : {})); }
+    if (n === 'blink' || n === 'breathe') { const old = prev ? compiled(prev)[1] : {}; return LS.formatSpec(n, Object.assign({}, LS.EFFECTS[n], old.period ? { period: old.period } : {})); }
     return n;
   }
-  const prev = sc[key] || sc.all, old = prev ? compiled(prev)[1] : {};
+  const old = prev ? compiled(prev)[1] : {};
   const p = Object.assign({}, LS.EFFECTS[n], LS.COMMON_PARAMS);
   for (const k in p) if (k in old && k !== 'reverse' && typeof old[k] === typeof p[k] && LS.PARAM_TYPES[k] === 'color') p[k] = old[k];
   return LS.formatSpec(n, p);
@@ -5559,32 +5685,28 @@ function chooseFx(key, n) {
   setSpec(key, n ? fxOptionSpec(key, n) : null); renderScenes();
 }
 const MINI_N = 12;
-function paintMinis(root) {
-  if (!root) return;
-  const t = SIM.t, w = 0.6 + 0.35 * Math.sin(t * 0.9);
-  const ctx = { t, progress: w, heat: w, pos: [0.5 + 0.45 * Math.sin(t * 1.3), 0.5, 0.2] };
-  for (const el of root.querySelectorAll('[data-mini]')) {
-    const [nm, pr] = compiled(el.dataset.mini), ps = el.dataset.pin && stripByName(el.dataset.pin);
-    let f = LS.render(nm, pr, MINI_N, sweepCtx(ctx, nm, pr, w)); if (ps) f = pinFrame(f, ps);
-    if (el.children.length !== MINI_N) el.innerHTML = '<i></i>'.repeat(MINI_N);
-    for (let i = 0; i < MINI_N; i++) { const c = f[i] || [0, 0, 0]; el.children[i].style.background = rgbCss(c.map(v => 0.06 + 0.94 * v)); }
+const visiblePreviews = new Set();
+const previewObserver = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(entries => {
+  for (const { target, isIntersecting } of entries) {
+    if (isIntersecting && target.isConnected) visiblePreviews.add(target);
+    else visiblePreviews.delete(target);
   }
-}
+});
 const FxDD = { btn: null, key: null, items: [], act: 0 };
 function fxOpen(btn) {
-  const row = btn.closest('.fx'), key = row.dataset.key, t = T(), isAll = key === 'all';
-  const sc = P.scenes[editState] || {}, cur = sc[key] ? compiled(sc[key])[0] : '';
+  const row = btn.closest('.fx'), key = row.dataset.key, t = T();
+  const current = sceneEffect(P.scenes[editState], key), cur = current ? compiled(current)[0] : '';
   const pin = isPinKey(key), list = pin ? pinEffects(stripByName(key)) : isEspKey(key) ? ESP_EFFECTS.slice() : Object.keys(LS.EFFECTS);
   if (cur && !list.includes(cur)) list.push(cur);  // an effect written by hand stays visible
-  FxDD.btn = btn; FxDD.key = key; FxDD.items = [''].concat(list);
+  FxDD.btn = btn; FxDD.key = key; FxDD.items = list;
   const pop = $('#fxPop'), pinA = pin ? ` data-pin="${esc(key)}"` : '';
-  pop.innerHTML = FxDD.items.map((n, i) => `<li role="option" id="fxo${i}" data-n="${n}" class="${n ? '' : 'unset'}" aria-selected="${n === cur}"><span>${esc(n ? (pin && n === 'solid' ? t.pinOn : t.effects[n]) : (isAll ? t.notSetAll : t.notSet))}</span><span class="mini" data-mini="${esc(fxOptionSpec(key, n))}"${pinA}></span></li>`).join('');
+  pop.innerHTML = FxDD.items.map((n, i) => `<li role="option" id="fxo${i}" data-n="${n}" aria-selected="${n === cur}"><span>${esc(pin && n === 'solid' ? t.pinOn : t.effects[n])}</span><span class="mini" data-mini="${esc(fxOptionSpec(key, n))}"${pinA}></span></li>`).join('');
   pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
   // fit the viewport: below the button, or above when there is more room there
   const r = btn.getBoundingClientRect(), vh = innerHeight, vw = innerWidth, below = vh - r.bottom - 8, above = r.top - 8;
   const w = Math.min(vw - 16, Math.max(r.width, 280)), up = below < 240 && above > below;
   Object.assign(pop.style, { left: Math.max(8, Math.min(vw - w - 8, r.left)) + 'px', width: w + 'px', maxHeight: Math.max(120, up ? above : below) + 'px', top: up ? 'auto' : (r.bottom + 4) + 'px', bottom: up ? (vh - r.top + 4) + 'px' : 'auto' });
-  paintMinis(pop);
+  paintPreviews();
   fxActive(Math.max(0, FxDD.items.indexOf(cur)));
   pop.focus?.();
 }
@@ -5602,6 +5724,7 @@ function fxClose(refocus) {
   pop.hidden = true; pop.innerHTML = '';
   const b = FxDD.btn; FxDD.btn = null;
   if (b && b.isConnected) { b.setAttribute('aria-expanded', 'false'); if (refocus) b.focus(); }
+  paintPreviews();
 }
 function fxPick(i) {
   const n = FxDD.items[i], key = FxDD.key; fxClose(false);
@@ -5631,24 +5754,50 @@ document.addEventListener('pointerdown', e => { if (!$('#fxPop').hidden && !e.ta
 addEventListener('resize', () => fxClose(false));
 $('#pane').addEventListener('scroll', () => fxClose(false));
 function paintPreviews() {
-  // the bars show the edited state's scene: with that state running they follow the simulation, otherwise
-  // progress / heat sweep 0 -> 100 % so a progress effect is never a dead bar
-  const ctx = ctxNow(SIM.t), sweep = editState && editState !== SIM.state, w = Math.min(1, (SIM.t % 6) / 4.8);
-  if (sweep) { ctx.heat = w; ctx.progress = w; }
-  if (curTab === 'scenes') paintMinis($('#v-scenes'));
-  if (!$('#fxPop').hidden) paintMinis($('#fxPop'));
-  $$('#v-scenes [data-prev]').forEach(el => {
-    const n = Math.min(30, +el.dataset.n || 30), [nm, pr] = compiled(el.dataset.prev), ps = el.dataset.pin && stripByName(el.dataset.pin);
-    let f = LS.render(nm, pr, n, sweep ? sweepCtx(ctx, nm, pr, w) : ctx); if (ps) f = pinFrame(f, ps);
-    if (el.children.length !== n) el.innerHTML = '<i></i>'.repeat(n);
-    for (let i = 0; i < n; i++) el.children[i].style.background = rgbCss(f[i]);
-  });
-  $$('#v-strips [data-dots]').forEach(el => {
-    const s = P.strips[+el.dataset.dots], f = s && SIM.last[s.name]; if (!f) return;
-    const n = Math.min(8, f.length);
-    if (el.children.length !== n) el.innerHTML = '<i></i>'.repeat(n);
-    for (let i = 0; i < n; i++) { const c = el.children[i].style; c.background = c.color = rgbCss(f[Math.floor(i * f.length / n)].map(v => 0.12 + 0.88 * v)); }
-  });
+  // Refresh the watched elements only when a panel or menu replaces its markup.
+  previewObserver?.disconnect();
+  previewObserver?.takeRecords();
+  visiblePreviews.clear();
+  if (curTab !== 'strips' && curTab !== 'scenes') return;
+  const targets = curTab === 'strips' ? '#v-strips [data-dots]'
+    : '#v-scenes [data-prev], #v-scenes [data-mini], #fxPop:not([hidden]) [data-mini]';
+  for (const el of $$(targets)) {
+    if (previewObserver) previewObserver.observe(el);
+    else visiblePreviews.add(el);
+  }
+}
+function paintPreviewPixels(el, frame, count, floor) {
+  if (!count) return;
+  if (el.children.length !== count) el.innerHTML = '<i></i>'.repeat(count);
+  const uniform = frame.every(c => c === frame[0]);
+  el.classList.toggle('uniform-leds', uniform);
+  for (let i = 0; i < (uniform ? 1 : count); i++) {
+    const pixel = uniform ? el : el.children[i];
+    const color = frame[Math.floor(i * frame.length / count)];
+    const css = rgbCss(floor ? color.map(v => floor + (1 - floor) * v) : color);
+    if (pixel.previewColor !== css) { pixel.style.color = css; pixel.previewColor = css; }
+  }
+}
+function paintVisiblePreviews() {
+  if (!visiblePreviews.size || document.hidden || curTab === 'settings') return;
+  const t = SIM.t, ctx = ctxNow(t), sweep = editState && editState !== SIM.state;
+  const value = Math.min(1, (t % 6) / 4.8), demo = 0.6 + 0.35 * Math.sin(t * 0.9);
+  const menuCtx = { t, progress: demo, heat: demo, pos: [0.5 + 0.45 * Math.sin(t * 1.3), 0.5, 0.2] };
+  if (sweep) { ctx.heat = value; ctx.progress = value; }
+  for (const el of visiblePreviews) {
+    if (el.dataset.dots !== undefined) {
+      const s = P.strips[+el.dataset.dots], frame = s && SIM.last[s.name];
+      if (frame) paintPreviewPixels(el, frame, Math.min(8, frame.length), 0.06);
+      continue;
+    }
+    const mini = el.dataset.mini !== undefined, n = mini ? MINI_N : Math.min(30, +el.dataset.n || 30);
+    const [name, params] = compiled(mini ? el.dataset.mini : el.dataset.prev);
+    const state = mini ? sweepCtx(menuCtx, name, params, demo) : sweep ? sweepCtx(ctx, name, params, value) : ctx;
+    let frame = LS.render(name, params, n, state);
+    const pin = el.dataset.pin && stripByName(el.dataset.pin);
+    if (pin) frame = pinFrame(frame, pin);
+    paintPreviewPixels(el, frame, n, mini ? 0.06 : 0);
+  }
 }
 // Blinks in one state share one period, so they blink together (same clock on the printer and here). Changing the
 // period of one blink changes them all; a strip switched to blink takes the period the others have. An on/off pin
@@ -5675,23 +5824,38 @@ function syncBlinks(key, prev) {
   }
   return out;
 }
-function syncRowUi(key, skipInput) {  // another row's spec changed under it: its texts, preview and period slider
-  const row = $(`#v-scenes .fx[data-key="${CSS.escape(key)}"]`), sp = P.scenes[editState] && P.scenes[editState][key]; if (!row || !sp) return;
-  const t = $('.spec', row); if (t) t.textContent = sp;
-  const pv = $('[data-prev]', row); if (pv) pv.dataset.prev = sp;
-  const r = $('input[type=range][data-p="period"]', row);
-  if (r && r !== skipInput) { r.value = String(blinkPer(sp) ?? r.value); setRangeFill(r); if (r.nextElementSibling) r.nextElementSibling.textContent = fmtNum(+r.value); }
+function syncRowUi(key) {
+  const row = $(`#v-scenes .fx[data-key="${CSS.escape(key)}"]`), sc = P.scenes[editState];
+  if (!row || !sc) return;
+  const sp = sceneEffect(sc, key) || 'off', [effect, params] = compiled(sp);
+  $('[data-prev]', row).dataset.prev = sp;
+  $('[data-fxclear]', row).hidden = !sc[key];
+  const period = $('input[data-p=period]', row);
+  if (period && effect === 'blink' && +period.value !== params.period) period.value = fmtNum(params.period);
 }
 function setSpec(key, spec) {
   const sc = P.scenes[editState]; if (!sc) return;
-  const prev = sc[key];
+  const prev = sceneEffect(sc, key);
   if (spec === null) delete sc[key]; else sc[key] = spec;
   const synced = spec === null ? [] : syncBlinks(key, prev);
   if (synced.includes(key)) spec = sc[key];
-  for (const k of synced) { syncRowUi(k, k === key ? document.activeElement : null); if (k !== key) Preview.effect(k, sc[k]); }
+  for (const k of synced) { syncRowUi(k); if (k !== key) Preview.effect(k, sc[k]); }
+  const changedKeys = [key, ...synced];
+  for (const strip of P.strips) {
+    if (strip.name === key || sc[strip.name]) continue;
+    const group = P.groups.find(g => g.strips.includes(strip.name) && sc[g.name]);
+    if (!changedKeys.includes(group ? group.name : 'all')) continue;
+    const row = $(`#v-scenes .fx[data-key="${CSS.escape(strip.name)}"]`);
+    if (row) row.outerHTML = fxRow(strip.name, sc, strip.name);
+  }
   SIM.frozen = {};
   changed();
   if (spec !== null) Preview.effect(key, spec);
+  else if (Preview.edited.has(key)) {
+    clearTimeout(Preview.timers[key]);
+    const manual = Preview.overrides[key];
+    Preview.queue({ action: 'preview', strip: key, effect: manual || '', hold: manual ? MANUAL_HOLD : 0 }, true);
+  }
 }
 $('#v-scenes').addEventListener('click', e => {
   const fv = e.target.closest('[data-fav]');
@@ -5705,9 +5869,11 @@ $('#v-scenes').addEventListener('click', e => {
   const pk = e.target.closest('[data-pick]'); if (pk) { editState = pk.dataset.pick; renderScenes(); return; }
   if (e.target.closest('#v-scenes [data-addscene]')) { openSceneDlg(null); return; }
   if (e.target.closest('[data-addscene]')) { openSceneDlg(null); return; }
+  const clear = e.target.closest('[data-fxclear]');
+  if (clear) { const key = clear.closest('.fx').dataset.key; chooseFx(key, ''); $(`.fx[data-key="${CSS.escape(key)}"] [data-fxbtn]`)?.focus(); return; }
   const sb = e.target.closest('[data-stopadd], [data-stopdel], [data-stopclear]');
   if (sb) {
-    const row = sb.closest('.fx'), key = row.dataset.key, [n, pr] = compiled(P.scenes[editState][key]);
+    const row = sb.closest('.fx'), key = row.dataset.key, [n, pr] = compiled(sceneEffect(P.scenes[editState], key));
     let st = pr.colors ? pr.colors.split(',') : [];
     if (sb.dataset.stopclear !== undefined) st = [];
     else if (sb.dataset.stopdel !== undefined) st.splice(+sb.dataset.stopdel, 1);
@@ -5721,12 +5887,12 @@ $('#v-scenes').addEventListener('click', e => {
   if (ed) { editState = ed.dataset.edit; renderScenes(); return; }
   const seg = e.target.closest('button[data-p]');
   if (seg) {
-    const row = seg.closest('.fx'), key = row.dataset.key, [n, pr] = compiled(P.scenes[editState][key]);
+    const row = seg.closest('.fx'), key = row.dataset.key, [n, pr] = compiled(sceneEffect(P.scenes[editState], key));
     const p = Object.assign({}, pr, { [seg.dataset.p]: seg.dataset.v });
     if (seg.dataset.p === 'source') { p.min = 'auto'; p.max = 'auto'; setSpec(key, LS.formatSpec(n, p)); renderScenes(); return; }
     setSpec(key, LS.formatSpec(n, p));
     $$(`button[data-p="${seg.dataset.p}"]`, row).forEach(b => b.classList.toggle('sel', b === seg));
-    $('.spec', row).textContent = P.scenes[editState][key]; $('[data-prev]', row).dataset.prev = P.scenes[editState][key];
+    syncRowUi(key);
     return;
   }
   const act = e.target.closest('[data-act]'); if (!act) return;
@@ -5749,9 +5915,13 @@ $('#v-scenes').addEventListener('change', e => {
   else if (el.matches('input[data-free]')) {  // a typed value source: <object>.<field>
     const v = el.value.trim().replace(/\s+/g, ' ');
     if (!v) return;
-    if (!LS.SOURCE_RE.test(v)) { el.classList.add('invalid'); toast(cm('srcBad', 'Source: object.field, e.g. temperature_sensor chamber.temperature', 'Kaynak: nesne.alan, ör. temperature_sensor chamber.temperature'), 'warn'); return; }
-    const [n, pr] = compiled(P.scenes[editState][key]);
+    if (v !== 'progress' && v !== 'heat' && !LS.SOURCE_RE.test(v)) { el.classList.add('invalid'); toast(cm('srcBad', 'Source: object.field, e.g. temperature_sensor chamber.temperature', 'Kaynak: nesne.alan, ör. temperature_sensor chamber.temperature'), 'warn'); return; }
+    const [n, pr] = compiled(sceneEffect(P.scenes[editState], key));
     setSpec(key, LS.formatSpec(n, Object.assign({}, pr, { source: v, min: 'auto', max: 'auto' }))); renderScenes();
+  } else if (el.matches('input[data-p=period]')) {
+    const effective = compiled(sceneEffect(P.scenes[editState], key))[1];
+    if (!Number.isFinite(el.valueAsNumber) || el.valueAsNumber < 0.05) { el.value = fmtNum(effective.period); return; }
+    paramEdit(row, 'period', el.valueAsNumber);
   } else if (el.matches('input[type=number][data-p]')) {  // min / max: empty = automatic
     const raw = el.value.trim(), v = raw === '' ? 'auto' : Number(raw);
     if (v !== 'auto' && !isFinite(v)) return;
@@ -5761,7 +5931,7 @@ $('#v-scenes').addEventListener('change', e => {
 $('#v-scenes').addEventListener('input', e => {
   const el = e.target, row = el.closest('.fx');
   if (row && el.type === 'color' && el.dataset.stop !== undefined) {  // one colour of the scale
-    const key = row.dataset.key, [n, pr] = compiled(P.scenes[editState][key]), st = pr.colors.split(',');
+    const key = row.dataset.key, [n, pr] = compiled(sceneEffect(P.scenes[editState], key)), st = pr.colors.split(',');
     st[+el.dataset.stop] = el.value.slice(1).toLowerCase();
     const w = el.closest('.swatch'); w.querySelector('i').style.background = el.value; w.querySelector('span').textContent = st[+el.dataset.stop];
     paramEdit(row, 'colors', st.join(','));
@@ -5770,7 +5940,7 @@ $('#v-scenes').addEventListener('input', e => {
   if (!row || !el.dataset.p || el.type === 'checkbox' || el.type === 'text' || el.type === 'number') return;
   if (el.type === 'color') {
     const hex = el.value.slice(1).toLowerCase();
-    const s = el.closest('.swatch'); s.querySelector('i').style.background = el.value; s.querySelector('span').textContent = hex;
+    el.closest('.swatch').querySelector('i').style.background = el.value;
     paramEdit(row, el.dataset.p, hex);
   } else if (el.type === 'range') {
     const v = Number(el.value); setRangeFill(el); el.nextElementSibling.textContent = fmtNum(v);
@@ -5778,11 +5948,10 @@ $('#v-scenes').addEventListener('input', e => {
   }
 });
 function paramEdit(row, k, v) {
-  const key = row.dataset.key, [n, pr] = compiled(P.scenes[editState][key]);
+  const key = row.dataset.key, [n, pr] = compiled(sceneEffect(P.scenes[editState], key));
   const spec = LS.formatSpec(n, Object.assign({}, pr, { [k]: v }));
   setSpec(key, spec);
-  const now = P.scenes[editState][key] ?? spec;  // a blink period may have been raised to the scene's minimum
-  $('.spec', row).textContent = now; $('[data-prev]', row).dataset.prev = now;
+  syncRowUi(key);
 }
 
 // ---- Load
@@ -5793,26 +5962,23 @@ function renderLoad() {
   const cards = [];
   for (const key in chains) {
     const c = chains[key], bytes = c.bytes, fps = c.fps, ms = c.ms, fc = c.fc, mc = c.mc;
-    cards.push(`<div class="load"><div class="top"><b class="mono">${esc(key)}</b><small>${esc(c.strips.join(', '))}</small></div>
+    cards.push(`<div class="load"><div class="top"><b class="mono">${esc(key)}${helpTip(key, c.freeze ? t.freeze : t.freezeSmall)}</b><small>${esc(c.strips.join(', '))}</small></div>
       ${kv([[t.ledsN, c.leds], [t.bytesFrame, bytes], [t.fps, fps.toFixed(fps < 10 ? 1 : 0)], [t.mcuMs, ms.toFixed(1) + ' ' + t.msps]])}
       ${meter(t.fpsLbl, fps / LS.MCU_FPS_CAP, fc, fps.toFixed(1) + ' fps')}
       ${meter(t.mcuLbl, ms / (LS.MCU_BUDGET * 1000), mc, ms.toFixed(1) + ' ms')}
-      <div class="note${c.freeze ? ' warn' : ''}">${esc(c.freeze ? t.freeze : t.freezeSmall)}</div>
       ${c.leds > 60 ? `<div class="note bad">${esc(t.bigChain(c.leds))}</div>` : ''}</div>`);
   }
   for (const s of P.strips) {
-    if (s.type === 'wled') cards.push(`<div class="load"><div class="top"><b class="mono">wled ${esc(s.ip)}</b><small>${esc(s.name)}</small></div>
+    if (s.type === 'wled') cards.push(`<div class="load"><div class="top"><b class="mono">wled ${esc(s.ip)}${helpTip('WLED', t.wledNote)}</b><small>${esc(s.name)}</small></div>
       ${kv([[t.ledsN, s.count], [t.bytesFrame, s.count * 3 + 4], [t.fps, LS.NET_FPS], [t.mcuMs, '0 ' + t.msps]])}
       ${meter(t.fpsLbl, LS.NET_FPS / LS.NET_FPS, '', LS.NET_FPS + ' fps')}
-      <div class="note ok">${esc(t.wledNote)}</div></div>`);
-    if (s.type === 'pin') cards.push(`<div class="load"><div class="top"><b class="mono">pin ${esc(s.chain)}</b><small>${esc(s.name)}</small></div>
-      <div class="note ok">${esc(t.pinNote)}</div></div>`);
-    if (s.type === 'esp_bridge') cards.push(`<div class="load"><div class="top"><b class="mono">esp_bridge ${esc(s.prefix)}</b><small>${esc(s.name)}</small></div>
-      ${kv([[t.ledsN, s.count], [t.mcuMs, '0 ' + t.msps]])}<div class="note ok">${esc(t.espNote)}</div></div>`);
+      </div>`);
+    if (s.type === 'pin') cards.push(`<div class="load"><div class="top"><b class="mono">pin ${esc(s.chain)}${helpTip(s.name, t.pinNote)}</b><small>${esc(s.name)}</small></div></div>`);
+    if (s.type === 'esp_bridge') cards.push(`<div class="load"><div class="top"><b class="mono">esp_bridge ${esc(s.prefix)}${helpTip(s.name, t.espNote)}</b><small>${esc(s.name)}</small></div>
+      ${kv([[t.ledsN, s.count], [t.mcuMs, '0 ' + t.msps]])}</div>`);
   }
-  $('#v-load').innerHTML = `<div class="sec"><div><h2>${esc(t.l_title)}</h2><p class="lead">${esc(t.l_lead)}</p></div>
-    <div class="note">${esc(t.budget)}</div>
-    <div class="loadWhy"><b>${esc(t.whyTitle)}</b><ul>${Object.values(t.whyItems).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>${cards.join('')}</div>`;
+  $('#v-load').innerHTML = `<div class="sec"><h2>${esc(t.l_title)}${helpTip(t.l_title, t.l_lead + '\n' + t.budget)}</h2>
+    ${cards.join('')}<details class="cfgTools"><summary>${esc(t.whyTitle)}</summary><ul>${Object.values(t.whyItems).map(x => `<li>${esc(x)}</li>`).join('')}</ul></details></div>`;
 }
 
 // ---- Config
@@ -5826,15 +5992,21 @@ function hiCfg(txt) {
 let importMsg = '';
 function renderConfig() {
   const t = T(), n = allErrors(), txt = cfgText();
-  $('#v-config').innerHTML = `<div class="sec"><div><h2>${esc(t.c_title)}</h2><p class="lead">${esc(t.c_lead)}</p></div>
-    ${Live.ledEffect ? `<div class="note warn">${esc(cm('activeLegacyCount', `This printer is still using ${Live.ledEffect} [led_effect] section(s).`, `Bu yazıcı hâlâ ${Live.ledEffect} [led_effect] bölümü kullanıyor.`, Live.ledEffect))}</div>` : ''}
+  const panel = $('#v-config'), fileOpen = $('#cfgTools', panel)?.open, importOpen = $('#cfgImport', panel)?.open;
+  const draft = $('#cfgIn', panel)?.value || '';
+  panel.innerHTML = `<div class="sec"><h2>${esc(t.c_title)}${Live.cfgFile === 'read' ? '' : helpTip(t.c_title, t.c_lead)}</h2>
+    <div id="leNote" hidden></div>
     ${n ? `<div class="note bad">${esc(t.fixFirst(n))}</div>` : ''}
     ${canApply() ? applyBox('config') : ''}
+    <details id="cfgTools" class="cfgTools"${fileOpen ? ' open' : ''}><summary>${esc(cm('cfgFiles','File tools','Dosya işlemleri'))}</summary>
+    <div class="row"><button type="button" class="small" data-act="copy">${esc(t.copy)}</button><button type="button" class="small" data-act="download">${esc(t.download)}</button></div>
     <pre class="cfg" id="cfgOut">${hiCfg(txt)}</pre>
-    <div class="row"><button type="button" class="${canApply() ? '' : 'primary'}" data-act="copy">${esc(t.copy)}</button><button type="button" data-act="download">${esc(t.download)}</button></div></div>
-    <div class="sec"><div><h2>${esc(t.importT)}</h2><p class="lead">${esc(t.importLead)}</p></div>
+    <details id="cfgImport" class="cfgTools"${importOpen ? ' open' : ''}><summary>${esc(t.importT)}</summary>
+    <label for="cfgIn" class="cfgImportLabel">CFG ${helpTip(t.importT, t.importLead)}</label>
     <textarea id="cfgIn" rows="8" spellcheck="false" placeholder="[lightspeed]&#10;brightness: 0.6"></textarea>
-    <div class="row"><button type="button" data-act="import">${esc(t.importBtn)}</button></div><div id="importOut">${importMsg}</div></div>`;
+    <div class="row"><button type="button" data-act="import">${esc(t.importBtn)}</button></div><div id="importOut">${importMsg}</div></details></details></div>`;
+  $('#cfgIn', panel).value = draft;
+  renderLeNote();
 }
 function doImport(text) {
   const t = T(), r = parseCfg(text);
@@ -5859,7 +6031,7 @@ $('#v-config').addEventListener('click', async e => {
 });
 
 // ---- Live
-const Live = { status: null, msg: '', kind: '', busy: false, here: false, reach: false, objects: null };
+const Live = { status: null, msg: '', kind: '', busy: false, here: false, reach: false, objects: null, cfgFile: null };
 const canApply = () => !!(Live.status || Live.reach);
 // Klipper state from /printer/info while connected. Not ready (startup / shutdown / error): no G-code at all
 const Klip = { state: 'ready', msg: '', busy: false, hostname: '' };
@@ -6006,7 +6178,7 @@ function renderLive() {
       <table><thead><tr><th>${esc(t.name)}</th><th>${esc(t.output)}</th><th>${esc(t.effect)}</th><th>fps</th><th>${esc(t.errors)}</th></tr></thead><tbody>
       ${Object.keys(strips).map(n => { const s = strips[n] || {}; return `<tr><td><b>${esc(n)}</b></td><td class="mono">${esc(s.output ?? '')}</td><td class="mono">${esc(s.effect ?? '')}</td><td>${esc(s.fps ?? '')}</td><td class="${s.errors ? 'bad' : ''}">${esc(s.errors ? (Array.isArray(s.errors) ? s.errors.join('; ') : s.errors) : '')}${s.disabled ? ' (' + T().disabled + (s.last_error ? ': ' + esc(s.last_error) : '') + ')' : ''}</td></tr>`; }).join('')}</tbody></table>`;
   }
-  $('#v-live').innerHTML = `<div class="sec"><div><h2>${esc(t.lv_title)}</h2><p class="lead">${esc(t.lv_lead)}</p></div>
+  $('#v-live').innerHTML = `<div class="sec"><h2>${esc(t.lv_title)}${helpTip(t.lv_title,t.lv_lead)}</h2>
     <div class="note bad kbox" id="liveKlip" hidden></div>
     <div class="note ${Live.kind}" id="liveMsg"${Live.msg ? '' : ' hidden'}>${esc(Live.msg)}</div>
     ${st ? '' : `<div class="row"><button type="button" class="small" data-sub="printer">${esc(cm('toConn', 'Connection: Settings > Printer', 'Bağlantı: Ayarlar > Yazıcı'))}</button></div>`}${stat}</div>
@@ -6035,6 +6207,7 @@ async function uploadCfg(name, text) {
   fd.append('file', new Blob([text], { type: 'text/plain' }), name);
   fd.append('root', 'config');
   await Preview.req('/server/files/upload', { method: 'POST', body: fd });
+  if (name === 'lightspeed.cfg') Live.cfgFile = 'read';
 }
 
 // ---- last config text loaded from / saved to the printer (normalised export), to spot unsaved edits
@@ -6124,9 +6297,11 @@ $('#syncBar').addEventListener('click', e => {
 // On connect: the printer's lightspeed.cfg is the project, unless the page has edits not saved to it
 async function syncFromPrinter() {
   let text;
+  Live.cfgFile = null;
   try { text = await fetchText('/server/files/config/lightspeed.cfg'); } catch (e) { return; }
-  if (text === null) return;  // no file yet: keep the page project
+  if (text === null) { Live.cfgFile = 'missing'; return; }
   const r = parseCfg(text);
+  Live.cfgFile = r.errors.length ? 'invalid' : 'read';
   if (r.errors.length) { liveMsg(cm('cfgHasErrors', `The printer's lightspeed.cfg has errors; the page keeps its own project (see Config tab).`, 'Yazıcıdaki lightspeed.cfg hatalı; sayfa kendi projesini koruyor (Dosya sekmesine bakın).'), 'warn'); return; }
   const norm = cfgText(sanitizeProject(r.project)), local = cfgText();
   if (norm === local) { Sync.set(local); return; }
@@ -6248,10 +6423,9 @@ function saHtml() {
 function applyBox(where) {
   const t = T(), u = isUnsaved();
   if (where === 'live') return `<div data-sa>${saHtml()}</div>`;
-  return `<div class="applyBox hi" data-unsaved${u ? '' : ' hidden'}>${prForHtml()}
-    <div class="row"><button type="button" class="primary" data-act="apply"${SA.busy ? ' disabled' : ''}>${esc(t.apply)}</button><button type="button" data-act="revert" title="${esc(t.revertHint)}">${esc(t.revert)}</button><span class="unsaved">${esc(t.unsaved)}</span></div>
-    <p class="lead" style="margin:0">${esc(t.applyCfgLead + ' ' + t.applyLead)}</p></div>
-    <p class="note ok" data-saved${u ? ' hidden' : ''}>${esc(t.cfgUpToDate)}</p>
+  return `<div class="applyBox hi" data-unsaved${u || Live.cfgFile === 'missing' ? '' : ' hidden'}>${prForHtml()}
+    <div class="row"><button type="button" class="primary" data-act="apply"${SA.busy ? ' disabled' : ''}>${esc(t.apply)}</button>${Sync.text !== null ? `<button type="button" data-act="revert" title="${esc(t.revertHint)}">${esc(t.revert)}</button>` : ''}${helpTip(t.apply, t.applyCfgLead + ' ' + t.applyLead)}</div></div>
+    <p data-saved${u || Live.cfgFile !== 'read' || Sync.pending || SA.keepBackup || AS.failed ? ' hidden' : ''}>${esc(t.cfgUpToDate)}</p>
     <div data-sa>${saHtml()}</div>`;
 }
 function renderSA() {
