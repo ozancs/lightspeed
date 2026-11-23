@@ -6,7 +6,7 @@
 (function (root) {
   'use strict';
 
-  const VERSION = '0.2.0';
+  const VERSION = '0.2.1';
 
   const STATES = ['shutdown', 'error', 'homing', 'probing', 'paused', 'heating',
     'printing', 'complete', 'idle'];
