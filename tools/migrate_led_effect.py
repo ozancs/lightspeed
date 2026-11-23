@@ -23,7 +23,7 @@ After --apply the whole config is read again the way Klipper reads it; on
 any problem every file is put back from its backup.
 
 Exit codes: 0 done, 1 nothing to do (--detect: no led_effect found),
-2 error (nothing changed).
+2 error, 3 --apply needs a manual merge (only a separate draft was written).
 
 This file may be distributed under the terms of the GNU GPLv3 license.
 """
@@ -33,11 +33,13 @@ import colorsys
 import configparser
 import fnmatch
 import glob
+import io
 import os
 import re
 import shutil
 import sys
 import time
+import uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -888,7 +890,7 @@ class Migration(object):
             self.builtin[state] = lines
 
     # ------------------------------------------------------------ output
-    def config_text(self, stamp):
+    def config_text(self, stamp, global_section=None):
         out = ['# Lightspeed config made from led_effect by '
                'tools/migrate_led_effect.py (%s)' % stamp,
                '# Every led_effect is a scene below with "trigger: command": '
@@ -897,9 +899,8 @@ class Migration(object):
                'on the Lightspeed page.',
                '# Colours are rrggbb without #. Reference: docs/CONTRACT.md',
                '',
-               '[lightspeed]',
-               '# led_effect colours already hold their brightness',
-               'brightness: 1.0',
+               global_section if global_section is not None else
+               '[lightspeed]\n# led_effect colours already hold their brightness\nbrightness: 1.0',
                '']
         for s in self.strips:
             out.append('# from led_effect: %s'
@@ -1243,7 +1244,7 @@ class Editor(object):
                 if cf.path in self.changes or cf.path in self.inserts]
 
 
-def check_after(before_cp, printer_cfg, chains):
+def check_after(before_cp, printer_cfg, chains, expected):
     """Re-reads the whole config like Klipper. -> list of errors."""
     try:
         cp, files = klipper_load(printer_cfg)
@@ -1267,6 +1268,14 @@ def check_after(before_cp, printer_cfg, chains):
             diff = sorted(k for k in set(a) | set(b) if a.get(k) != b.get(k))
             errs.append('[%s] changed: %s' % (s, ', '.join(diff)))
     errs += validate_lightspeed(cp, chains)
+    for section in expected.sections():
+        if not cp.has_section(section):
+            errs.append('generated section [%s] is not loaded' % section)
+            continue
+        for key, value in expected.items(section):
+            if cp.get(section, key, fallback=None) != value:
+                errs.append('generated option [%s] %s is not active' %
+                            (section, key))
     return errs
 
 
@@ -1292,8 +1301,7 @@ def moonraker_comment(path, stamp):
     cf, it = moonraker_entry(path)
     if cf is None:
         return False
-    backup = '%s.lightspeed-backup-%s' % (path, stamp)
-    shutil.copy2(path, backup)
+    backup = back_up(path, stamp)
     lines = list(cf.lines)
     for i in range(it['start'], it['end']):
         s = lines[i].strip()
@@ -1310,37 +1318,93 @@ def moonraker_comment(path, stamp):
 ######################################################################
 
 def atomic_write(path, text):
-    tmp = path + '.lightspeed-tmp'
-    with open(tmp, 'w', encoding='utf-8', newline='') as f:
-        f.write(text)
-    if os.path.exists(path):
-        shutil.copymode(path, tmp)
-    os.replace(tmp, path)
-
-
-def is_placeholder(path):
-    """An existing lightspeed.cfg without strips (e.g. the example)."""
+    directory = os.path.dirname(os.path.abspath(path))
+    tmp = os.path.join(directory, '.lightspeed-' + uuid.uuid4().hex + '.tmp')
+    temp_file = open(tmp, 'x', encoding='utf-8', newline='')
     try:
-        cp = text_parser(read_file(path))
-    except (configparser.Error, OSError, UnicodeDecodeError):
-        return False
-    return not any(s.split()[0] == 'lightspeed' and len(s.split()) > 1
-                   for s in cp.sections())
+        with temp_file as f:
+            f.write(text)
+        if os.path.exists(path):
+            shutil.copymode(path, tmp)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
+
+def is_template(text):
+    example = os.path.join(os.path.dirname(HERE), 'config',
+                           'lightspeed.example.cfg')
+    return not text.strip() or text.splitlines() == read_file(example).splitlines()
+
+
+def global_settings(cp):
+    if not cp.has_section('lightspeed'):
+        return None
+    result = new_parser()
+    result.add_section('lightspeed')
+    for name, value in cp.items('lightspeed'):
+        result.set('lightspeed', name, value)
+    text = io.StringIO()
+    result.write(text)
+    return text.getvalue().rstrip()
+
+
+def included_path(mig, path):
+    if path in {cf.path for cf in mig.files}:
+        return True
+    for cf in mig.files:
+        for it in cf.items:
+            if it['kind'] == 'include':
+                pat = os.path.join(os.path.dirname(cf.path), it['name'])
+                if fnmatch.fnmatch(path, pat):
+                    return True
+    return False
 
 
 def choose_target(mig, force):
     cfg = os.path.join(mig.config_dir, 'lightspeed.cfg')
-    if not os.path.exists(cfg) or force or is_placeholder(cfg):
-        return cfg, True
+    if not os.path.lexists(cfg):
+        return cfg, True, None
+    if not os.path.islink(cfg) and cfg != os.path.abspath(mig.printer_cfg):
+        original = read_file(cfg)
+        if is_template(original):
+            return cfg, True, None
+        try:
+            cp = text_parser(original)
+        except configparser.Error:
+            cp = None
+        if cp is not None and cp.sections() == ['lightspeed']:
+            return cfg, True, original.rstrip('\r\n')
+        if force and cp is not None and cp.sections() and all(
+                s.split()[0] == 'lightspeed' for s in cp.sections()):
+            return cfg, True, global_settings(cp)
     alt = os.path.join(mig.config_dir, 'lightspeed.migrated.cfg')
-    # a glob include (e.g. [include *.cfg]) would load it next to the real one
-    for f in mig.files:
-        for it in f.items:
-            if it['kind'] == 'include' and glob.has_magic(it['name']):
-                pat = os.path.join(os.path.dirname(f.path), it['name'])
-                if fnmatch.fnmatch(alt, pat):
-                    return alt + '.txt', False
-    return alt, False
+    for draft in (alt, alt + '.txt'):
+        if not os.path.islink(draft) and not included_path(mig, draft):
+            return draft, False, None
+    raise MigrateError('both possible draft files are active includes or links; '
+                       'use --dry-run on a separate copy of the configuration')
+
+
+def back_up(path, stamp):
+    base = '%s.lightspeed-backup-%s' % (path, stamp)
+    backup = base
+    suffix = 0
+    while True:
+        try:
+            with open(backup, 'xb'):
+                pass
+            break
+        except FileExistsError:
+            suffix += 1
+            backup = '%s-%d' % (base, suffix)
+    try:
+        shutil.copy2(path, backup)
+    except Exception:
+        os.remove(backup)
+        raise
+    return backup
 
 
 def lightspeed_supports_scenes():
@@ -1371,18 +1435,21 @@ def run(args):
         print('No [led_effect] sections found in %s or its includes. Nothing '
               'to do.' % mig.printer_cfg)
         return 1
-    target, is_main = choose_target(mig, args.force)
+    target, is_main, global_section = choose_target(mig, args.force)
     if args.apply and not is_main:
         args.apply = False
-        held = ('lightspeed.cfg already has your own strips, so the config '
-                'was NOT switched over (your macros would call scenes that '
-                'are not loaded). Merge %s into lightspeed.cfg and run '
-                '--apply again, or run --apply --force to replace '
-                'lightspeed.cfg (it is backed up).' % os.path.basename(target))
+        held = ('The active config was NOT switched over. Review %s and '
+                'merge its Lightspeed sections into your configuration before '
+                'retiring the old effects. --apply --force can replace a '
+                'dedicated Lightspeed config after backup; it cannot replace '
+                'a shared input file or a link.' % os.path.basename(target))
     else:
         held = None
-    text = mig.config_text(time.strftime('%Y-%m-%d %H:%M'))
-    errs = validate_lightspeed(text_parser(text), mig.chains)
+    if global_section is None:
+        global_section = global_settings(mig.cp)
+    text = mig.config_text(time.strftime('%Y-%m-%d %H:%M'), global_section)
+    expected = text_parser(text)
+    errs = validate_lightspeed(expected, mig.chains)
     if errs:
         raise MigrateError('the generated config is not valid (a bug, please '
                            'report it): %s' % '; '.join(errs))
@@ -1402,9 +1469,7 @@ def run(args):
                 print('    - %s' % before)
             print('    + %s' % after)
         if not is_main:
-            print('  None of these: lightspeed.cfg already has your own '
-                  'strips, so --apply only writes %s for you to merge '
-                  '(--apply --force replaces lightspeed.cfg, backed up).'
+            print('  None of these: --apply only writes %s for manual merge.'
                   % os.path.basename(target))
         if not lightspeed_supports_scenes():
             print('\nNOTE: ' + NOT_SUPPORTED)
@@ -1421,32 +1486,38 @@ def run(args):
                     raise MigrateError('%s is a link or read-only; edit it by '
                                        'hand' % cf.path)
         if os.path.exists(target):
-            b = '%s.lightspeed-backup-%s' % (target, stamp)
-            shutil.copy2(target, b)
+            b = back_up(target, stamp)
             backups.append((target, b))
         else:
             backups.append((target, None))
         atomic_write(target, text + '\n')
         if ed:
             for cf in ed.changed_files():
-                b = '%s.lightspeed-backup-%s' % (cf.path, stamp)
-                shutil.copy2(cf.path, b)
+                b = back_up(cf.path, stamp)
                 backups.append((cf.path, b))
                 atomic_write(cf.path, ed.new_text(cf))
-            errs = check_after(mig.cp, mig.printer_cfg, mig.chains)
+            errs = check_after(mig.cp, mig.printer_cfg, mig.chains, expected)
             if errs:
                 raise MigrateError('check after editing failed: ' +
                                    '; '.join(errs))
     except Exception as e:
+        failures = []
         for path, b in reversed(backups):
-            if b is None:
-                if os.path.exists(path):
-                    os.remove(path)
-            else:
-                shutil.copy2(b, path)
-                os.remove(b)
+            try:
+                if b is None:
+                    if os.path.exists(path):
+                        os.remove(path)
+                else:
+                    shutil.copy2(b, path)
+                    os.remove(b)
+            except OSError as err:
+                failures.append('%s (backup: %s): %s' % (path, b, err))
         print('\nERROR: %s' % e)
-        print('Every file was put back as it was. Nothing changed.')
+        if failures:
+            print('Rollback incomplete; check these files manually:\n' +
+                  '\n'.join(failures))
+        else:
+            print('Every file was put back as it was. Nothing changed.')
         return 2
 
     print('\nWrote %s' % target)
@@ -1471,7 +1542,7 @@ def run(args):
         print('\nFIX BY HAND:')
         for m in mig.manual:
             print('  ' + m)
-    return 0
+    return 3 if held else 0
 
 
 def main(argv=None):

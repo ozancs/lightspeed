@@ -736,8 +736,8 @@ const I18N = {
     l_title: 'Load', l_lead: 'What each output costs the printer board. Network outputs cost nothing there.',
     bytesFrame: 'Bytes / frame', fps: 'Frame rate', mcuMs: 'MCU busy', ledsN: 'LEDs', msps: 'ms/s',
     fpsLbl: 'Frame rate', mcuLbl: 'MCU time',
-    freeze: 'Freezes during homing and probing (more than 16 LEDs on this chain), so motion timing stays exact.',
-    freezeSmall: '16 LEDs or fewer: one frame is sent when homing or probing starts, then it holds.',
+    freeze: "Over 48 bytes per frame. The chain holds its last frame during homing and probing.",
+    freezeSmall: "Up to 48 bytes per frame. The chain shows one frame on entry to homing or probing, then holds.",
     wledNote: 'Runs on the network: no load on the printer MCUs, keeps animating during homing and probing.',
     espNote: 'The ESP node animates itself: only a few packets per state change.',
     bigChain: n => `${n} LEDs on one MCU chain is a lot: consider WLED or an ESP32 node for this strip.`,
@@ -836,8 +836,8 @@ const I18N = {
     l_title: 'Yük', l_lead: 'Her çıkışın yazıcı kartına maliyeti. Ağ çıkışlarının orada yükü yoktur.',
     bytesFrame: 'Bayt / kare', fps: 'Kare hızı', mcuMs: 'MCU meşguliyeti', ledsN: 'LED', msps: 'ms/sn',
     fpsLbl: 'Kare hızı', mcuLbl: 'MCU süresi',
-    freeze: 'Sıfırlama ve prob ölçümü sırasında donar (bu zincirde 16\'dan fazla LED var), böylece hareket zamanlaması kusursuz kalır.',
-    freezeSmall: '16 veya daha az LED: sıfırlama ya da prob ölçümü başlarken tek kare gönderilir, sonra öyle kalır.',
+    freeze: "Kare başına 48 baytı aşıyor. Zincir, eksen sıfırlama ve prob sırasında son kareyi korur.",
+    freezeSmall: "Kare başına en fazla 48 bayt. Zincir, eksen sıfırlama veya prob başlarken bir kare gösterip onu korur.",
     wledNote: 'Ağ üzerinden çalışır: yazıcı MCU\'larına yük bindirmez, sıfırlama ve prob ölçümü sırasında da animasyon sürer.',
     espNote: 'ESP kartı animasyonu kendisi oynatır: durum değişikliği başına yalnızca birkaç paket gider.',
     bigChain: n => `Tek bir MCU zincirinde ${n} LED fazla: bu şerit için WLED ya da bir ESP32 kartı düşünün.`,
@@ -925,8 +925,8 @@ const I18N = {
     l_title: 'Last', l_lead: 'Was jeder Ausgang kostet. MCU-Ausgänge teilen sich die Zeit mit der Bewegung auf der Druckerplatine; Netzwerkausgänge kosten dort nichts.',
     bytesFrame: 'Bytes / Frame', fps: 'Bildrate', mcuMs: 'MCU belegt', ledsN: 'LEDs', msps: 'ms/s',
     fpsLbl: 'Bildrate', mcuLbl: 'MCU-Zeit',
-    freeze: 'Friert beim Homen und Tasten ein (mehr als 16 LEDs in dieser Kette), damit das Bewegungstiming exakt bleibt.',
-    freezeSmall: '16 LEDs oder weniger: Beim Start von Homen oder Tasten wird ein Frame gesendet, dann bleibt er stehen.',
+    freeze: "Über 48 Byte pro Frame. Beim Homen und Tasten hält die Kette den letzten Frame.",
+    freezeSmall: "Bis zu 48 Byte pro Frame. Beim Start des Homens oder Tastens zeigt die Kette einen Frame und hält ihn.",
     wledNote: 'Läuft über das Netzwerk: keine Last auf den Drucker-MCUs, animiert auch beim Homen und Tasten weiter.',
     espNote: 'Der ESP-Knoten animiert selbst: nur wenige Pakete pro Zustandswechsel.',
     bigChain: n => `${n} LEDs an einer MCU-Kette sind viel: Erwäge WLED oder einen ESP32-Knoten für diesen Streifen.`,
@@ -1071,8 +1071,8 @@ const I18N = {
     l_title: 'Carga', l_lead: 'Cuánto cuesta cada salida. Las salidas MCU comparten tiempo con el movimiento en la placa de la impresora; las salidas de red no cuestan nada allí.',
     bytesFrame: 'Bytes / fotograma', fps: 'Frecuencia', mcuMs: 'MCU ocupada', ledsN: 'LED', msps: 'ms/s',
     fpsLbl: 'Frecuencia', mcuLbl: 'Tiempo MCU',
-    freeze: 'Se congela durante el home y el sondeo (más de 16 LED en esta cadena), para que la sincronización del movimiento sea exacta.',
-    freezeSmall: '16 LED o menos: se envía un fotograma al empezar el home o el sondeo y luego se mantiene.',
+    freeze: "Más de 48 bytes por fotograma. La cadena mantiene el último fotograma durante el homing y el sondeo.",
+    freezeSmall: "Hasta 48 bytes por fotograma. Al iniciar el homing o el sondeo, la cadena muestra un fotograma y lo mantiene.",
     wledNote: 'Funciona por la red: sin carga en las MCU de la impresora; sigue animando durante el home y el sondeo.',
     espNote: 'El nodo ESP se anima solo: solo unos pocos paquetes por cambio de estado.',
     bigChain: n => `${n} LED en una cadena MCU son muchos: considera WLED o un nodo ESP32 para esta tira.`,
@@ -1217,8 +1217,8 @@ const I18N = {
     l_title: "Charge", l_lead: "Ce que coûte chaque sortie. Les sorties MCU partagent le temps avec le mouvement sur la carte de l’imprimante ; les sorties réseau n’y coûtent rien.",
     bytesFrame: "Octets / image", fps: "Fréquence d’images", mcuMs: "MCU occupé", ledsN: "LED", msps: "ms/s",
     fpsLbl: "Fréquence d’images", mcuLbl: "Temps MCU",
-    freeze: "Figé pendant l’origine et le palpage (plus de 16 LED sur cette chaîne), pour que le timing du mouvement reste exact.",
-    freezeSmall: "16 LED ou moins : une image est envoyée au début de l’origine ou du palpage, puis elle reste.",
+    freeze: "Plus de 48 octets par trame. La chaîne conserve sa dernière trame pendant la prise d’origine et le palpage.",
+    freezeSmall: "Jusqu’à 48 octets par trame. La chaîne affiche une trame au début de la prise d’origine ou du palpage, puis la conserve.",
     wledNote: "Fonctionne sur le réseau : aucune charge sur les MCU de l’imprimante, l’animation continue pendant l’origine et le palpage.",
     espNote: "Le nœud ESP s’anime lui-même : seulement quelques paquets par changement d’état.",
     bigChain: n => `${n} LED sur une seule chaîne MCU, c’est beaucoup : pense à WLED ou à un nœud ESP32 pour cette bande.`,
@@ -1363,8 +1363,8 @@ const I18N = {
     l_title: "Carico", l_lead: "Quanto costa ogni uscita. Le uscite MCU dividono il tempo con il movimento sulla scheda della stampante; le uscite di rete lì non costano nulla.",
     bytesFrame: "Byte / frame", fps: "Frame rate", mcuMs: "MCU occupato", ledsN: "LED", msps: "ms/s",
     fpsLbl: "Frame rate", mcuLbl: "Tempo MCU",
-    freeze: "Si blocca durante homing e tastatura (più di 16 LED su questa catena), così i tempi del movimento restano esatti.",
-    freezeSmall: "16 LED o meno: viene inviato un frame quando inizia l’homing o la tastatura, poi resta fermo.",
+    freeze: "Oltre 48 byte per fotogramma. La catena mantiene l’ultimo fotogramma durante homing e tastatura.",
+    freezeSmall: "Fino a 48 byte per fotogramma. La catena invia un fotogramma all’inizio dell’homing o della tastatura, poi lo mantiene.",
     wledNote: "Funziona in rete: nessun carico sulle MCU della stampante, continua ad animarsi durante homing e tastatura.",
     espNote: "Il nodo ESP si anima da solo: solo pochi pacchetti per cambio di stato.",
     bigChain: n => `${n} LED su una sola catena MCU sono tanti: valuta WLED o un nodo ESP32 per questa striscia.`,
@@ -1509,8 +1509,8 @@ const I18N = {
     l_title: '負荷', l_lead: '各出力のコスト。MCU 出力はプリンターボード上でモーション制御と時間を共有します。ネットワーク出力はそこに負荷をかけません。',
     bytesFrame: 'バイト / フレーム', fps: 'フレームレート', mcuMs: 'MCU 使用', ledsN: 'LED', msps: 'ms/s',
     fpsLbl: 'フレームレート', mcuLbl: 'MCU 時間',
-    freeze: '原点復帰中とプローブ中は固定されます (このチェーンの LED が16個超)。モーションのタイミングが正確に保たれます。',
-    freezeSmall: 'LED 16個以下: 原点復帰またはプローブの開始時に1フレーム送信し、その後保持します。',
+    freeze: "1フレームが48バイトを超えるため、原点復帰とプローブ動作中は直前の表示を維持します。",
+    freezeSmall: "1フレームが48バイト以下のため、原点復帰またはプローブ動作の開始時に1フレームを送信して維持します。",
     wledNote: 'ネットワーク上で動作: プリンターの MCU に負荷はなく、原点復帰中とプローブ中もアニメーションが続きます。',
     espNote: 'ESP ノードが自分でアニメーションします: 状態変化ごとに数パケットだけです。',
     bigChain: n => `1つの MCU チェーンに ${n} 個の LED は多すぎます。このストリップには WLED か ESP32 ノードを検討してください。`,
@@ -1655,8 +1655,8 @@ const I18N = {
     l_title: '부하', l_lead: '각 출력의 비용입니다. MCU 출력은 프린터 보드에서 모션과 시간을 나눠 쓰고, 네트워크 출력은 그곳에 부담이 없습니다.',
     bytesFrame: '바이트 / 프레임', fps: '프레임 속도', mcuMs: 'MCU 사용', ledsN: 'LED', msps: 'ms/s',
     fpsLbl: '프레임 속도', mcuLbl: 'MCU 시간',
-    freeze: '홈 이동과 프로빙 중에는 고정되어 (이 체인의 LED 16개 초과) 모션 타이밍이 정확하게 유지됩니다.',
-    freezeSmall: 'LED 16개 이하: 홈 이동이나 프로빙이 시작될 때 한 프레임을 보낸 뒤 유지합니다.',
+    freeze: "프레임당 48바이트를 초과하여 홈 이동 및 프로빙 중에는 마지막 프레임을 유지합니다.",
+    freezeSmall: "프레임당 48바이트 이하입니다. 홈 이동 또는 프로빙 시작 시 한 프레임을 전송한 뒤 유지합니다.",
     wledNote: '네트워크에서 동작: 프린터 MCU에 부하가 없고, 홈 이동과 프로빙 중에도 애니메이션이 계속됩니다.',
     espNote: 'ESP 노드가 스스로 애니메이션합니다: 상태 변경마다 패킷 몇 개만 보냅니다.',
     bigChain: n => `MCU 체인 하나에 LED ${n}개는 많습니다. 이 스트립에는 WLED나 ESP32 노드를 고려하세요.`,
@@ -1801,8 +1801,8 @@ const I18N = {
     l_title: 'Belasting', l_lead: 'Wat elke uitgang kost. MCU-uitgangen delen tijd met de beweging op het printerbord; netwerkuitgangen kosten daar niets.',
     bytesFrame: 'Bytes / frame', fps: 'Framerate', mcuMs: 'MCU bezet', ledsN: 'LEDs', msps: 'ms/s',
     fpsLbl: 'Framerate', mcuLbl: 'MCU-tijd',
-    freeze: 'Bevriest tijdens homen en proben (meer dan 16 LEDs op deze keten), zodat de bewegingstiming exact blijft.',
-    freezeSmall: '16 LEDs of minder: er wordt één frame gestuurd als homen of proben begint, daarna blijft het staan.',
+    freeze: "Meer dan 48 bytes per frame. Tijdens homen en proben houdt de keten het laatste frame vast.",
+    freezeSmall: "Tot 48 bytes per frame. Bij het starten van homen of proben toont de keten één frame en houdt dit vast.",
     wledNote: 'Draait via het netwerk: geen belasting op de printer-MCUs, blijft animeren tijdens homen en proben.',
     espNote: 'De ESP-node animeert zelf: maar een paar pakketten per statuswissel.',
     bigChain: n => `${n} LEDs op één MCU-keten is veel: overweeg WLED of een ESP32-node voor deze strip.`,
@@ -1947,8 +1947,8 @@ const I18N = {
     l_title: 'Obciążenie', l_lead: 'Ile kosztuje każde wyjście. Wyjścia MCU dzielą czas z ruchem na płycie drukarki; wyjścia sieciowe nic tam nie kosztują.',
     bytesFrame: 'Bajty / klatka', fps: 'Liczba klatek', mcuMs: 'Zajętość MCU', ledsN: 'LED', msps: 'ms/s',
     fpsLbl: 'Liczba klatek', mcuLbl: 'Czas MCU',
-    freeze: 'Zamraża się podczas bazowania i sondowania (więcej niż 16 LED w tym łańcuchu), aby czasy ruchu pozostały dokładne.',
-    freezeSmall: '16 LED lub mniej: na początku bazowania lub sondowania wysyłana jest jedna klatka, potem jest utrzymywana.',
+    freeze: "Ponad 48 bajtów na klatkę. Podczas bazowania i sondowania łańcuch zachowuje ostatnią klatkę.",
+    freezeSmall: "Do 48 bajtów na klatkę. Na początku bazowania lub sondowania łańcuch wyświetla jedną klatkę i ją zachowuje.",
     wledNote: 'Działa przez sieć: bez obciążenia MCU drukarki, animuje dalej podczas bazowania i sondowania.',
     espNote: 'Węzeł ESP animuje sam: tylko kilka pakietów na zmianę stanu.',
     bigChain: n => `${n} LED na jednym łańcuchu MCU to dużo: rozważ WLED lub węzeł ESP32 dla tego paska.`,
@@ -2093,8 +2093,8 @@ const I18N = {
     l_title: 'Carga', l_lead: 'Quanto custa cada saída. Saídas MCU dividem tempo com o movimento na placa da impressora; saídas de rede não custam nada lá.',
     bytesFrame: 'Bytes / quadro', fps: 'Taxa de quadros', mcuMs: 'MCU ocupado', ledsN: 'LEDs', msps: 'ms/s',
     fpsLbl: 'Taxa de quadros', mcuLbl: 'Tempo do MCU',
-    freeze: 'Congela durante home e sondagem (mais de 16 LEDs nesta cadeia), para o tempo do movimento continuar exato.',
-    freezeSmall: '16 LEDs ou menos: um quadro é enviado quando o home ou a sondagem começa, depois fica parado.',
+    freeze: "Mais de 48 bytes por quadro. Durante o homing e a sondagem, a cadeia mantém o último quadro.",
+    freezeSmall: "Até 48 bytes por quadro. No início do homing ou da sondagem, a cadeia exibe um quadro e o mantém.",
     wledNote: 'Roda pela rede: sem carga nos MCUs da impressora, continua animando durante home e sondagem.',
     espNote: 'O nó ESP anima sozinho: só alguns pacotes por mudança de estado.',
     bigChain: n => `${n} LEDs em uma cadeia MCU é muito: considere WLED ou um nó ESP32 para esta fita.`,
@@ -2239,8 +2239,8 @@ const I18N = {
     l_title: 'Нагрузка', l_lead: 'Сколько стоит каждый выход. Выходы MCU делят время с движением на плате принтера; сетевые выходы там ничего не стоят.',
     bytesFrame: 'Байт / кадр', fps: 'Частота кадров', mcuMs: 'Занятость MCU', ledsN: 'LED', msps: 'мс/с',
     fpsLbl: 'Частота кадров', mcuLbl: 'Время MCU',
-    freeze: 'Замирает при парковке и зондировании (больше 16 LED в этой цепи), чтобы тайминг движения оставался точным.',
-    freezeSmall: '16 LED или меньше: при начале парковки или зондирования отправляется один кадр, затем он держится.',
+    freeze: "Более 48 байт на кадр. При парковке и зондировании цепочка сохраняет последний кадр.",
+    freezeSmall: "До 48 байт на кадр. При начале парковки или зондирования цепочка выводит один кадр и сохраняет его.",
     wledNote: 'Работает по сети: нет нагрузки на MCU принтера, анимация продолжается при парковке и зондировании.',
     espNote: 'Узел ESP сам ведёт анимацию: лишь несколько пакетов на смену состояния.',
     bigChain: n => `${n} LED на одной цепи MCU — это много: подумайте о WLED или узле ESP32 для этой ленты.`,
@@ -2385,8 +2385,8 @@ const I18N = {
     l_title: 'Навантаження', l_lead: 'Скільки коштує кожен вихід. Виходи MCU ділять час із рухом на платі принтера; мережеві виходи там нічого не коштують.',
     bytesFrame: 'Байт / кадр', fps: 'Частота кадрів', mcuMs: 'Зайнятість MCU', ledsN: 'LED', msps: 'мс/с',
     fpsLbl: 'Частота кадрів', mcuLbl: 'Час MCU',
-    freeze: 'Завмирає під час паркування та зондування (понад 16 LED у цьому ланцюгу), щоб таймінг руху залишався точним.',
-    freezeSmall: '16 LED або менше: на початку паркування чи зондування надсилається один кадр, потім він тримається.',
+    freeze: "Понад 48 байтів на кадр. Під час паркування та зондування ланцюг зберігає останній кадр.",
+    freezeSmall: "До 48 байтів на кадр. На початку паркування чи зондування ланцюг показує один кадр і зберігає його.",
     wledNote: 'Працює через мережу: без навантаження на MCU принтера, анімація триває під час паркування та зондування.',
     espNote: 'Вузол ESP сам веде анімацію: лише кілька пакетів на зміну стану.',
     bigChain: n => `${n} LED на одному ланцюгу MCU — це багато: подумайте про WLED або вузол ESP32 для цієї стрічки.`,
@@ -2531,8 +2531,8 @@ const I18N = {
     l_title: '负载', l_lead: '每个输出的开销。MCU 输出与打印机主板上的运动控制共享时间；网络输出不会占用那里的资源。',
     bytesFrame: '字节 / 帧', fps: '帧率', mcuMs: 'MCU 占用', ledsN: 'LED', msps: 'ms/s',
     fpsLbl: '帧率', mcuLbl: 'MCU 时间',
-    freeze: '回零和探测时冻结 (此灯链超过 16 个 LED)，以保证运动时序精确。',
-    freezeSmall: '16 个 LED 或更少：回零或探测开始时发送一帧，然后保持。',
+    freeze: "每帧超过 48 字节。回零和探测期间，灯链保持上一帧。",
+    freezeSmall: "每帧不超过 48 字节。开始回零或探测时，灯链显示一帧并保持。",
     wledNote: '在网络上运行：不占用打印机 MCU，回零和探测时动画继续。',
     espNote: 'ESP 节点自行生成动画：每次状态变化只需几个数据包。',
     bigChain: n => `一条 MCU 灯链上有 ${n} 个 LED 太多了：可考虑为此灯带使用 WLED 或 ESP32 节点。`,
@@ -2729,6 +2729,7 @@ function sanitizeProject(p) {
       name: String(s.name || ''), place: placeList(s.place), spacing: clamp(Math.round((+s.spacing || 0) * 2) / 2, 0, 200),
       count: clamp(Math.round(+s.count || 1), 1, 500), type: OUTPUTS.includes(s.type) ? s.type : 'neopixel',
       chain: String(s.chain ?? ''), first: Math.max(1, Math.round(+s.first || 1)), ip: String(s.ip ?? ''),
+      wholeChain: !!s.wholeChain && isMcuType(s.type),
       start: Math.max(0, Math.round(+s.start || 0)), prefix: String(s.prefix ?? ''),
       brightness: isFinite(+s.brightness) && s.brightness !== '' && s.brightness != null ? clamp(+s.brightness, 0, 1) : 1,
       color: /^[0-9a-f]{6}$/.test(s.color) ? s.color : 'ffffff',
@@ -2766,6 +2767,7 @@ function sanitizeProject(p) {
   if (p.prio && typeof p.prio === 'object') for (const st of UI_STATES) if (isFinite(parseInt(p.prio[st]))) out.prio[st] = parseInt(p.prio[st]);
   out.hw = {};
   if (p.hw && typeof p.hw === 'object') for (const k in p.hw) if (/^(neopixel|dotstar|pin) \S+$/.test(k) && p.hw[k]) out.hw[k] = sanitizeHw(p.hw[k], k);
+  for (const s of out.strips) if (s.wholeChain && out.hw[hwKey(s)]) s.count = out.hw[hwKey(s)].count;
   out.extra = Array.isArray(p.extra) ? p.extra.map(String).filter(x => x.trim()) : [];
   gcHw(out);
   return out;
@@ -2814,7 +2816,7 @@ function outputStr(s) {
   if (s.type === 'esp_bridge') return `esp_bridge ${s.prefix}`;
   return `${s.type} ${s.chain}`;  // neopixel / dotstar / pin
 }
-function ledsRange(s) { return s.count === 1 ? String(s.first) : `${s.first}-${s.first + s.count - 1}`; }
+function ledsRange(s) { return s.wholeChain ? '' : s.count === 1 ? String(s.first) : `${s.first}-${s.first + s.count - 1}`; }
 function sceneKeys(sc, strips = P.strips) {
   const names = strips.map(s => s.name);
   const keys = names.filter(n => n in sc);
@@ -2838,7 +2840,7 @@ function cfgText(p = P) {
     const key = hwKey(s), h = key && p.hw && p.hw[key];
     if (h && !hwDone.has(key)) { hwDone.add(key); L.push('', ...hwLines(key, h)); }
     L.push('', `[lightspeed strip ${s.name}]`, `output: ${outputStr(s)}`);
-    if (s.type === 'neopixel' || s.type === 'dotstar') L.push(`leds: ${ledsRange(s)}`);
+    if (isMcuType(s.type)) { if (!s.wholeChain) L.push(`leds: ${ledsRange(s)}`); }
     else L.push(`count: ${s.count}`);
     if (s.type === 'wled' && s.start) L.push(`start: ${s.start}`);
     if (s.brightness != null && s.brightness < 1) L.push(`brightness: ${fmtNum(s.brightness)}`);
@@ -3018,7 +3020,7 @@ function parseCfg(text) {
         if (n > 500) err(s._ledsLn, cm('cfgOver500', 'more than 500 LEDs', "500'den fazla LED"));
         s.first = s._leds[0]; s.count = n;
       } else if (s.count) { s.first = 1; warn(s._ln, cm('cfgNoLedsUsing', `strip '${s.name}': no leds range, using 1-${s.count}`, `'${s.name}' şeridi: leds aralığı yok, 1-${s.count} kullanıldı`, s.name, s.count)); }
-      else { s.first = 1; s.count = 10; warn(s._ln, cm('cfgNoLeds10', `strip '${s.name}': no leds range, 10 LEDs drawn`, `'${s.name}' şeridi: leds aralığı yok, 10 LED çizildi`, s.name)); }
+      else { s.wholeChain = true; s.first = 1; s.count = 1; } // the external chain length can be resolved when connected
       if (s._startLn) warn(s._startLn, cm('cfgStartWled', 'start is only used by wled outputs', 'start yalnızca wled çıkışlarında kullanılır'));
     } else {
       if (s._leds) warn(s._ledsLn, cm('cfgLedsMcu', 'leds is only used by neopixel / dotstar outputs', 'leds yalnızca neopixel / dotstar çıkışlarında kullanılır'));
@@ -3050,6 +3052,7 @@ function parseCfg(text) {
     h.opts = src;
     p.hw[o.key] = h;
   }
+  for (const s of p.strips) if (s.wholeChain && p.hw[hwKey(s)]) s.count = p.hw[hwKey(s)].count;
   for (const [ln, k] of sceneRefs) if (!p.strips.some(s => s.name === k) && !p.groups.some(g => g.name === k)) err(ln, cm('cfgSceneStrip', `scene names strip '${k}' which is not defined`, `sahne tanımlı olmayan '${k}' şeridini kullanıyor`, k));
   for (const [ln, g] of groupRefs) {
     if (!g.strips.length) err(ln, cm('cfgGroupEmpty', `group '${g.name}' needs strips: a, b, ...`, `'${g.name}' grubu için strips: a, b, ... gerekli`, g.name));
@@ -4009,11 +4012,23 @@ const chainInfo = () => {
     if (s.type !== 'neopixel' && s.type !== 'dotstar') continue;
     const key = s.type + ' ' + s.chain;
     ch[key] = ch[key] || { leds: 0, strips: [] };
-    ch[key].leds += s.count; ch[key].strips.push(s.name);
+    // A strip can start part way down a chain, or leave gaps between ranges.
+    ch[key].leds = Math.max(ch[key].leds, (s.first || 1) - 1 + s.count);
+    ch[key].strips.push(s.name);
   }
   for (const key in ch) {
     const h = P.hw[key], c = ch[key];
-    c.bytes = c.leds * (h && /W/.test(h.order || '') ? 4 : 3);
+    const live = Object.values(Live.status?.strips || {}).find(s => s.output === key && s.chain_count && s.frame_bytes);
+    if (!h && live && c.leds <= live.chain_count) {
+      c.leds = live.chain_count;
+      c.bytes = live.frame_bytes;
+    } else {
+      c.leds = Math.max(c.leds, h?.count || 0);
+      const orders = (key.startsWith('neopixel ') && h?.order || 'GRB').split(',').map(o => o.trim());
+      c.bytes = orders.length === 1 ? c.leds * orders[0].length
+        : orders.slice(0, c.leds).reduce((sum, o) => sum + o.length, 0) + Math.max(0, c.leds - orders.length) * 3;
+    }
+    c.freeze = c.bytes > 48;
     c.fps = LS.mcuFps(c.bytes);
     c.ms = c.bytes * LS.US_PER_BYTE * c.fps / 1000;
     c.fc = c.fps >= 20 ? '' : c.fps >= 10 ? 'warn' : 'bad';
@@ -4170,7 +4185,7 @@ function stripFrame(s, t, chains, plan, gcache) {
   if (mcu) {
     const ch = chains[s.type + ' ' + s.chain];
     if (SIM.state === 'homing' || SIM.state === 'probing') {
-      if (!SIM.frozen[s.name]) SIM.frozen[s.name] = (ch && ch.leds > 16 && SIM.last[s.name] && SIM.last[s.name].length === s.count) ? SIM.last[s.name] : draw(ctxNow(t));
+      if (!SIM.frozen[s.name]) SIM.frozen[s.name] = (ch?.freeze && SIM.last[s.name] && SIM.last[s.name].length === s.count) ? SIM.last[s.name] : draw(ctxNow(t));
       return SIM.frozen[s.name];
     }
   }
@@ -4346,7 +4361,8 @@ async function sendStatePreview(s, dur) {
     Preview.statePrev.add(key);
     acts.push({ action: 'preview', strip: key, effect: (h && h[2]) || 'off', hold });
   }
-  await Preview.cmd(acts);
+  Preview.stateSent = true;
+  await Preview.queue(acts);
 }
 // a custom scene chip: on in the simulator for the preview time and, connected, on the printer (scene_on with hold)
 async function previewCustom(name) {
@@ -4358,11 +4374,12 @@ async function previewCustom(name) {
   SIM.timer = { state: SIM.state, scene: name, dur, until: SIM.t + dur, speed: 1 };
   SIM.custom = { [name]: SIM.t };
   renderChips(); renderSimBar(); if (curTab === 'scenes') renderScenes();
-  if (Live.status && Preview.on) Preview.cmd({ action: 'scene_on', name, hold: dur > 0 ? dur : 3600 });
+  if (Live.status && Preview.on) { Preview.scenesSent.add(name); Preview.queue({ action: 'scene_on', name, hold: dur > 0 ? dur : 3600 }); }
 }
 function endCustomPreview() {
   const tm = SIM.timer;
-  if (tm && tm.scene && Live.status && Preview.on) Preview.cmd({ action: 'scene_off', name: tm.scene }, true);
+  if (tm && tm.scene && Live.status && Preview.scenesSent.delete(tm.scene))
+    Preview.queue({ action: 'scene_off', name: tm.scene }, true).then(ok => { if (!ok) Preview.scenesSent.add(tm.scene); });
   SIM.custom = {};
 }
 const timed = st => SIM.timer && !SIM.timer.scene && SIM.timer.dur > 0 && SIM.timer.state === st && SIM.state === st;
@@ -4378,24 +4395,20 @@ function renderSimBar() {
 }
 // back to normal: the printer's real state when connected, else idle
 async function stopSim() {
-  const had = !!SIM.timer, scene = had && SIM.timer.scene;
+  const stopped = SIM.timer;
+  if (!await Preview.release()) {
+    if (SIM.timer === stopped && stopped) { stopped.dur = 0; renderSimBar(); }
+    return false;
+  }
+  if (SIM.timer !== stopped) return true;  // another preview started after release was queued
   SIM.timer = null; SIM.custom = {}; renderSimBar(); renderChips();
   let back = 'idle';
   if (Live.status) try {
-    if (Preview.on) {  // one batch: manual lights back to their setting, the rest cleared, then automatic
-      const acts = [...new Set([...Preview.statePrev, ...Preview.edited])].map(k => Preview.overrides[k] ? { action: 'preview', strip: k, effect: Preview.overrides[k], hold: MANUAL_HOLD } : { action: 'preview', strip: k, hold: 0 });
-      if (scene) acts.push({ action: 'scene_off', name: scene });
-      else if (had) acts.push({ action: 'state', state: 'auto' });
-      await Preview.cmd(acts);
-    }
-    try {
-      const j = await Preview.req('/printer/objects/query?lightspeed');
-      const st = j.result.status.lightspeed; Live.status = st; back = st.auto_state || st.state || 'idle';
-    } catch (e) { back = (Live.status && Live.status.auto_state) || 'idle'; }
-  } catch (e) { /* the page still goes back to normal */ }
-  Preview.edited.clear(); Preview.statePrev.clear();
-  if (SIM.timer) return;  // another chip was clicked meanwhile
-  setSimState(UI_STATES.includes(back) ? back : 'idle', false);
+    const j = await Preview.req('/printer/objects/query?lightspeed');
+    const st = j.result.status.lightspeed; Live.status = st; back = st.auto_state || st.state || 'idle';
+  } catch (e) { back = (Live.status && Live.status.auto_state) || 'idle'; }
+  if (!SIM.timer) setSimState(UI_STATES.includes(back) ? back : 'idle', false);
+  return true;
 }
 // ---- picking + camera
 const ray = new THREE.Raycaster(), _v2 = new THREE.Vector2();
@@ -4838,17 +4851,24 @@ function renderLeNote() {
 const LeMig = { busy: false, done: false, err: '' };
 async function leMigrate() {
   if (LeMig.busy) return;
-  if (!await confirmDlg(cm('leQT', 'Move led_effect to Lightspeed?', 'led_effect Lightspeed\'e taşınsın mı?'), cm('leQ', 'led_effect sections are commented out (files backed up first) and become Lightspeed scenes with the same names; your macros keep working. Klipper restarts afterwards.', 'led_effect bölümleri yorum satırı yapılır (dosyalar önce yedeklenir) ve aynı adlı Lightspeed sahnelerine dönüşür; makrolarınız çalışmaya devam eder. Sonra Klipper yeniden başlatılır.'), cm('leGoShort', 'Move it', 'Taşı'))) return;
+  if (!await confirmDlg(cm('leQT', 'Move led_effect to Lightspeed?', 'led_effect Lightspeed\'e taşınsın mı?'),
+    cm('leQ', 'Lightspeed backs up the active configuration before converting effects to scenes. After a verified migration you can restart Klipper when the printer is idle.',
+      'Lightspeed efektleri sahneye dönüştürmeden önce etkin yapılandırmayı yedekler. Taşıma doğrulandıktan sonra yazıcı boştayken Klipper’ı yeniden başlatabilirsiniz.'),
+    cm('leGoShort', 'Move it', 'Taşı'))) return;
   LeMig.busy = true; LeMig.err = ''; renderLeNote();
   try {
     let r = await Preview.req('/printer/lightspeed/migrate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start: 1 }) });
-    for (let i = 0; i < 120 && r.result && r.result.state === 'running'; i++) {
+    while (r.result && r.result.state === 'running') {
       await new Promise(ok => setTimeout(ok, 1000));
       r = await Preview.req('/printer/lightspeed/migrate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start: 0 }) });
     }
     const res = r.result || {};
     if (res.ok) { LeMig.done = true; toast(cm('leDone', 'Moved. Restart Klipper to finish.', 'Taşındı. Bitirmek için Klipper\'ı yeniden başlatın.')); await klipRestart(); }
-    else LeMig.err = (String(res.output || '').trim().split('\n').slice(-3).join(' ') || cm('leFail', 'The move stopped; nothing was changed.', 'Taşıma durdu; hiçbir şey değişmedi.'));
+    else if (res.state === 'merge_required') {
+      LeMig.err = cm('leMerge', 'Merge the generated file into your active configuration manually. The printer is still using the old configuration.', 'Oluşturulan dosyayı etkin yapılandırmanızla elle birleştirin. Yazıcı hâlâ eski yapılandırmayı kullanıyor.');
+      if (res.candidate) LeMig.err += ' (' + res.candidate + ')';
+    }
+    else LeMig.err = (String(res.output || '').trim().split('\n').slice(-3).join(' ') || cm('leFail', 'Could not verify the migration. Check the configuration before restarting.', 'Taşıma doğrulanamadı. Yeniden başlatmadan önce yapılandırmayı kontrol edin.'));
   } catch (e) { LeMig.err = e.message; }
   LeMig.busy = false; renderLeNote();
 }
@@ -4868,11 +4888,11 @@ function renderBadge() {
 // floating button while the page differs from the printer: Save & apply when connected, else Download
 function renderFab(u = isUnsaved()) {
   const b = $('#fab'); if (!b) return;
-  const t = T(), mode = !u ? '' : canApply() ? (changeKind() === 'restart' ? 'apply' : '') : 'download';
+  const t = T(), mode = !u ? '' : canApply() ? (changeKind() === 'restart' ? 'apply' : AS.failed ? 'retry' : '') : 'download';
   // Undo: the page goes back to the printer's lightspeed.cfg (a removed strip comes back, edits are dropped)
   const undo = u && Sync.text !== null && !SA.busy, bar = $('#fabBar'), ub = $('#fabUndo');
   bar.hidden = !mode && !undo; b.hidden = !mode; document.body.classList.toggle('fab-on', !bar.hidden); b.dataset.mode = mode; b.disabled = SA.busy;
-  if (mode) b.innerHTML = `<i></i><span>${esc(mode === 'apply' ? t.apply : t.downloadCfg)}${mode === 'apply' ? `<small>${esc(t.restartWhy)}</small>` : ''}</span>`;
+  if (mode) b.innerHTML = `<i></i><span>${esc(mode === 'retry' ? cm('retryLive', 'Retry live save', 'Canlı kaydı tekrar dene') : mode === 'apply' ? t.apply : t.downloadCfg)}${mode === 'apply' ? `<small>${esc(t.restartWhy)}</small>` : ''}</span>`;
   b.title = `${t.unsaved} · ${prForText()}`;
   ub.hidden = !undo; ub.textContent = t.revert; ub.title = t.revertHint;
 }
@@ -4999,7 +5019,7 @@ $('#v-printer').addEventListener('input', e => {
 $('#v-printer').addEventListener('change', e => {
   const el = e.target;
   if (el.id === 'pHold') { UI.prevHold = el.checked; saveUI(); renderPrinter(); return; }
-  if (el.id === 'lvPrev') { Preview.on = UI.prevOn = el.checked; saveUI(); return; }
+  if (el.id === 'lvPrev') { setPreviewEnabled(el.checked); return; }
   if (el.id === 'pTh') { UI.toolhead = TOOLHEADS.includes(el.value) ? el.value : 'rx'; saveUI(); cadToolhead(); cadNote(); renderCadLoad(); return; }
   if (el.id === 'pModel') {  // the build volume is one setting for every model: switching the model keeps it
     P.model = el.value; changed({ printer: true, view: true }); renderPrinter();
@@ -5063,6 +5083,11 @@ async function adoptPrinterLeds() {
   try { const j = await Preview.req('/printer/objects/query?configfile=settings'); set = j.result.status.configfile.settings || null; } catch (e) { return; }
   Live.ledEffect = set ? Object.keys(set).filter(k => k.startsWith('led_effect ')).length : 0;
   const ign = new Set(UI.ignoredChains || []), added = [];
+  let resized = false;
+  for (const s of P.strips) if (s.wholeChain && !P.hw[hwKey(s)]) {
+    const count = Number(set?.[hwKey(s).toLowerCase()]?.chain_count || Live.status?.strips?.[s.name]?.count);
+    if (Number.isInteger(count) && count > 0 && Math.min(count, 500) !== s.count) { s.count = Math.min(count, 500); resized = true; }
+  }
   for (const o of Live.objects) {
     const m = /^(neopixel|dotstar) (\S+)$/.exec(o); if (!m) continue;
     const [, type, chain] = m;
@@ -5072,8 +5097,9 @@ async function adoptPrinterLeds() {
     P.strips.push({ name, place: ['top_front'], spacing: 0, count: n, type, chain, first: 1, ip: '', start: 0, prefix: '', brightness: 1 });
     added.push(o);
   }
-  if (!added.length) return;
+  if (!added.length && !resized) return;
   changed({ leds: true });
+  if (!added.length) return;
   toast(cm('adopted', `Found in your printer config and added: ${added.join(', ')}. Place them, then Save & apply.`, `Yazıcı config'inde bulundu ve eklendi: ${added.join(', ')}. Yerlerini seçip Kaydet ve uygula.`, added.join(', ')));
 }
 function printerNames(prefix) { return Live.objects ? Live.objects.filter(o => o.startsWith(prefix + ' ')).map(o => o.slice(prefix.length + 1)) : null; }
@@ -5118,7 +5144,7 @@ function stripCard(s, i) {
         if (s.type === 'neopixel') { const ords = COLOR_ORDERS.includes(h.order) ? COLOR_ORDERS : [h.order].concat(COLOR_ORDERS); rows += `<label>${esc(t.colorOrder)}</label><select data-k="hw.order">${ords.map(o => opt(o, o, o === h.order)).join('')}</select>`; }
       }
     }
-    if (mcuT) rows += `<label title="${esc(t.ledsHint)}">${esc(t.leds)}</label>${fld('range', `<input type="text" data-k="range" value="${esc(ledsRange(s))}" class="${er.range ? 'invalid' : ''}" spellcheck="false" placeholder="1-${s.count}">`)}`;
+    if (mcuT) rows += `<label title="${esc(t.ledsHint)}">${esc(t.leds)}</label>${fld('range', `<input type="text" data-k="range" value="${esc(ledsRange(s))}" class="${er.range ? 'invalid' : ''}" spellcheck="false" placeholder="${esc(cm('wholeChain', 'Entire chain', 'Zincirin tamamı'))}">`)}`;
     hw = `${modes}<div class="form">${rows}</div>`;
   } else if (s.type === 'wled') {
     hw = `<div class="form"><label>${esc(t.ip)}</label>${fld('ip', inp('ip', s.ip, '192.168.1.60'))}
@@ -5143,11 +5169,12 @@ function stripCard(s, i) {
       </div><div class="err" data-e="count"${er.count ? '' : ' hidden'}>${esc(er.count || '')}</div>
       ${s.type === 'pin' ? `<div class="pcolRow"><span>${esc(t.lightColor)}</span><label class="swatch"><i style="background:#${s.color}"></i><span>${s.color}</span><input type="color" data-k="color" value="#${s.color}"></label><div class="presets">${PIN_COLORS.map(c => `<button type="button" data-pcol="${c}" style="--c:#${c}" class="${c === s.color ? 'on' : ''}" title="#${c}" aria-label="#${c}"></button>`).join('')}</div></div>` : ''}</div>`;
   const ledNote = i === selStrip && selLed >= 0 ? `<div class="note ok">${t.ledOf(selLed + 1, s.count, s.name)}</div>` : '';
+  const pinActions = s.type === 'pin' ? `<div class="q"><span class="qlab">${esc(cm('manual', 'Manual', 'Elle'))}</span><div class="typeSeg">${[['solid', cm('lpOn', 'On', 'Aç')], ['off', cm('lpOff', 'Off', 'Kapat')], ['', cm('lpAuto', 'Auto', 'Otomatik')]].map(([mode, label]) => `<button type="button" data-pin-mode="${mode}" aria-pressed="${(Preview.overrides[s.name] || '') === mode}" class="${(Preview.overrides[s.name] || '') === mode ? 'sel' : ''}">${esc(label)}</button>`).join('')}</div></div>` : '';
   const nameCtl = open ? `<input type="text" class="nameIn${er.name ? ' invalid' : ''}" data-k="name" value="${esc(s.name)}" spellcheck="false" autocomplete="off" aria-label="${esc(t.name)}" title="${esc(cm('renameHint', 'Click to rename', 'Yeniden adlandırmak için tıklayın'))}">` : `<b>${esc(s.name || '?')}</b>`;
   return `<div class="strip${open ? ' open' : ''}${i === selStrip ? ' sel' : ''}" data-i="${i}">
     <header data-act="toggle" aria-expanded="${open}"><span class="dotrow" data-dots="${i}"></span><div class="nm">${nameCtl}<span class="meta">${esc(stripMeta(s))}</span></div><span class="tagout" title="${esc(t.outputs[s.type] || s.type)}">${esc(OUT_TAG[s.type] || s.type)}</span></header>
     <div class="body"><div class="err" data-e="name"${er.name ? '' : ' hidden'}>${esc(er.name || '')}</div>${ledNote}
-      ${conn}${places}${leds}
+      ${pinActions}${conn}${places}${leds}
       <div class="sfoot"><span class="pnote">${esc(cm('liveModel', 'Shown on the model as you edit', 'Düzenledikçe modelde görünür'))}</span><button type="button" class="linkbtn bad" data-act="remove">${esc(cmOr('rmStrip', 'Remove strip', 'Şeridi kaldır', t.removeStrip))}</button></div>
     </div></div>`;
 }
@@ -5225,6 +5252,7 @@ function setChain(s, v) {
 function setType(s, ty) {
   const oldK = hwKey(s), h = oldK && P.hw[oldK];
   s.type = ty;
+  if (!isMcuType(ty)) delete s.wholeChain;
   if (HW_TYPES.includes(ty)) {
     if (!s.chain) s.chain = s.name;
     const newK = hwKey(s);
@@ -5242,6 +5270,11 @@ function setType(s, ty) {
 }
 $('#v-strips').addEventListener('click', async e => {
   const card = e.target.closest('.strip'), i = card ? +card.dataset.i : -1, s = P.strips[i];
+  const pinMode = e.target.closest('[data-pin-mode]');
+  if (pinMode && s?.type === 'pin') {
+    if (!klipReady() || Klip.busy) { toast(T().k_off, 'warn'); return; }
+    setManual(s.name, pinMode.dataset.pinMode || null); return;
+  }
   const pb = e.target.closest('[data-place]');
   if (pb && s) {
     const pl = pb.dataset.place, k = s.place.indexOf(pl);
@@ -5313,7 +5346,7 @@ $('#v-strips').addEventListener('input', e => {
   } else if (k === 'count') {
     const v = Math.round(+el.value);
     if (v >= 1 && v <= 500) {
-      s.count = v; changed({ leds: true }); renderSel();
+      s.wholeChain = false; s.count = v; changed({ leds: true }); renderSel();
       $$('[data-k=count]', card).forEach(o => { if (o !== el) o.value = o.type === 'range' ? Math.min(200, v) : v; if (o.type === 'range') setRangeFill(o); });
       if (el.type === 'range') setRangeFill(el);
       const r = $('[data-k=range]', card); if (r) { r.value = ledsRange(s); delete r.dataset.badfmt; }
@@ -5325,7 +5358,13 @@ $('#v-strips').addEventListener('input', e => {
   } else if (k === 'range') {
     const m = el.value.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
     const ok = m && +m[1] >= 1 && (!m[2] || (+m[2] >= +m[1] && +m[2] - +m[1] < 500));
-    if (ok) { delete el.dataset.badfmt; s.first = +m[1]; s.count = (m[2] ? +m[2] : +m[1]) - s.first + 1; $$('[data-k=count]', card).forEach(o => { o.value = o.type === 'range' ? Math.min(200, s.count) : s.count; if (o.type === 'range') setRangeFill(o); }); changed({ leds: true }); refreshCardErrors(card, i); }
+    if (ok || !el.value.trim()) {
+      delete el.dataset.badfmt; s.wholeChain = !m;
+      s.first = m ? +m[1] : 1;
+      s.count = m ? (m[2] ? +m[2] : +m[1]) - s.first + 1 : (h?.count || Math.min(500, Live.status?.strips?.[s.name]?.count || s.count));
+      $$('[data-k=count]', card).forEach(o => { o.value = o.type === 'range' ? Math.min(200, s.count) : s.count; if (o.type === 'range') setRangeFill(o); });
+      changed({ leds: true }); refreshCardErrors(card, i);
+    }
     else { el.dataset.badfmt = '1'; const er = $('[data-e=range]', card); er.hidden = false; er.textContent = T().e_leds; el.classList.add('invalid'); }
     refreshHead(card, s);
   } else if (k === 'start') { s.start = Math.max(0, Math.round(+el.value || 0)); changed(); refreshCardErrors(card, i); }
@@ -5758,7 +5797,7 @@ function renderLoad() {
       ${kv([[t.ledsN, c.leds], [t.bytesFrame, bytes], [t.fps, fps.toFixed(fps < 10 ? 1 : 0)], [t.mcuMs, ms.toFixed(1) + ' ' + t.msps]])}
       ${meter(t.fpsLbl, fps / LS.MCU_FPS_CAP, fc, fps.toFixed(1) + ' fps')}
       ${meter(t.mcuLbl, ms / (LS.MCU_BUDGET * 1000), mc, ms.toFixed(1) + ' ms')}
-      <div class="note${c.leds > 16 ? ' warn' : ''}">${esc(c.leds > 16 ? t.freeze : t.freezeSmall)}</div>
+      <div class="note${c.freeze ? ' warn' : ''}">${esc(c.freeze ? t.freeze : t.freezeSmall)}</div>
       ${c.leds > 60 ? `<div class="note bad">${esc(t.bigChain(c.leds))}</div>` : ''}</div>`);
   }
   for (const s of P.strips) {
@@ -5788,7 +5827,7 @@ let importMsg = '';
 function renderConfig() {
   const t = T(), n = allErrors(), txt = cfgText();
   $('#v-config').innerHTML = `<div class="sec"><div><h2>${esc(t.c_title)}</h2><p class="lead">${esc(t.c_lead)}</p></div>
-    ${Live.ledEffect ? `<div class="note warn">${esc(cm('ledEffectFound', `Your printer config still has ${Live.ledEffect} [led_effect] section(s). To move them into Lightspeed, run on the printer: python3 ~/lightspeed/tools/migrate_led_effect.py --dry-run (then --apply).`, `Yazıcı config'inde hâlâ ${Live.ledEffect} [led_effect] bölümü var. Lightspeed'e taşımak için yazıcıda çalıştır: python3 ~/lightspeed/tools/migrate_led_effect.py --dry-run (sonra --apply).`, Live.ledEffect))}</div>` : ''}
+    ${Live.ledEffect ? `<div class="note warn">${esc(cm('activeLegacyCount', `This printer is still using ${Live.ledEffect} [led_effect] section(s).`, `Bu yazıcı hâlâ ${Live.ledEffect} [led_effect] bölümü kullanıyor.`, Live.ledEffect))}</div>` : ''}
     ${n ? `<div class="note bad">${esc(t.fixFirst(n))}</div>` : ''}
     ${canApply() ? applyBox('config') : ''}
     <pre class="cfg" id="cfgOut">${hiCfg(txt)}</pre>
@@ -5856,12 +5895,16 @@ async function readKlipper() {
   return was !== st;
 }
 async function klipRestart() {
-  if (Klip.busy || !canApply()) return;
+  if (Klip.busy || SA.busy || AS.busy || !canApply()) return;
   const t = T();
   if (!await confirmDlg(t.k_restartQ, t.k_restartT, t.k_restart, prForText())) return;
   Klip.busy = true; renderKlip();
   let res;
-  try { res = await restartAndWait(() => {}); } catch (e) { res = { state: 'error', msg: e.message }; }
+  try { res = await restartAndWait(() => {}); }
+  catch (e) {
+    if (e.restartGuard) { Klip.busy = false; renderKlip(); toast(e.message, 'warn'); return; }
+    res = { state: 'error', msg: e.message };
+  }
   Klip.busy = false;
   if (res.state === 'ready') { Klip.state = 'ready'; Klip.msg = ''; renderKlip(); toast(t.k_back); await liveConnect(false); }
   else { Klip.state = res.state === 'timeout' ? 'startup' : 'error'; Klip.msg = res.msg || ''; renderKlip(); schedulePoll(); }
@@ -5869,6 +5912,26 @@ async function klipRestart() {
 document.addEventListener('click', e => { if (e.target.closest('[data-act=krestart]')) klipRestart(); });
 const Preview = {
   on: true, overrides: {}, timers: {}, edited: new Set(), statePrev: new Set(),  // preview on the printer: on by default
+  stateSent: false, scenesSent: new Set(), tail: Promise.resolve(),
+  queue(actions, quiet) {
+    this.tail = this.tail.then(() => this.cmd(actions, quiet));
+    return this.tail;
+  },
+  async release() {
+    for (const key of this.edited) clearTimeout(this.timers[key]);
+    const strips = new Set([...this.edited, ...this.statePrev]), scenes = [...this.scenesSent], state = this.stateSent;
+    const actions = [...strips].map(strip => this.overrides[strip] ? { action: 'preview', strip, effect: this.overrides[strip], hold: MANUAL_HOLD } : { action: 'preview', strip, hold: 0 });
+    for (const name of scenes) actions.push({ action: 'scene_off', name });
+    if (state) actions.push({ action: 'state', state: 'auto' });
+    if (!actions.length) return true;
+    this.edited.clear(); this.statePrev.clear(); this.scenesSent.clear(); this.stateSent = false;
+    if (await this.queue(actions, true)) return true;
+    for (const strip of strips) this.statePrev.add(strip);
+    for (const name of scenes) this.scenesSent.add(name);
+    this.stateSent ||= state;
+    toast(cm('stopPreviewFailed', 'Could not stop the printer preview. Retry Stop.', 'Yazıcıdaki önizleme durdurulamadı. Durdur işlemini tekrar deneyin.'), 'warn');
+    return false;
+  },
   base() {
     let a = (UI.addr || '').trim().replace(/\/+$/, '');
     if (!a) return location.protocol === 'file:' ? null : '';
@@ -5914,13 +5977,13 @@ const Preview = {
     } catch (e) { liveMsg(e.message, quiet ? 'warn' : 'bad'); return false; }
   },
   effect(key, spec) {
-    if (!this.on) return;
+    if (!this.on || !Live.status) return;
     clearTimeout(this.timers[key]);
     this.edited.add(key);
     // a scene edit is shown only as long as the running state preview (or the preview time without one), never as
     // a long manual hold: that would outlive the test and later read back as a manual light
     const tm = SIM.timer, hold = tm ? (tm.dur > 0 ? Math.max(1, Math.ceil(tm.until - SIM.t) + 1) : 3600) : (prevSecs() || 10);
-    this.timers[key] = setTimeout(() => this.cmd({ action: 'preview', strip: key, effect: spec, hold }), 150);
+    this.timers[key] = setTimeout(() => this.queue({ action: 'preview', strip: key, effect: spec, hold }), 150);
   },
   bright(v) {  // global brightness goes to the printer right away while connected (saved to the file with Save & apply)
     if (!Live.status) return;
@@ -5951,7 +6014,13 @@ function renderLive() {
   renderKlip();
 }
 UI.addr = '';  // older pages stored a typed printer address; settings now only go to this page's own printer
-$('#v-live').addEventListener('change', e => { if (e.target.id === 'lvPrev') { Preview.on = UI.prevOn = e.target.checked; saveUI(); } });
+async function setPreviewEnabled(enabled) {
+  Preview.on = enabled;
+  if (!enabled && !await Preview.release()) Preview.on = true;
+  UI.prevOn = Preview.on; saveUI();
+  const toggle = $('#lvPrev'); if (toggle) toggle.checked = Preview.on;
+}
+$('#v-live').addEventListener('change', e => { if (e.target.id === 'lvPrev') setPreviewEnabled(e.target.checked); });
 // fetch a text file from Moonraker: null when it does not exist (404)
 async function fetchText(path) {
   const b = Preview.base(); if (b === null) throw new Error(T().fromDisk);
@@ -6010,22 +6079,25 @@ function liveCommands(old, nw) {
   }
   return c;
 }
-const AS = { timer: 0, busy: false };
+const AS = { timer: 0, busy: false, failed: false };
 function scheduleAutoSave() { clearTimeout(AS.timer); if (canApply()) AS.timer = setTimeout(autoSave, AS.delay ?? 1500); }
 async function autoSave() {
-  if (AS.busy || SA.busy || Sync.pending || !canApply()) return;
+  if (AS.busy || SA.busy || SA.keepBackup || Klip.busy || Live.busy || Sync.pending || !canApply()) return;
   if (changeKind() !== 'live' || allErrors()) return;
   AS.busy = true;
   const old = syncedProject(), text = cfgText(), cmds = liveCommands(old, P);
   try {
-    let ready = false;
-    try { const j = await Preview.req('/printer/info'); ready = j.result.state === 'ready'; } catch (e) { /* not ready */ }
-    if (ready && Live.status) await Preview.cmd(cmds, true);
+    if (cmds.length) {
+      const j = await Preview.req('/printer/info');
+      if (j.result.state !== 'ready' || !Live.status || !await Preview.cmd(cmds, true))
+        throw new Error(cm('liveNotApplied', 'The running printer has not confirmed the changes.', 'Çalışan yazıcı değişiklikleri onaylamadı.'));
+    }
     await uploadCfg('lightspeed.cfg', text);
     Sync.set(text);
+    AS.failed = false;
     toast(T().savedLive);
     if (cfgText() !== text) scheduleAutoSave();  // edited again meanwhile
-  } catch (e) { toast(`${T().autoFail} ${e.message}`, 'warn'); }
+  } catch (e) { AS.failed = true; toast(`${T().autoFail} ${e.message}`, 'warn'); }
   AS.busy = false; renderBadge();
 }
 function syncedOwn() {  // hardware sections that the printer's lightspeed.cfg itself defines
@@ -6070,6 +6142,12 @@ async function liveConnect(auto, o = {}) {
   Live.busy = true; Live.status = null; Live.reach = false; liveMsg('', ''); if (onSub('live')) renderLive(); if (onSub('printer')) renderPrinter();
   prRefresh();  // the header names the host while connecting, not 'Demo'
   try {
+    // Recover the transaction even if Klipper cannot load the new config.
+    if (Preview.base() !== null) {
+      try {
+        if (await loadRecoveryBackup()) { SA.canRestore = true; SA.note = cm('recoveryPending', 'Previous apply was not confirmed. Its printer backup is available.', 'Önceki uygulama doğrulanmadı. Yazıcıdaki yedeği geri yükleyebilirsiniz.'); SA.kind = 'warn'; }
+      } catch (e) { SA.note = e.message; SA.kind = 'bad'; }
+    }
     const j = await Preview.req('/printer/objects/query?lightspeed');
     Live.reach = true;
     try { const ol = await Preview.req('/printer/objects/list'); Live.objects = Array.isArray(ol?.result?.objects) ? ol.result.objects : null; } catch (e) { Live.objects = null; }
@@ -6081,8 +6159,8 @@ async function liveConnect(auto, o = {}) {
       const b = Preview.base();
       try { Live.here = b === '' || new URL(b).host === location.host; } catch (e) { Live.here = false; }
       Preview.on = UI.prevOn !== false;
-      if (!o.keep) await syncFromPrinter();
-      await adoptPrinterLeds();
+      if (!o.keep && !SA.keepBackup) await syncFromPrinter();
+      if (!SA.keepBackup) await adoptPrinterLeds();
     }
   } catch (err) { if (err.status && err.status !== 404) Live.reach = true; if (!auto) liveMsg(err.message, 'bad'); }
   if (Live.status || Live.reach) await readKlipper(); else { Klip.state = 'ready'; Klip.msg = ''; }
@@ -6134,6 +6212,27 @@ $('#v-live').addEventListener('click', async e => {
 
 // ---- Save & apply: busy check, confirm, backup, upload, FIRMWARE_RESTART, wait for ready
 const SA = { busy: false, steps: [], note: '', kind: '', backup: null, canRestore: false, keepBackup: false, poll: 2000 };
+const recoveryKey = () => 'lightspeed.recovery:' + (Preview.base() || location.host) + '/config/lightspeed.cfg';
+function recoveryError() {
+  return new Error(cm('backupUnverified', 'Cannot verify the backup from the previous apply. Check lightspeed.cfg.bak on this printer.', 'Önceki uygulamanın yedeği doğrulanamadı. Bu yazıcıdaki lightspeed.cfg.bak dosyasını kontrol edin.'));
+}
+async function loadRecoveryBackup() {
+  let marker;
+  try { marker = localStorage.getItem(recoveryKey()); }
+  catch (e) { throw recoveryError(); }
+  if (marker === null) return false;
+  SA.keepBackup = true; SA.backup = null; SA.canRestore = false;
+  let backup;
+  try { backup = await fetchText('/server/files/config/lightspeed.cfg.bak'); }
+  catch (e) { throw recoveryError(); }
+  if (backup === null || JSON.stringify({ text: backup }) !== marker) throw recoveryError();
+  SA.backup = backup;
+  return true;
+}
+function finishRecovery() {
+  localStorage.removeItem(recoveryKey());
+  SA.keepBackup = false; SA.canRestore = false;
+}
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function saLabel(k) { const t = T(); return { busy: t.s_busy, confirm: t.s_confirm, backup: t.s_backup, upload: t.s_upload, restore: t.restore, restart: t.s_restart, ready: t.s_ready }[k] || k; }
 function saStep(k, st, msg = '') { let s = SA.steps.find(x => x.k === k); if (!s) SA.steps.push(s = { k }); s.st = st; s.msg = msg; renderSA(); }
@@ -6161,9 +6260,41 @@ function renderSA() {
   $$('[data-act=apply]').forEach(b => { b.disabled = SA.busy; });
   renderFab();
 }
+async function assertRestartSafe() {
+  const t = T();
+  let status;
+  try { status = (await Preview.req('/printer/objects/query?print_stats&idle_timeout&virtual_sdcard=is_active&pause_resume=is_paused')).result.status; }
+  catch (e) { /* Klipper can be in a config error; confirm that explicitly below. */ }
+  const ps = status?.print_stats?.state, idle = status?.idle_timeout?.state;
+  let reason;
+  if (ps === 'paused' || status?.pause_resume?.is_paused) reason = t.busyPaused;
+  else if (ps === 'printing' || idle === 'Printing' || status?.virtual_sdcard?.is_active) reason = t.busyPrinting;
+  else if ((ps || idle) && (!ps || ['standby', 'complete', 'cancelled', 'error'].includes(ps)) && (!idle || ['Ready', 'Idle'].includes(idle))) return 'ready';
+  else {
+    try {
+      const info = await Preview.req('/printer/info');
+      if (['error', 'shutdown'].includes(info?.result?.state)) return 'recovery';
+    } catch (e) { /* unknown printer state */ }
+    reason = cm('restartUnknown', 'Cannot verify that the printer is idle.', 'Yazıcının boşta olduğu doğrulanamadı.');
+  }
+  const error = new Error(reason);
+  error.restartGuard = true; throw error;
+}
 async function restartAndWait(step = saStep) {
   step('restart', 'run');
-  await Preview.req('/printer/firmware_restart', { method: 'POST' });
+  await assertRestartSafe();
+  // Klipper can still report cached objects after a shutdown. Route recovery
+  // using a fresh process state, even if the object query looked idle.
+  const state = (await Preview.req('/printer/info'))?.result?.state;
+  if (state === 'shutdown' || state === 'error') await Preview.req('/printer/firmware_restart', { method: 'POST' });
+  else if (state !== 'ready') throw new Error(cm('restartUnknown', 'Cannot verify that the printer is idle.', 'Yazıcının boşta olduğu doğrulanamadı.'));
+  else {
+    try { await Preview.req('/printer/lightspeed/restart_if_idle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); }
+    catch (e) {
+      if (e.status === 404) { const err = new Error(cm('restartUpdate', 'Update the Lightspeed module on the printer to enable guarded restart.', 'Korumalı yeniden başlatma için yazıcıdaki Lightspeed modülünü güncelleyin.')); err.restartGuard = true; throw err; }
+      throw e;
+    }
+  }
   step('restart', 'ok');
   step('ready', 'run');
   const t0 = Date.now(); let seen = false;
@@ -6183,7 +6314,7 @@ async function restartAndWait(step = saStep) {
 }
 function saFail(e) { const s = SA.steps.find(x => x.st === 'run'); if (s) { s.st = 'bad'; s.msg = e.message; } SA.note = e.message; SA.kind = 'bad'; }
 async function saveApply() {
-  if (SA.busy) return;
+  if (SA.busy || AS.busy || Klip.busy) return;
   const t = T();
   if (!canApply()) { toast(t.notConn, 'warn'); return; }
   const n = allErrors();
@@ -6191,52 +6322,60 @@ async function saveApply() {
   Object.assign(SA, { busy: true, steps: [], note: '', kind: '', canRestore: false }); if (!SA.keepBackup) SA.backup = null; renderSA();
   try {
     saStep('busy', 'run');
-    let ps, it, readable = true;
-    try { const j = await Preview.req('/printer/objects/query?print_stats&idle_timeout'); ps = j.result.status.print_stats?.state; it = j.result.status.idle_timeout?.state; }
-    catch (e) { if (e.net) throw e; readable = false; }  // Klipper not ready (e.g. config error): nothing can be printing
-    if (ps === 'printing' || it === 'Printing') { saStep('busy', 'bad', t.busyPrinting); SA.note = t.busyPrinting; SA.kind = 'bad'; return; }
-    if (ps === 'paused') { saStep('busy', 'bad', t.busyPaused); SA.note = t.busyPaused; SA.kind = 'bad'; return; }
-    saStep('busy', 'ok', readable ? `print_stats: ${ps ?? '?'} · idle_timeout: ${it ?? '?'}` : t.busyNoRead);
+    await assertRestartSafe();
+    saStep('busy', 'ok');
     saStep('confirm', 'run');
     if (!await confirmDlg(t.applyQ, t.applyT, t.applyYes, prForText())) { saStep('confirm', 'skip', t.canceled); return; }
     saStep('confirm', 'ok');
+    await assertRestartSafe();
     const text = cfgText();
     saStep('backup', 'run');
-    if (SA.keepBackup && SA.backup) saStep('backup', 'skip', t.backupKept);  // the file on the printer is the failed one
+    if (await loadRecoveryBackup()) saStep('backup', 'skip', t.backupKept);
+    else if (SA.keepBackup) throw recoveryError();
     else {
       const old = await fetchText('/server/files/config/lightspeed.cfg');
       if (old === null) saStep('backup', 'skip', t.noBackup);
       else { await uploadCfg('lightspeed.cfg.bak', old); SA.backup = old; saStep('backup', 'ok', t.backupOk); }
     }
-    saStep('upload', 'run'); await uploadCfg('lightspeed.cfg', text); saStep('upload', 'ok');
+    saStep('upload', 'run');
+    await assertRestartSafe();
+    if (SA.backup !== null) {
+      localStorage.setItem(recoveryKey(), JSON.stringify({ text: SA.backup }));
+      SA.keepBackup = true; // an interrupted upload or restart may already have replaced the file
+    }
+    await uploadCfg('lightspeed.cfg', text); saStep('upload', 'ok');
     const res = await restartAndWait();
     if (res.state === 'ready') {
-      Sync.set(text); SA.note = t.applied; SA.kind = 'ok'; toast(t.applied); SA.keepBackup = false;
+      finishRecovery(); Sync.set(text); SA.note = t.applied; SA.kind = 'ok'; toast(t.applied);
       SA.busy = false; await liveConnect(false, { keep: true });
-    } else { SA.canRestore = !!SA.backup; SA.keepBackup = !!SA.backup; SA.note = res.state === 'error' ? `${t.applyErr} ${res.msg}` : t.applyTimeout; SA.kind = 'bad'; }
-  } catch (e) { saFail(e); }
+    } else { SA.canRestore = SA.keepBackup && SA.backup !== null; SA.note = res.state === 'error' ? `${t.applyErr} ${res.msg}` : t.applyTimeout; SA.kind = 'bad'; }
+  } catch (e) { SA.canRestore = SA.keepBackup && SA.backup !== null; saFail(e); }
   finally { SA.busy = false; renderSA(); renderBadge(); }
 }
 async function restoreBackup() {
-  if (SA.busy || !SA.backup) return;
-  const t = T(), text = SA.backup;
+  if (SA.busy || AS.busy || Klip.busy || SA.backup === null) return;
+  const t = T();
   Object.assign(SA, { busy: true, steps: [], note: '', kind: '', canRestore: false }); renderSA();
   try {
-    saStep('restore', 'run'); await uploadCfg('lightspeed.cfg', text); saStep('restore', 'ok');
+    saStep('restore', 'run');
+    if (!await loadRecoveryBackup()) throw recoveryError();
+    const text = SA.backup;
+    await assertRestartSafe(); await uploadCfg('lightspeed.cfg', text); saStep('restore', 'ok');
     const res = await restartAndWait();
     if (res.state === 'ready') {
       // the printer runs the old file again; the page keeps its edits, shown as not saved
       const r = parseCfg(text);
       if (!r.errors.length) Sync.set(cfgText(sanitizeProject(r.project)));
-      SA.note = t.restored; SA.kind = 'ok'; toast(t.restored); SA.keepBackup = false;
+      finishRecovery(); SA.note = t.restored; SA.kind = 'ok'; toast(t.restored);
       SA.busy = false; await liveConnect(false, { keep: true });
     } else { SA.canRestore = true; SA.note = `${t.restoreFail} ${res.msg || t.applyTimeout}`; SA.kind = 'bad'; }
-  } catch (e) { saFail(e); SA.canRestore = true; }
+  } catch (e) { saFail(e); SA.canRestore = SA.backup !== null; }
   finally { SA.busy = false; renderSA(); renderBadge(); }
 }
 $('#fabUndo').addEventListener('click', revertToPrinter);
 $('#fab').addEventListener('click', () => {
   if ($('#fab').dataset.mode === 'download') { downloadCfg(); return; }
+  if ($('#fab').dataset.mode === 'retry') { autoSave(); return; }
   showTab('settings', 'live'); saveApply();  // the steps are shown in Settings > Live
 });
 $('#pane').addEventListener('click', e => {
@@ -6299,7 +6438,7 @@ function setManual(name, spec) {
   SIM.fadeFrom = {};
   if (Live.status) Preview.cmd(spec ? { action: 'preview', strip: name, effect: spec, hold: MANUAL_HOLD } : { action: 'preview', strip: name, hold: 0 });
   const s = P.strips.find(x => x.name === name);
-  if (s && s.type === 'pin') renderLights(); else openLight(name, true);
+  if (s && s.type === 'pin') { renderLights(); if (curTab === 'strips') renderStrips(); } else openLight(name, true);
 }
 function openLight(name, keep) {
   const pop = $('#lpop');

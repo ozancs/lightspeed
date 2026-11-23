@@ -15,7 +15,8 @@ const any = new Proxy(function () {}, {
   get: (t, k) => (k === Symbol.toPrimitive ? () => '' : k === 'then' ? undefined : k === Symbol.iterator ? function* () {} : k === 'length' ? 0 : any),
   apply: () => any, construct: () => any, set: () => true,
 });
-const store = {}, IV = [], FAKE = {};
+const store = {}, IV = [], FAKE = {}, stripHandlers = {};
+FAKE['#v-strips'] = new Proxy(any, { get: (o, key) => key === 'addEventListener' ? (event, fn) => { stripHandlers[event] = fn; } : o[key] });
 const AP = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} });
 const node = () => ({ gain: AP(), frequency: AP(), Q: AP(), connect() {}, start() { NOTES.n++; }, stop() {}, type: '', buffer: null });
 const NOTES = { n: 0 };
@@ -24,7 +25,7 @@ const ctx = {
   console, Math, JSON, Date, Number, String, Array, Object, Set, Map, WeakMap, Promise, Proxy, RegExp, Error, isFinite, parseInt, parseFloat, Symbol, Uint8Array, Float32Array, encodeURIComponent, URL,
   setTimeout: () => 0, clearTimeout: () => {}, setInterval: fn => { IV.push(fn); return IV.length; }, clearInterval: () => {}, requestAnimationFrame: () => 0, addEventListener: () => {},
   document: new Proxy({}, { get: (o, k) => k === 'querySelector' ? (q => FAKE[q] || any) : k === 'querySelectorAll' ? (() => []) : any }), navigator: { languages: ['en'], language: 'en', clipboard: any }, location: { protocol: 'file:', host: '' },
-  localStorage: { getItem: k => store[k] ?? null, setItem: (k, v) => { store[k] = String(v); } },
+  localStorage: { getItem: k => store[k] ?? null, setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
   innerWidth: 1200, innerHeight: 800, THREE: any, CSS: { escape: s => s }, getComputedStyle: () => any, matchMedia: () => any,
   fetch: () => Promise.reject(new Error('offline')), FormData: any, Blob: any, ResizeObserver: any, performance: { now: () => 0 },
 };
@@ -40,6 +41,34 @@ vm.runInContext(src + `
 const T = ctx.__t, LS = ctx.Lightspeed;
 let fails = 0;
 const check = (c, m) => { console.log((c ? 'ok    ' : 'FAIL  ') + m); if (!c) fails++; };
+
+// Load estimates must include the entire physical chain, not just mapped LEDs.
+FAKE['#v-load'] = {};
+const loads = vm.runInContext(`(() => {
+  const project = P, status = Live.status;
+  try {
+    P = defaultProject();
+    P.strips = [{name:'bar', type:'neopixel', chain:'frame', count:2, first:7}];
+    const key = 'neopixel frame', result = [];
+    for (const [count, order] of [[16,'GRB'], [13,'GRBW'], [13,Array(10).fill('GRB').concat(Array(3).fill('GRBW')).join(', ')]]) {
+      P.hw[key] = {count, order};
+      result.push(chainInfo()[key]);
+    }
+    P.hw = {};
+    result.push(chainInfo()[key]);
+    Live.status = {strips:{bar:{output:key, count:2, chain_count:72, frame_bytes:288}}};
+    result.push(chainInfo()[key]);
+    renderLoad();
+    return result;
+  } finally { P = project; Live.status = status; }
+})()`, ctx);
+check(loads[0].leds === 16 && loads[0].bytes === 48 && !loads[0].freeze, '16 RGB LEDs permit one guard snapshot');
+check(loads[1].leds === 13 && loads[1].bytes === 52 && loads[1].freeze, '13 RGBW LEDs exceed the 48-byte guard');
+check(loads[2].leds === 13 && loads[2].bytes === 42 && !loads[2].freeze, 'mixed RGB and RGBW orders use their individual channel counts');
+check(loads[3].leds === 8 && loads[3].bytes === 24, 'offline range 7-8 needs at least eight LEDs');
+check(loads[4].leds === 72 && loads[4].bytes === 288 && loads[4].fps === LS.mcuFps(288)
+    && FAKE['#v-load'].innerHTML.includes('48 bytes per frame'), 'load card uses live full-chain metadata');
+delete FAKE['#v-load'];
 
 // a project with every new thing
 const p = T.defaultProject();
@@ -322,6 +351,10 @@ check(!T.Party.on && !Object.keys(T.Party.specs).length && T.Party.ac === null, 
   R.Live.status = null; T.renderPrinter();
   check(VP.innerHTML.includes('class="primary" data-act="connect"') && VP.innerHTML.includes('id="lvPrev"'), 'settings: not connected -> Connect button in Printer');
   delete FAKE['#v-printer']; delete FAKE['#v-live'];
+  ctx.stripHandlers = stripHandlers;
+  ctx.assert = require('assert').strict;
+  await vm.runInContext('(' + require('./page_safety_cases').toString() + ')()', ctx);
+  console.log('ok    printer lifecycle, chain round trip, manual pin and preview regressions');
   console.log(fails + ' failures');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.log('FAIL  printers test threw ' + e.stack); process.exit(1); });

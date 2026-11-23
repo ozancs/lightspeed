@@ -188,7 +188,7 @@ all: rainbow period=3
 ## Outputs
 | output | how | load |
 |---|---|---|
-| `neopixel`/`dotstar` | Klipper's own `update_leds()` of that chain | MCU: fps limited so updates use ≤3 % of MCU time (`mcu_fps`), max 25 fps, frozen during homing/probing (chains ≤16 LEDs send one frame on entry) |
+| `neopixel`/`dotstar` | Klipper's own `update_leds()` of that chain | `mcu_fps` targets a 3% MCU time budget with a maximum of 25 fps. During homing/probing, chains of up to 48 bytes can show one frame on entry. Larger chains stay frozen. |
 | `wled` | UDP realtime DNRGB to port 21324, non-blocking, keep-alive 1 s | none on the printer MCUs, 40 fps, keeps running during homing |
 | `esp_bridge` | producer on the existing `[esp_bridge]` (keys `<prefix>.fx/.rgb/.p/.b/.st`); the node animates locally. A value-driven `progress`/`heat` sends its current single colour (`value_color`) and the mapped value as `.p` | a few packets per state change |
 | `pin` | `[output_pin]`, on/off or PWM brightness | a change only |
@@ -213,6 +213,17 @@ Silent (nothing in the console). `{"action": ...}`:
 `state {state, hold}`, `preview {strip, effect, hold}`, `scene {state, strip, effect}`,
 `strip {strip, brightness}`, `brightness {value}`, `scene_on {name, hold}` (hold 0 =
 until off), `scene_off {name}` (`all` allowed), `batch {actions: [...]}`.
+
+## Printer maintenance
+
+* `POST /printer/lightspeed/migrate` with `{"start":1}` starts migration of the running
+  Klipper instance's config while the printer is idle. Poll with `{"start":0}`.
+  A verified switch returns `state: done, ok: true`. A manual merge returns
+  `state: merge_required, ok: false` and the draft filename in `candidate`.
+  Other failures return `ok: false` with a diagnostic in `output`.
+* `POST /printer/lightspeed/restart_if_idle` checks printer activity under the G-code
+  mutex before issuing `FIRMWARE_RESTART`. A busy G-code queue, an active or paused
+  print, or unavailable idle status blocks the restart.
 
 ## Web endpoint `lightspeed/scan` (Moonraker: `POST /printer/lightspeed/scan`)
 Finds other printers on the LAN that run Lightspeed. Returns at once; the scan runs in
@@ -243,7 +254,9 @@ bytes_sent, dropped, errors, disabled, last_error, manual}},
 scenes_active: [custom scene names, highest priority first],
 custom_scenes: [{name, trigger, priority, hold, active, forced}],
 groups: {name: [strips]}, ranges: {source: [lo, hi]}, compat: [registered
-SET_LED_EFFECT / STOP_LED_EFFECTS]`. `get_status` never raises.
+SET_LED_EFFECT / STOP_LED_EFFECTS]`. Each NeoPixel or DotStar strip also reports
+`chain_count` (LEDs on the entire physical chain) and `frame_bytes` (the byte count
+used for its MCU budget). `get_status` never raises.
 
 ## Page
 * Served by Mainsail/Fluidd from the printer (`/lightspeed/lightspeed.html`) → talks to

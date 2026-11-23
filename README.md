@@ -77,14 +77,18 @@ The installer links the module into Klipper, links the page into Mainsail/Fluidd
 Then:
 
 1. Add `[include lightspeed.cfg]` to `printer.cfg`.
-2. If you used `led_effect` before, the installer moves it over by itself: it says how many `[led_effect]` sections and `SET_LED_EFFECT` macro lines it found and converts them. (Set `LIGHTSPEED_NO_MIGRATE=1` to skip it.) You can also run the migration yourself:
+2. If you used `led_effect` before, the installer detects the active effects and runs the migration. Set `LIGHTSPEED_NO_MIGRATE=1` to skip this step. To preview or apply the migration yourself, run
 
    ```bash
    python3 tools/migrate_led_effect.py --dry-run   # show the result, change nothing
    python3 tools/migrate_led_effect.py --apply     # switch over
    ```
 
-   Each led_effect becomes a Lightspeed scene with the same name, so `SET_LED_EFFECT` and `STOP_LED_EFFECTS` in your macros keep working. `--apply` comments out the `[led_effect]` sections, adds `[include lightspeed.cfg]` (so you can skip step 1) and backs up every file it changes. If the new config would not load, it puts every file back. After a successful migration the installer also removes the `led_effect` Klipper link and comments out its `moonraker.conf` entry (backed up). An effect named like a printer state (for example `heating`) becomes the scene `heating_fx`; `SET_LED_EFFECT EFFECT=heating` still finds it.
+   On a host with several printers, select the main config for the printer you are moving, for example `PRINTER_CFG=printer-2.cfg ./install.sh` or `--printer-cfg printer-2.cfg` on the Python command. The web page uses the config of the Klipper instance it is connected to.
+
+   Each effect becomes a Lightspeed scene. Existing `SET_LED_EFFECT` and `STOP_LED_EFFECTS` macros keep working. An effect named like a printer state, such as `heating`, becomes `heating_fx`. The macro can still use the original name.
+
+   An automatic migration preserves global Lightspeed settings, backs up existing files, comments out the old effect sections and adds the include if needed. The tool rereads the active config and checks the generated scenes before reporting success. If an existing config needs a manual merge, the tool prints the path to a separate draft. Review that file before restarting. Other printers can keep using the shared `led_effect` module and its Moonraker updater.
 3. Restart Klipper when the printer is idle.
 4. Open `http://<your-printer>/lightspeed.html`, design your strips and press **Save & apply**.
 

@@ -466,9 +466,10 @@ class ChainOutput(Output):
         self.chain = None
         self.helper = None
         self.led_count = 0
+        self.nbytes = 0
         self.busy = False
+        self.revision = 0
         self.last_bytes = None
-        self.state = None
         self.snapshot_done = None
 
     def connect(self):
@@ -484,10 +485,23 @@ class ChainOutput(Output):
                 "lightspeed: '%s %s' has no update_leds(); this Klipper is "
                 "not supported" % (self.kind, self.target))
         self.helper = getattr(self.chain, 'led_helper', None)
+        self.send_mutex = getattr(self.helper, 'mutex', None) or threading.Lock()
         status = self.chain.get_status(None)
-        self.state = [tuple(c) + (0.0,) * (4 - len(c))
-                      for c in status['color_data']]
-        self.led_count = len(self.state)
+        self.led_count = len(status['color_data'])
+        self.nbytes = self.led_count * 3
+        if self.kind == 'neopixel':
+            # Current Klipper packs all configured channels into color_data.
+            # Forks without that byte buffer still expose the config.
+            packed = getattr(self.chain, 'color_data', None)
+            if isinstance(packed, (bytes, bytearray)) and len(packed):
+                self.nbytes = len(packed)
+            else:
+                section = self.light.config.getsection('neopixel ' + self.target)
+                orders = section.getlist('color_order', ['GRB'])
+                if len(orders) == 1:
+                    self.nbytes = self.led_count * len(orders[0])
+                else:
+                    self.nbytes = sum(len(order) for order in orders)
         used = {}
         for strip in self.strips:
             if strip.leds is None:
@@ -505,14 +519,14 @@ class ChainOutput(Output):
                                   strip.name))
                 used[i] = strip.name
             strip.count = len(strip.leds)
-        self.fps = engine.mcu_fps(self.led_count * 3)
+        self.fps = engine.mcu_fps(self.nbytes)
 
     def push(self, eventtime, frames, guard):
         if guard:
             # Frozen while homing/probing. Small chains show the guard
             # scene once per state (a few hundred microseconds).
             if (self.snapshot_done == self.light.state
-                    or self.led_count * 3 > SNAPSHOT_MAX_BYTES):
+                    or self.nbytes > SNAPSHOT_MAX_BYTES):
                 return
         else:
             self.snapshot_done = None
@@ -520,7 +534,7 @@ class ChainOutput(Output):
             self.dropped += 1
             return
         gamma = engine.GAMMA
-        state = list(self.state)
+        updates = []
         for strip in self.strips:
             frame = frames.get(strip)
             if frame is None:
@@ -528,43 +542,62 @@ class ChainOutput(Output):
             raw = engine.to_bytes(frame,
                                   self.light.brightness * strip.brightness)
             for j, i in enumerate(strip.leds):
-                old_w = state[i][3]
-                state[i] = (gamma[raw[j * 3]] / 255.0,
-                            gamma[raw[j * 3 + 1]] / 255.0,
-                            gamma[raw[j * 3 + 2]] / 255.0, old_w)
-        key = tuple(state)
+                updates.append((i, gamma[raw[j * 3]] / 255.0,
+                                gamma[raw[j * 3 + 1]] / 255.0,
+                                gamma[raw[j * 3 + 2]] / 255.0))
+        key = tuple(updates)
         if key == self.last_bytes:
             return
-        self.last_bytes = key
-        self.state = state
         self.busy = True
-        self.snapshot_done = self.light.state if guard else None
-        nbytes = self.led_count * 3
+        snapshot = self.light.state if guard else None
+        revision = self.revision
         self.light.reactor.register_callback(
-            lambda et, s=state, n=nbytes: self._send(s, n))
+            lambda et: self._send(key, snapshot, revision))
 
-    def _send(self, state, nbytes):
+    def _send(self, key, snapshot, revision):
         try:
-            if self.light.shutdown or self.disabled:
-                return
-            mutex = getattr(self.helper, 'mutex', None)
-            if mutex is not None:
-                with mutex:
-                    self._update(state)
-            else:
-                self._update(state)
-            self.sent_bytes += nbytes
+            with self.send_mutex:
+                # Acquiring the helper mutex can yield to a command or
+                # homing move. A superseded frame must not reach the MCU.
+                if (self.light.shutdown or self.disabled or not self.light.enabled
+                        or self.revision != revision):
+                    return
+                guarded, _ = self.light._guard(self.light.reactor.monotonic())
+                if guarded != (snapshot is not None):
+                    return
+                if guarded and snapshot != self.light.state:
+                    return
+                self._update(key)
+            if self.revision == revision:
+                self.last_bytes = key
+                self.snapshot_done = snapshot
+            self.sent_bytes += self.nbytes
             self.ok()
         except Exception as e:
             self.fail(e)
         finally:
             self.busy = False
 
-    def _update(self, state):
+    def _update(self, updates):
+        # SET_LED may have changed an unmanaged pixel or white channel
+        # since the frame was queued. Merge at send time, under the lock.
+        live = getattr(self.helper, 'led_state', None)
+        if live is None:
+            live = self.chain.get_status(None)['color_data']
+        state = [tuple(c) + (0.0,) * (4 - len(c)) for c in live]
+        for index, red, green, blue in updates:
+            state[index] = (red, green, blue, state[index][3])
         self.chain.update_leds(state, None)
         # Keep Klipper's own view (Mainsail colour chips, SET_LED) in step
         if self.helper is not None and hasattr(self.helper, 'led_state'):
             self.helper.led_state = state
+
+    def invalidate(self):
+        self.revision += 1
+        self.last_bytes = None
+
+    def close(self):
+        self.invalidate()
 
 
 class WledOutput(Output):
@@ -578,27 +611,47 @@ class WledOutput(Output):
         self.port = int(port) if port else WLED_PORT
         self.addr = None
         self.sock = None
+        self.resolve_stop = None
+        self.resolve_lock = threading.Lock()
         self.last_frame = None
         self.last_send = 0.0
         self.fps = engine.NET_FPS
 
     def connect(self):
+        self.close()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setblocking(False)
         if re.match(r'^\d+\.\d+\.\d+\.\d+$', self.host):
             self.addr = (self.host, self.port)
         else:
             # Name lookup can block: do it off the reactor thread
-            t = threading.Thread(target=self._resolve)
+            self.resolve_stop = threading.Event()
+            t = threading.Thread(target=self._resolve, args=(self.resolve_stop,))
             t.daemon = True
             t.start()
 
-    def _resolve(self):
-        try:
-            self.addr = (socket.gethostbyname(self.host), self.port)
-        except Exception as e:
-            self.last_error = 'cannot resolve %s: %s' % (self.host, e)
-            logging.info("lightspeed: %s", self.last_error)
+    def _resolve(self, stop):
+        # A WLED node or local name service may come up after Klipper.
+        delay = 1.0
+        while not stop.is_set():
+            try:
+                addr = (socket.gethostbyname(self.host), self.port)
+            except OSError as exc:
+                message = 'cannot resolve %s: %s' % (self.host, exc)
+                with self.resolve_lock:
+                    if stop.is_set():
+                        return
+                    if self.last_error != message:
+                        logging.info("lightspeed: %s", message)
+                    self.last_error = message
+                stop.wait(delay)
+                delay = min(60.0, delay * 2.0)
+            else:
+                with self.resolve_lock:
+                    if not stop.is_set():
+                        self.addr = addr
+                        self.last_error = ''
+                return
 
     def push(self, eventtime, frames, guard):
         if self.addr is None:
@@ -634,11 +687,17 @@ class WledOutput(Output):
         self.ok()
 
     def close(self):
+        with self.resolve_lock:
+            if self.resolve_stop is not None:
+                self.resolve_stop.set()
+                self.resolve_stop = None
+            self.addr = None
         if self.sock is not None:
             try:
                 self.sock.close()
             except Exception:
                 pass
+            self.sock = None
 
 
 class EspBridgeOutput(Output):
@@ -938,6 +997,7 @@ class CustomScene(object):
 
 class Lightspeed(object):
     def __init__(self, config):
+        self.config = config
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
         self.gcode = self.printer.lookup_object('gcode')
@@ -966,6 +1026,7 @@ class Lightspeed(object):
         self.pstate = 'standby'
         self.outputs = []
         self.enabled = True
+        self._off_deadline = None
         self.shutdown = False
         self.state = 'idle'
         self.auto_state = 'idle'
@@ -1006,6 +1067,7 @@ class Lightspeed(object):
             # other printers on the LAN with Lightspeed (background scan)
             webhooks.register_endpoint('lightspeed/scan', self._web_scan)
             webhooks.register_endpoint('lightspeed/migrate', self._web_migrate)
+            webhooks.register_endpoint('lightspeed/restart_if_idle', self._web_restart_if_idle)
         self.printer.register_event_handler('klippy:ready', self._ready)
         self.printer.register_event_handler('klippy:shutdown', self._shut)
         self.printer.register_event_handler('klippy:disconnect',
@@ -1615,6 +1677,8 @@ class Lightspeed(object):
         # previews on top (a strip, a group or all), as before
         pv = dict((k, v[0]) for k, v in self.preview.items()
                   if eventtime < v[1])
+        if self._off_deadline is not None:
+            pv = {'all': ('off', {'reverse': 0})}
         if pv:
             top = engine.plan_strips(strips, self.groups,
                                      [('__preview__', 0, 0., pv)])
@@ -1682,6 +1746,9 @@ class Lightspeed(object):
         if self.mcu_slow < 1.0 and eventtime > self.mcu_slow_until:
             self.mcu_slow = 1.0
 
+        if self._off_deadline is not None and eventtime >= self._off_deadline:
+            self.enabled = False
+            self._off_deadline = None
         if not self.enabled:
             self._expected = None
             return eventtime + 0.5
@@ -1765,9 +1832,16 @@ class Lightspeed(object):
                 if spec is None or spec[0] != 'blink':
                     continue
                 half = max(0.05, spec[1].get('period', 1.0)) / 2.0
+                # Chains sample at their byte/time budget. Pins can align
+                # to edges when the pulse fits their current rate limit.
+                if isinstance(out, ChainOutput) or (out.uses_mcu
+                                                     and half < interval):
+                    continue
                 edge = (math.floor(eventtime / half) + 1.0) * half + 0.002
                 out.next_due = min(out.next_due, edge)
             soonest = min(soonest, out.next_due)
+        if self._off_deadline is not None:
+            soonest = min(soonest, self._off_deadline)
         self._expected = soonest
         return soonest
 
@@ -1805,6 +1879,9 @@ class Lightspeed(object):
                 'manual': int(max(0., (self.preview.get(s.name) or
                                        (None, 0.))[1] - eventtime)),
             }
+            if isinstance(out, ChainOutput):
+                strips[s.name]['chain_count'] = out.led_count
+                strips[s.name]['frame_bytes'] = out.nbytes
         guard, _ = self._guard(eventtime)
         active = sorted((c for c in self.custom.values() if c.active),
                         key=lambda c: (-c.priority, -c.since))
@@ -2005,24 +2082,72 @@ class Lightspeed(object):
             raise web_request.error("Lightspeed: %s" % (e,))
         web_request.send({'ok': True})
 
+    def _require_idle(self, request):
+        now = self.reactor.monotonic()
+        observed = False
+        for name, idle_states in (
+                ('print_stats', ('standby', 'complete', 'cancelled', 'error')),
+                ('idle_timeout', ('Idle', 'Ready'))):
+            obj = self.printer.lookup_object(name, None)
+            if obj is None:
+                continue
+            state = obj.get_status(now).get('state')
+            if state not in idle_states:
+                raise request.error("Lightspeed: printer is busy or its state is unknown")
+            observed = True
+        for name, field in (('virtual_sdcard', 'is_active'), ('pause_resume', 'is_paused')):
+            obj = self.printer.lookup_object(name, None)
+            if obj is not None and obj.get_status(now).get(field):
+                raise request.error("Lightspeed: not while a print is running or paused")
+        if not observed:
+            raise request.error("Lightspeed: printer state unavailable")
+
+    def _web_restart_if_idle(self, web_request):
+        # Take the same lock used by print-start commands. Recheck after
+        # acquisition so a previously accepted browser confirmation cannot
+        # interrupt a print started by another client in the meantime.
+        try:
+            mutex = self.gcode.get_mutex()
+            if mutex.test():
+                raise web_request.error("Lightspeed: another printer command is running")
+            with mutex:
+                self._require_idle(web_request)
+                self.gcode.run_script_from_command('FIRMWARE_RESTART')
+        except self.printer.command_error:
+            raise
+        except Exception as e:
+            logging.exception("lightspeed: guarded restart failed")
+            raise web_request.error("Lightspeed: cannot restart safely: %s" % (e,))
+        web_request.send({'ok': True})
+
     # ------------------------------------------------- led_effect migration from the page
-    def _migrate_run(self, tool, cfgdir):
-        # runs in a thread: the same tool the installer runs (backups, roll-back on any error)
+    def _migrate_run(self, tool, cfg):
+        # Work only on this instance's config. Klipper extras may be shared
+        # by other instances that still use led_effect.
         res = {'state': 'done', 'ok': False, 'output': '', 'removed': []}
         try:
-            py = sys.executable or 'python3'
-            r = subprocess.run([py, tool, '--config', cfgdir, '--apply'], stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT, timeout=180)
-            out = r.stdout.decode('utf-8', 'replace')
-            res['ok'] = r.returncode == 0
-            res['output'] = out[-4000:]
-            if res['ok']:
-                # the old plugin's link in Klipper's extras: Lightspeed answers SET_LED_EFFECT itself now
-                extras = os.path.dirname(os.path.abspath(__file__))
-                link = os.path.join(extras, 'led_effect.py')
-                if os.path.islink(link):
-                    os.remove(link)
-                    res['removed'].append(link)
+            cmd = [sys.executable or 'python3', tool, '--config',
+                   os.path.dirname(cfg), '--printer-cfg', os.path.basename(cfg)]
+            # Let the writer finish its transaction or roll back, even if
+            # the browser disconnects during the migration.
+            run = subprocess.run(cmd + ['--apply'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.STDOUT)
+            output = run.stdout.decode('utf-8', 'replace')
+            res['output'] = output[-4000:]
+            if run.returncode == 3:
+                res['state'] = 'merge_required'
+                for line in output.splitlines():
+                    if line.startswith('Wrote '):
+                        res['candidate'] = os.path.basename(line[6:])
+                        break
+            elif run.returncode == 0:
+                check = subprocess.run(cmd + ['--detect'], stdout=subprocess.PIPE,
+                                       stderr=subprocess.STDOUT, timeout=180)
+                res['ok'] = check.returncode == 1
+                if not res['ok']:
+                    res['output'] = ('Cannot verify migration of %s. '
+                                     'Check the active config before restarting.'
+                                     % os.path.basename(cfg))
         except Exception as e:
             logging.exception("lightspeed: led_effect migration failed")
             res['output'] = str(e)
@@ -2034,28 +2159,20 @@ class Lightspeed(object):
         try:
             start = _truthy(web_request.get('start', True))
             if start and self.migrate.get('state') != 'running':
-                ps = self.printer.lookup_object('print_stats', None)
-                st = ''
-                if ps is not None:
-                    try:
-                        st = str(ps.get_status(self.reactor.monotonic()).get('state', ''))
-                    except Exception:
-                        st = ''
-                if st in ('printing', 'paused'):
-                    raise web_request.error("Lightspeed: not while a print is running")
+                self._require_idle(web_request)
                 tool = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tools',
                                     'migrate_led_effect.py')
                 cfg = self.printer.get_start_args().get('config_file', '')
                 if not os.path.isfile(tool) or not cfg:
                     raise web_request.error("Lightspeed: migration tool or config not found")
                 self.migrate = {'state': 'running', 'ok': None, 'output': '', 'removed': []}
-                t = threading.Thread(target=self._migrate_run, args=(tool, os.path.dirname(cfg)))
+                t = threading.Thread(target=self._migrate_run, args=(tool, os.path.abspath(cfg)))
                 t.daemon = True
                 t.start()
             web_request.send(dict(self.migrate))
+        except self.printer.command_error:
+            raise
         except Exception as e:
-            if hasattr(e, 'status_code') or type(e).__name__ == 'WebRequestError':
-                raise
             logging.exception("lightspeed: migrate request failed")
             raise web_request.error("Lightspeed: %s" % (e,))
 
@@ -2211,6 +2328,7 @@ class Lightspeed(object):
     def cmd_ENABLE(self, gcmd):
         on = gcmd.get_int('VALUE', 1, minval=0, maxval=1)
         if on:
+            self._off_deadline = None
             self.enabled = True
             self.tick_errors = 0
             for out in self.outputs:
@@ -2221,20 +2339,17 @@ class Lightspeed(object):
                 self._kick()
             gcmd.respond_info("Lightspeed: on")
         else:
-            # Show black once, then go quiet
-            self.preview['all'] = (('off', {'reverse': 0}),
-                                   self.reactor.monotonic() + 2.0)
+            # Blackout temporarily takes precedence over all previews. An
+            # ON command can cancel it before the next tick or deadline.
+            self._off_deadline = self.reactor.monotonic() + 1.0
             self._kick()
-            self.reactor.register_callback(
-                lambda et: setattr(self, 'enabled', False),
-                self.reactor.monotonic() + 1.0)
             gcmd.respond_info("Lightspeed: off")
 
     def _kick(self):
         for out in self.outputs:
             out.next_due = 0.0
             if isinstance(out, ChainOutput):
-                out.last_bytes = None
+                out.invalidate()
         if self.timer is not None:
             self.reactor.update_timer(self.timer, self.reactor.NOW)
 

@@ -826,7 +826,7 @@ def test_existing_and_force():
         before = snapshot(d)
         code, out = run_tool('--config', d, '--apply')
         after = snapshot(d)
-        check(code == 0 and 'NOT switched' in out and
+        check(code == 3 and 'NOT switched' in out and
               all(after.get(k) == v for k, v in before.items()),
               'existing lightspeed.cfg + --apply: config left unchanged, '
               'only the migrated file is written')
@@ -850,6 +850,69 @@ def test_existing_and_force():
             os.path.join(d, 'lightspeed.cfg')).read(),
             'the installer\'s example lightspeed.cfg is replaced (backed up)')
     finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def test_preserve_global_settings():
+    own = ('# LED power limit\n[lightspeed]\nbrightness: 0.15\n'
+           'guard_commands: MY_SCAN\n')
+    files = dict(SB, **{'lightspeed.cfg': own})
+    files['printer.cfg'] = '[include lightspeed.cfg]\n' + files['printer.cfg']
+    d = make_dir(files)
+    try:
+        code, _ = run_tool('--config', d, '--apply')
+        cp = klipper_read(os.path.join(d, 'printer.cfg'))
+        check(code == 0 and cp.get('lightspeed', 'brightness') == '0.15'
+              and cp.get('lightspeed', 'guard_commands') == 'MY_SCAN'
+              and cp.has_section('lightspeed scene sb_logo_busy'),
+              'custom globals survive migration alongside the new scenes')
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def test_overlapping_files():
+    legacy = SB['stealthburner_leds.cfg']
+    d = make_dir({'printer.cfg': '[include lightspeed.cfg]\n',
+                  'lightspeed.cfg': legacy})
+    try:
+        original = snapshot(d)
+        for mode in ([], ['--force']):
+            code, _ = run_tool('--config', d, '--apply', *mode)
+            after = snapshot(d)
+            check(code == 3 and all(after[k] == v for k, v in original.items())
+                  and run_tool('--config', d, '--detect')[0] == 0,
+                  'shared source and target: legacy remains active and intact '
+                  '(%s)' % (mode or 'normal'))
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def test_backup_collision():
+    d = make_dir({'lightspeed.cfg': 'old config'})
+    try:
+        path = os.path.join(d, 'lightspeed.cfg')
+        first = M.back_up(path, 'same-second')
+        with open(path, 'w') as f:
+            f.write('second config')
+        second = M.back_up(path, 'same-second')
+        check(first != second and M.read_file(first) == 'old config'
+              and M.read_file(second) == 'second config',
+              'a same-second backup preserves both originals')
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def test_unloaded_output_rolls_back():
+    d = make_dir(SB)
+    original_add = M.Editor._add_include
+    try:
+        before = snapshot(d)
+        M.Editor._add_include = lambda self: None
+        code, report = run_tool('--config', d, '--apply')
+        check(code == 2 and 'is not loaded' in report and snapshot(d) == before,
+              'rollback if the generated sections are absent from the active config')
+    finally:
+        M.Editor._add_include = original_add
         shutil.rmtree(d, ignore_errors=True)
 
 
@@ -961,6 +1024,10 @@ def main():
     migrate_case('multi', MULTI, expect_multi)
     migrate_case('odd', ODD, expect_odd)
     test_existing_and_force()
+    test_preserve_global_settings()
+    test_overlapping_files()
+    test_backup_collision()
+    test_unloaded_output_rolls_back()
     test_rollback()
     test_no_led_effect()
     test_moonraker()
