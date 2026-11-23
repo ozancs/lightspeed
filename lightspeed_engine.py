@@ -25,7 +25,7 @@
 import math
 import re
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 STATES = ('shutdown', 'error', 'homing', 'probing', 'paused', 'heating',
           'printing', 'complete', 'idle')

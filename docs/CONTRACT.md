@@ -52,6 +52,10 @@ hotend: solid color=00ffff   # <strip | group | all>: <effect spec>
 `shutdown, error, homing, probing, paused, heating, printing, complete, idle`
 (chosen in that order). `homing` = G28, `probing` = any probe move or a wrapped
 calibration command (BED_MESH_CALIBRATE, QUAD_GANTRY_LEVEL, Z_TILT_ADJUST, ...).
+`G28` selects the homing scene before a homing override starts its preparation
+moves. Nested axis commands share that scene until the outer command finishes.
+An available ESP bridge receives its scene before the override can suspend it.
+Small MCU chains queue one guard frame. Large chains stay frozen.
 `complete` lasts 60 s after a print ends.
 
 ### Custom scenes, priorities, resolution

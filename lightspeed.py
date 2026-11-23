@@ -35,6 +35,7 @@ __version__ = engine.__version__
 # Calibration commands during which MCU LED traffic stays frozen, and the
 # printer state shown meanwhile (None = keep the current scene).
 GUARDED_COMMANDS = {
+    'G28': 'homing',
     'BED_MESH_CALIBRATE': 'probing', 'QUAD_GANTRY_LEVEL': 'probing',
     'Z_TILT_ADJUST': 'probing', 'SCREWS_TILT_CALCULATE': 'probing',
     'PROBE': 'probing', 'PROBE_ACCURACY': 'probing',
@@ -760,24 +761,39 @@ class EspBridgeOutput(Output):
                       * 255))
         p = round(_clamp01(p), 2)
         old = self.keys
+        state_key = ('%s.st' % self.prefix, self.light.state)
         self.keys = [
             ('%s.fx' % self.prefix, fx),
             ('%s.rgb' % self.prefix, rgb),
             ('%s.p' % self.prefix, '%.2f' % p),
             ('%s.b' % self.prefix, '%d' % b),
-            ('%s.st' % self.prefix, self.light.state),
+            state_key,
         ]
         self.ok()
-        if blink and old != self.keys:
-            # the bridge publishes a few times a second; a blink edge goes
-            # out now so the node does not lag the others
-            pub = getattr(self.bridge, '_publish_pass', None)
-            quiet = getattr(self.bridge, '_silenced', lambda: False)
-            if pub is not None and not quiet():
-                try:
-                    pub(eventtime)
-                except Exception:
-                    logging.exception("lightspeed: esp_bridge publish failed")
+        guard_entry = (self.light.state in ('homing', 'probing')
+                       and state_key not in old)
+        if guard_entry or (blink and old != self.keys):
+            # Stage the effect before the bridge suppresses traffic for a
+            # homing move. A suspended bridge reads these keys on resume.
+            self._publish_now(eventtime)
+
+    def _publish_now(self, eventtime):
+        try:
+            if (not getattr(self.bridge, '_enabled', True)
+                    or getattr(self.bridge, '_silenced', lambda: False)()):
+                return
+            publish = getattr(self.bridge, 'publish', None)
+            if publish is not None:
+                # The bridge deduplicates keys against its own send cache.
+                for key, value in self.keys:
+                    if publish(key, value) is False:
+                        break
+            else:
+                flush = getattr(self.bridge, '_publish_pass', None)
+                if flush is not None:
+                    flush(eventtime)
+        except Exception:
+            logging.exception("lightspeed: esp_bridge publish failed")
 
     def _produce(self, eventtime):
         if self.disabled or not self.light.enabled:
@@ -1044,6 +1060,7 @@ class Lightspeed(object):
         # guard
         self.homing_depth = 0
         self.rails_depth = 0
+        self.g28_depth = 0
         self.guard_until = 0.0
         self.guard_kind = None
         self.cmd_depth = 0
@@ -1347,9 +1364,13 @@ class Lightspeed(object):
                 def wrapper(gcmd, old=old, kind=kind):
                     self._cmd_begin(kind)
                     try:
-                        old(gcmd)
+                        if kind == 'homing' and self.g28_depth == 1:
+                            # The override can suspend esp_bridge before the
+                            # first axis move or even the first reactor yield.
+                            self._show_homing_entry()
+                        return old(gcmd)
                     finally:
-                        self._cmd_end()
+                        self._cmd_end(kind)
                 g.register_command(name, wrapper, desc=desc)
                 g._lightspeed_wrapped.add(name)
             except Exception:
@@ -1463,18 +1484,41 @@ class Lightspeed(object):
         self.guard_until = self.reactor.monotonic() + GUARD_HOLD
 
     def _cmd_begin(self, kind):
+        if kind == 'homing':
+            self.g28_depth += 1
+            return
         self.cmd_depth += 1
         if self.cmd_depth == 1:
             self.cmd_kind = kind
 
-    def _cmd_end(self):
+    def _show_homing_entry(self):
+        if not self.enabled or self.shutdown or self.timer is None:
+            return
+        try:
+            # Prepare the first frame now, including the ESP producer keys.
+            # The small MCU snapshot still uses its normal reactor callback.
+            now = self.reactor.monotonic()
+            for out in self.outputs:
+                out.next_due = now
+            self.reactor.update_timer(self.timer, self._tick(now))
+        except Exception:
+            # A lighting failure must never prevent the original G28.
+            logging.exception("lightspeed: could not show the G28 entry scene")
+
+    def _cmd_end(self, kind):
+        if kind == 'homing':
+            self.g28_depth -= 1
+            if not self.g28_depth:
+                self.guard_kind = 'homing'
+                self.guard_until = self.reactor.monotonic() + GUARD_HOLD
+            return
         self.cmd_depth = max(0, self.cmd_depth - 1)
         self.guard_kind = self.cmd_kind
         self.guard_until = self.reactor.monotonic() + GUARD_HOLD
 
     def _guard(self, now):
         """(active, state to show or None)"""
-        if self.rails_depth:
+        if self.rails_depth or self.g28_depth:
             return True, 'homing'
         if self.cmd_depth:
             return True, self.cmd_kind
